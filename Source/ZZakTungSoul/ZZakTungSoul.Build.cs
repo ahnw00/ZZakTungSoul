@@ -14,30 +14,13 @@ public class ZZakTungSoul : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
-			"AIModule",
-			"StateTreeModule",
-			"GameplayStateTreeModule",
-			"UMG",
-			"Slate"
+			"AIModule"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {
-			"ZZakTungSoul",
-			"ZZakTungSoul/Variant_Platforming",
-			"ZZakTungSoul/Variant_Platforming/Animation",
-			"ZZakTungSoul/Variant_Combat",
-			"ZZakTungSoul/Variant_Combat/AI",
-			"ZZakTungSoul/Variant_Combat/Animation",
-			"ZZakTungSoul/Variant_Combat/Gameplay",
-			"ZZakTungSoul/Variant_Combat/Interfaces",
-			"ZZakTungSoul/Variant_Combat/UI",
-			"ZZakTungSoul/Variant_SideScrolling",
-			"ZZakTungSoul/Variant_SideScrolling/AI",
-			"ZZakTungSoul/Variant_SideScrolling/Gameplay",
-			"ZZakTungSoul/Variant_SideScrolling/Interfaces",
-			"ZZakTungSoul/Variant_SideScrolling/UI"
+			"ZZakTungSoul"
 		});
 
 		// Uncomment if you are using Slate UI

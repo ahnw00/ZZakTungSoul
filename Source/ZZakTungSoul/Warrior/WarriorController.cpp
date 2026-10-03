@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Warrior/WarriorController.h"
@@ -95,10 +95,12 @@ void AWarriorController::Move(const FInputActionValue& InputValue)
 {
 	APawn* ControlledPawn = GetPawn();
 	if (!ControlledPawn)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Cannot get ControlledPawn"));
 		return;
+	}
 
 	const FVector2D MoveVector = InputValue.Get<FVector2D>();
-	//UE_LOG(LogTemp, Log, TEXT("x: %f, y: %f"), MoveVector.X, MoveVector.Y);
 	if (MoveVector.Size() < .1f)
 		return;
 
@@ -121,6 +123,8 @@ void AWarriorController::Move(const FInputActionValue& InputValue)
 
 	ControlledPawn->AddMovementInput(ForwardDirection, MoveVector.Y);
 	ControlledPawn->AddMovementInput(RightDirection, MoveVector.X);
+
+	//UE_LOG(LogTemp, Log, TEXT("Move"));
 }
 
 void AWarriorController::Idle()
@@ -167,6 +171,7 @@ void AWarriorController::BlockStart()
 	{
 		Warrior->BlockStart();
 	}
+	//UE_LOG(LogTemp, Log, TEXT("Block"));
 }
 
 void AWarriorController::BlockEnd()
@@ -186,6 +191,8 @@ void AWarriorController::Dodge()
 
 		Warrior->Dodge(ControlDir);
 	}
+
+	//UE_LOG(LogTemp, Log, TEXT("Dodge"));
 }
 
 void AWarriorController::Roll()
@@ -202,6 +209,7 @@ void AWarriorController::Attack()
 	{
 		Warrior->Attack();
 	}
+	//UE_LOG(LogTemp, Log, TEXT("Attack"));
 }
 
 void AWarriorController::LockOn()
@@ -210,6 +218,7 @@ void AWarriorController::LockOn()
 	{
 		Warrior->LockOn();
 	}
+	//UE_LOG(LogTemp, Log, TEXT("LockOn"));
 }
 
 void AWarriorController::ChangeLockOn(const FInputActionValue& InputValue)

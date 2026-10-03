@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Warrior/Warrior.h"
@@ -13,8 +13,8 @@
 //DataTable
 //#include "Data/CharacterStatData.h"
 
-//#include "Anim/TestAnimInstance.h"
-//#include "Enemy/TestAIController.h"
+#include "Anim/WarriorAnimInstance.h"
+#include "Enemy/WarriorAIController.h"
 #include "Engine/OverlapResult.h"
 
 AWarrior::AWarrior()
@@ -59,8 +59,8 @@ AWarrior::AWarrior()
 	Camera->SetupAttachment(SpringArm);
 	Camera->bUsePawnControlRotation = false;
 
-	//LockOnPoint = CreateDefaultSubobject<UArrowComponent>(TEXT("LockOnPoint"));
-	//LockOnPoint->SetupAttachment(RootComponent);
+	LockOnPoint = CreateDefaultSubobject<UArrowComponent>(TEXT("LockOnPoint"));
+	LockOnPoint->SetupAttachment(RootComponent);
 
 	// Character Movement Setting
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -70,20 +70,26 @@ AWarrior::AWarrior()
 	//CharacterDataTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/DataTable/DT_CharacterStat.DT_CharacterStat"));
 
 	// Player가 소유하지 않으면 AI가 소유해
-	//AIControllerClass = ATestAIController::StaticClass();
-	//AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	AIControllerClass = AWarriorAIController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 void AWarrior::BeginPlay()
 {
 	Super::BeginPlay();
+
+	UpdateCharacterStats(1);
 }
 
 void AWarrior::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-
+	AnimInstance = Cast<UWarriorAnimInstance>(GetMesh()->GetAnimInstance());
+	if (AnimInstance)
+	{
+		AnimInstance->OnMontageEnded.AddDynamic(this, &AWarrior::OnActionMontageEnded);
+	}
 }
 
 void AWarrior::Tick(float DeltaTime)
@@ -130,8 +136,11 @@ void AWarrior::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 }
 
+// 락온 시에 카메라가 대상에 고정이 되도록(Tick에서 호출될 함수)
 void AWarrior::UpdateLockOnCamera(float DeltaTime)
 {
+	// 락온 컴포넌트 아직 없어서 일단은 그냥 캐릭터 생성하면 붙어있는 Arrow 컴포넌트로 한거
+	// Todo: 나중에 LockOn 컴포넌트 만들어서 UI로도 보여주게 해야할거 같아요
 	if (!LockOnTarget->GetArrowComponent())
 		return;
 	//else UE_LOG(LogTemp, Log, TEXT("ArrowExists"));
@@ -224,71 +233,292 @@ void AWarrior::UpdateLockOnCamera(float DeltaTime)
 	PC->SetControlRotation(TargetRot);
 }
 
+// 락온 시에 몸이 락온 대상을 향하도록(지금 캐릭터 회전과 SpringArm 회전 비동기 상태라서)
 void AWarrior::UpdateLook(float DeltaTime)
 {
+	if (!LockOnTarget) return;
+	if (!LockOnTarget->GetArrowComponent()) return;
+
+	FVector TargetLocation = LockOnTarget->GetArrowComponent()->GetComponentLocation();
+	FVector LookVec = TargetLocation - GetActorLocation();
+
+	FRotator TargetRotation = LookVec.Rotation();
+	TargetRotation.Pitch = 0.f;
+	TargetRotation.Roll = 0.f;
+
+	FRotator CurrentRotation = GetActorRotation();
+
+	FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.f);
+	SetActorRotation(NewRotation);
 }
 
 void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	if (Montage == AnimInstance->GetBlockMontage())
+		return;
+
+	if (bIsAttacking)
+	{
+		bIsAttacking = false;
+		AttackCombo = 0;
+	}
+	SetActionState(EActionState::None);
 }
 
 void AWarrior::UpdateCharacterStats(int32 CharacterLevel)
 {
+	//if (CharacterDataTable == nullptr)
+	//	return;
+
+	//// 데이터 테이블에서 정보 가져오기
+	//FName RowName = FName(*FString::FromInt(CharacterLevel));
+	//CharacterStats =
+	//	CharacterDataTable->FindRow<FCharacterStatData>(
+	//		RowName,
+	//		TEXT("Character Stat Lookup")
+	//	);
+
+	//if (CharacterStats)
+	//{
+	//	GetCharacterMovement()->MaxAcceleration = CharacterStats->MaxAcceleration;
+	//	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
+	//	GetCharacterMovement()->BrakingDecelerationWalking = CharacterStats->BrakingDecelerationWalking;
+	//}
+
+	// 임시로 직접 값 넣어준거
+	GetCharacterMovement()->MaxAcceleration = 600.f;
+	GetCharacterMovement()->MaxWalkSpeed = 400.f;
+	GetCharacterMovement()->BrakingDecelerationWalking = 600.f;
 }
 
 void AWarrior::SprintStart()
 {
+	if (bIsSprint)
+		return;
+
+	bIsSprint = true;
+	// 임시로 값 직접 넣어준거(달리는 속도 600)
+	GetCharacterMovement()->MaxWalkSpeed = 600.f;
 }
 
 void AWarrior::SprintEnd()
 {
+	bIsSprint = false;
+	// 다시 원래 걷는 속도로
+	GetCharacterMovement()->MaxWalkSpeed = 400.f;
 }
 
 void AWarrior::BlockStart()
 {
+	if (ActionState != EActionState::None)
+		return;
+	if (OverlayState != EOverlayState::None)
+		return;
+
+	//OverlayState = EOverlayState::Block;
+	SetOverlayState(EOverlayState::Block);
+	AnimInstance->PlayBlockMontage();
 }
 
 void AWarrior::BlockEnd()
 {
+	if (OverlayState != EOverlayState::Block)
+		return;
+
+	//OverlayState = EOverlayState::None;
+	SetOverlayState(EOverlayState::None);
+	AnimInstance->StopBlockMontage();
 }
 
 void AWarrior::Attack()
 {
+	if (!bIsAttacking)
+		bIsAttacking = true;
+	else // if (bIsAttacking)
+		AttackCombo++;
+
+	if (ActionState != EActionState::None)
+		return;
+	if (OverlayState != EOverlayState::None)
+		BlockEnd();
+
+	//ActionState = EActionState::Attack;
+	SetActionState(EActionState::Attack);
+	AnimInstance->PlayAttackMontage();
 }
 
+// 이때 당시에 애니메이션 애셋이 이상해서 위치를 직접 조정해주었는데
+// 애셋이 제대로 되어있다면 이렇게 안하고 애니메이션 재생시켜주는거 더 좋을거 같아요
 void AWarrior::Dodge(FVector ControlDir)
 {
+	//UE_LOG(LogTemp, Warning, TEXT("ActionState : %d"), (int)GetActionState());
+	//UE_LOG(LogTemp, Warning, TEXT("MoveState : %d"), (int)GetMoveState());
+	if (ActionState != EActionState::None)
+		return;
+
+	if (MoveState == EMoveState::Idle)
+	{
+		//ActionState = EActionState::BackStep;
+		SetActionState(EActionState::BackStep);
+		AnimInstance->PlayBackStepMontage();
+		LaunchCharacter(-GetActorForwardVector() * 2400.f, true, false);
+		return;
+	}
+
+	SetActionState(EActionState::Roll);
+	AnimInstance->PlayRollMontage();
+
+	// 구를때는 이동 방향으로 굴러야해
+	// 회전 안잡아주면 카메라가 바라보는 방향으로만 구르게 돼(특히 락온 상태에서)
+	FRotator RollRot = ControlDir.Rotation();
+	SetActorRotation(RollRot);
 }
 
 void AWarrior::LockOn()
 {
+	if (!bLockOn)
+	{
+		if (!GetOverlaps())
+			return;
+
+		float BestDot = -1.f;
+		FVector CameraLocation = Camera->GetComponentLocation();
+		FVector CameraForward = Camera->GetForwardVector();
+
+		for (const auto& OverlapResult : OverlapResults)
+		{
+			ACharacter* Detected = Cast<ACharacter>(OverlapResult.GetActor());
+
+			if (!Detected) continue;
+			if (Detected->GetController()->IsPlayerController()) continue;
+
+			FVector Dir = (Detected->GetActorLocation() - CameraLocation).GetSafeNormal();
+			float Dot = FVector::DotProduct(Dir, CameraForward);
+
+			// cos60 = 0.5 -> 60도보다 크면 무시
+			if (Dot < 0.5f) continue;
+
+			//DrawDebugPoint(GetWorld(), Detected->GetActorLocation(), 50.f, FColor::Purple, false, 10.f);
+			if (Dot > BestDot)
+			{
+				BestDot = Dot;
+				SetLockOnTarget(Detected);
+			}
+		}
+	}
+	else
+	{
+		ResetLockOnTarget();
+	}
 }
 
 void AWarrior::ChangeLockOn(bool flag)
 {
+	if (!bLockOn) return;
+
+	if (!GetOverlaps())
+		return;
+
+	float BestDot = -1.f;
+	FVector CameraLocation = Camera->GetComponentLocation();
+	FVector CameraForward = Camera->GetForwardVector();
+
+	for (const auto& OverlapResult : OverlapResults)
+	{
+		ACharacter* Detected = Cast<ACharacter>(OverlapResult.GetActor());
+
+		if (!Detected) continue;
+		if (Detected == LockOnTarget) continue;
+		if (Detected->GetController()->IsPlayerController()) continue;
+
+		APlayerController* PC = Cast<APlayerController>(GetController());
+		if (!PC) return;
+
+		// 스크린 상에서 타겟의 위치
+		FVector2D ScreenPos;
+		PC->ProjectWorldLocationToScreen(Detected->GetArrowComponent()->GetComponentLocation(), ScreenPos);
+
+		// 화면 크기
+		int32 SizeX, SizeY;
+		PC->GetViewportSize(SizeX, SizeY);
+
+		if (flag && ScreenPos.X > SizeX / 2) continue; // 왼쪽키 눌렀는데 감지된게 오른쪽에 있으면
+		if (!flag && ScreenPos.X < SizeX / 2) continue;// 오른쪽키 눌렀는데 감지된게 왼쪽에 있으면
+
+		FVector Dir = (Detected->GetActorLocation() - CameraLocation).GetSafeNormal();
+		float Dot = FVector::DotProduct(Dir, CameraForward);
+
+		// cos60 = 0.5 -> 60도보다 크면 무시
+		if (Dot < 0.5f) continue;
+
+		//DrawDebugPoint(GetWorld(), Detected->GetActorLocation(), 50.f, FColor::Purple, false, 10.f);
+		if (Dot > BestDot)
+		{
+			BestDot = Dot;
+			SetLockOnTarget(Detected);
+		}
+	}
+	UE_LOG(LogTemp, Log, TEXT("Change LockOn"));
 }
 
 bool AWarrior::GetOverlaps()
 {
-	return false;
+	UWorld* World = GetWorld();
+	if (!World) return false;
+
+	FVector Center = this->GetActorLocation();
+	float DetectRadius = 600.f;
+
+	//TArray<FOverlapResult> OverlapResults;
+	FCollisionQueryParams CollisionQueryParam(NAME_None, false, this);
+	bool bResult = World->OverlapMultiByChannel(
+		OverlapResults,
+		Center,
+		FQuat::Identity,
+		ECollisionChannel::ECC_GameTraceChannel2,
+		FCollisionShape::MakeSphere(DetectRadius),
+		CollisionQueryParam
+	);
+
+	DrawDebugSphere(World, Center, DetectRadius, 16, FColor::Red, false, 0.2f);
+
+	return bResult;
 }
 
 void AWarrior::SetLockOnTarget(ACharacter* Target)
 {
+	bLockOn = true;
+	LockOnTarget = Target;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 }
 
 void AWarrior::ResetLockOnTarget()
 {
+	bLockOn = false;
+	LockOnTarget = nullptr;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
 }
 
 void AWarrior::SetMoveState(EMoveState NewState)
 {
+	if (MoveState == NewState)
+		return;
+
+	MoveState = NewState;
 }
 
 void AWarrior::SetActionState(EActionState NewState)
 {
+	if (NewState != EActionState::None && ActionState != EActionState::None)
+		return;
+
+	ActionState = NewState;
 }
 
 void AWarrior::SetOverlayState(EOverlayState NewState)
 {
+	if (OverlayState == NewState)
+		return;
+
+	OverlayState = NewState;
 }

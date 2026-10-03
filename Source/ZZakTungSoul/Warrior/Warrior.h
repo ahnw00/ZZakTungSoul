@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -40,6 +40,7 @@ private:
 
 	class ACharacter* LockOnTarget;
 	bool bLockOn = false;
+	// 락온 시에 카메라가 대상에 고정이 되도록(Tick에서 호출될 함수)
 	void UpdateLockOnCamera(float DeltaTime);
 	void UpdateLook(float DeltaTime);
 
@@ -52,15 +53,15 @@ private:
 
 	int32 AttackCombo = 0;
 
-	class UTestAnimInstance* AnimInstance;
+	class UWarriorAnimInstance* AnimInstance;
 
 	UFUNCTION()
 	void OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Data", meta = (AllowPrivateAccess = "true"))
-	class UDataTable* CharacterDataTable; // 블루프린트에서 데이터 테이블을 직접 참조
-	struct FCharacterStatData* CharacterStats; // 데이터 테이블에서 단일 행을 참조해 캐릭터 스탯으로 사용
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Data", meta = (AllowPrivateAccess = "true"))
+	//class UDataTable* CharacterDataTable; // 블루프린트에서 데이터 테이블을 직접 참조
+	//struct FCharacterStatData* CharacterStats; // 데이터 테이블에서 단일 행을 참조해 캐릭터 스탯으로 사용
 	void UpdateCharacterStats(int32 CharacterLevel);
 
 public:
@@ -78,10 +79,13 @@ public:
 
 	UPROPERTY()
 	TArray<FOverlapResult> OverlapResults;
+
 	void LockOn();
 	void ChangeLockOn(bool flag);
 	bool GetOverlaps();
 	FORCEINLINE bool IsLockOn() const { return bLockOn; }
+
+	// Getter/Setter
 	void SetLockOnTarget(ACharacter* Target);
 	void ResetLockOnTarget();
 	FORCEINLINE ACharacter* GetLockOnTarget() { return LockOnTarget; }
@@ -95,6 +99,7 @@ public:
 	FORCEINLINE EOverlayState GetOverlayState() const { return OverlayState; }
 	void SetOverlayState(EOverlayState NewState);
 
+	// AnimMontage 관련
 	FORCEINLINE void EndAction() { ActionState = EActionState::None; }
 
 	FORCEINLINE int32 GetCombo() const { return AttackCombo; }

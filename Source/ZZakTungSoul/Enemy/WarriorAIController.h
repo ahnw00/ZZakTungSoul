@@ -19,7 +19,9 @@ public:
 
 	virtual void OnPossess(APawn* InPawn) override;
 
+	// 탐지한 플레이어(Object) 담을 Blackboard변수의 Key 값
 	static const FName TargetKey;
+	// 순찰 포인트(Vector) 담을 Blackboard변수의 Key 값
 	static const FName PatrolPosKey;
 
 private:

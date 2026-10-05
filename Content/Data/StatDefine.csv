@@ -1,0 +1,18 @@
+﻿---,DisplayName,InitialValue,MinValue,MaxValue,bUpgradeable,Describes
+Vigor,생명력,10,1,99,TRUE,
+Attunement,집중력,10,1,99,TRUE,
+Endurance,지구력,10,1,99,TRUE,
+Vitality,체력,10,1,99,TRUE,
+Strength,근력,10,1,99,TRUE,
+Dexterity,기량,10,1,99,TRUE,
+HP,생명,250,1,999,FALSE,
+FP,마나,50,1,999,FALSE,
+Stamina,스태미나,60,1,999,FALSE,
+EquipLoad,장비 중량,50,1,999,FALSE,
+Poise,강인도,3,1,999,FALSE,"이 수치가 높을수록 경직에 잘 안 걸림,
+착용한 방어구에 의해 올라가는 수치"
+AttackPower,공격력,20,1,999,FALSE,
+Defense,방어력,5,1,999,FALSE,
+Resistance,저항,3,1,999,FALSE,"화염, 독, 번개 등 내성 수치"
+MaxWalkSpeed,이동 속도,300,300,600,FALSE,
+OverloadedSpeed,과중 속도,200,150,200,FALSE,

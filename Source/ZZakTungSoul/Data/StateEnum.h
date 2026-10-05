@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "StateEnum.generated.h"
 
+
 UENUM(BlueprintType)
 enum class EMoveState : uint8
 {

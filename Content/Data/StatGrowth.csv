@@ -1,0 +1,15 @@
+---,StatID,Target,MinLevel,MaxLevel,Value
+Growth_001,Vigor,HP,1,20,10
+Growth_002,Vigor,HP,21,40,7
+Growth_003,Attunement,FP,1,20,10
+Growth_004,Attunement,FP,21,40,7
+Growth_005,Endurance,Stamina,1,20,10
+Growth_006,Endurance,Stamina,21,40,7
+Growth_007,Endurance,Defense,1,20,10
+Growth_008,Endurance,Defense,21,40,7
+Growth_009,Vitality,EquipLoad,1,20,10
+Growth_010,Vitality,EquipLoad,21,40,7
+Growth_011,Vitality,Resistance,1,20,10
+Growth_012,Vitality,Resistance,21,40,7
+Growth_013,Strength,AttackPower,0,0,0
+Growth_014,Dexterity,AttackPower,0,0,0

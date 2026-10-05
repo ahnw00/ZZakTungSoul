@@ -64,6 +64,9 @@ protected:
 	//struct FCharacterStatData* CharacterStats; // 데이터 테이블에서 단일 행을 참조해 캐릭터 스탯으로 사용
 	void UpdateCharacterStats(int32 CharacterLevel);
 
+	UPROPERTY(VisibleAnywhere, Category = "Stat")
+	TObjectPtr<class UCharacterStatComponent> CharacterStatComponent;
+
 public:
 	void SprintStart();
 	void SprintEnd();

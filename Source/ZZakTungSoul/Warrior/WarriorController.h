@@ -44,6 +44,12 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* IA_ChangeLockOn;
 
+	// 세이브 로드 테스트용
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_Save;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_Load;
+
 private:
 	void Move(const struct FInputActionValue& InputValue);
 	void Idle();
@@ -72,4 +78,8 @@ private:
 
 	void ActionPressed();
 	void ActionReleased();
+
+	// 세이브/로드 함수
+	void Save();
+	void Load();
 };

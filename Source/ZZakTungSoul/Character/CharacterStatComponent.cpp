@@ -3,6 +3,9 @@
 
 #include "Character/CharacterStatComponent.h"
 
+#include <Data/StatDefine.h>
+
+
 // Sets default values for this component's properties
 UCharacterStatComponent::UCharacterStatComponent()
 {
@@ -10,7 +13,13 @@ UCharacterStatComponent::UCharacterStatComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
+	static ConstructorHelpers::FObjectFinder<UDataTable> StatDefineTableAsset(
+		TEXT("/Game/Blueprints/Data/DT_StatDefine.DT_StatDefine")
+	);
+	if (StatDefineTableAsset.Succeeded())
+	{
+		StatDefineTable = StatDefineTableAsset.Object;
+	}
 }
 
 
@@ -21,6 +30,15 @@ void UCharacterStatComponent::BeginPlay()
 
 	// ...
 	
+}
+
+void UCharacterStatComponent::LoadCharacterStat()
+{
+	if (StatDefineTable)
+	{
+		TArray<FStatDefine*> CharacterStatsRows;
+		StatDefineTable->GetAllRows<FStatDefine>(TEXT(""), CharacterStatsRows);
+	}
 }
 
 

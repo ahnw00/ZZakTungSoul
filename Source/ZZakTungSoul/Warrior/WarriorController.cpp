@@ -13,6 +13,8 @@
 #include <TimerManager.h>
 #include <Engine/OverlapResult.h>
 
+#include <GamePlay/ZTSGameMode.h>
+
 AWarriorController::AWarriorController()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -35,6 +37,12 @@ AWarriorController::AWarriorController()
 	if (ia_lockon.Succeeded()) IA_LockOn = ia_lockon.Object;
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_changelockon(TEXT("/Game/Input/IA_ChangeLockOn.IA_ChangeLockOn"));
 	if (ia_changelockon.Succeeded()) IA_ChangeLockOn = ia_changelockon.Object;
+
+	// 세이브/로드 테스트
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_save(TEXT("/Game/Input/IA_Save.IA_Save"));
+	if (ia_save.Succeeded()) IA_Save = ia_save.Object;
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_load(TEXT("/Game/Input/IA_Load.IA_Load"));
+	if (ia_load.Succeeded()) IA_Load = ia_load.Object;
 }
 
 void AWarriorController::BeginPlay()
@@ -89,6 +97,10 @@ void AWarriorController::SetupInputComponent()
 	EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Started, this, &AWarriorController::Attack);
 	EnhancedInput->BindAction(IA_LockOn, ETriggerEvent::Completed, this, &AWarriorController::LockOn);
 	EnhancedInput->BindAction(IA_ChangeLockOn, ETriggerEvent::Triggered, this, &AWarriorController::ChangeLockOn);
+
+	// 세이브/로드 바인드
+	EnhancedInput->BindAction(IA_Save, ETriggerEvent::Completed, this, &AWarriorController::Save);
+	EnhancedInput->BindAction(IA_Load, ETriggerEvent::Completed, this, &AWarriorController::Load);
 }
 
 void AWarriorController::Move(const FInputActionValue& InputValue)
@@ -254,5 +266,25 @@ void AWarriorController::ActionReleased()
 	else
 	{
 		SprintEnd();
+	}
+}
+
+void AWarriorController::Save()
+{
+	AZTSGameMode* GameMode = Cast<AZTSGameMode>(GetWorld()->GetAuthGameMode());
+
+	if (GameMode)
+	{
+		GameMode->SaveGame();
+	}
+}
+
+void AWarriorController::Load()
+{
+	AZTSGameMode* GameMode = Cast<AZTSGameMode>(GetWorld()->GetAuthGameMode());
+
+	if (GameMode)
+	{
+		GameMode->LoadGame();
 	}
 }

@@ -14,7 +14,8 @@ public class ZZakTungSoul : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
-			"AIModule"
+			"AIModule",
+			"NavigationSystem"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

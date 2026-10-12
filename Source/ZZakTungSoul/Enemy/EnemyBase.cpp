@@ -2,6 +2,7 @@
 
 
 #include "Enemy/EnemyBase.h"
+#include <Enemy/EnemyAIController.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
 
@@ -15,6 +16,12 @@ AEnemyBase::AEnemyBase()
 
 	// 초기 이동 속도 설정
 	GetCharacterMovement()->MaxWalkSpeed = PatrolSpeed;
+
+	// AIController 설정
+	AIControllerClass = AEnemyAIController::StaticClass();
+
+	// AI제어 타입 설정
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 void AEnemyBase::BeginPlay()

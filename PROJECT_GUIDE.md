@@ -211,3 +211,55 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 3. **액션 시 스태미너 소모 및 자연 회복**:
    * 구르기(`Dodge`) 시 Stamina 25 감소.
    * `Tick` 또는 타이머를 통해 비전투 시 초당 일정량 회복 로직 구현.
+
+---
+
+## 7. 스탯 시스템 고도화 및 HUD 연동 진행 내역 (2026-10-12 진행)
+
+### 7-1. 모듈 의존성 설정 (`ZZakTungSoul.Build.cs`)
+* C++에서 UMG 위젯(`UUserWidget`, `UProgressBar`) 및 렌더링 코어에 접근할 수 있도록 모듈 의존성 확장:
+  * `PublicDependencyModuleNames`: `"UMG"` 추가 (프로젝트 전역에서 위젯 헤더 및 타입 참조 허용)
+  * `PrivateDependencyModuleNames`: `"Slate"`, `"SlateCore"` 활성화 (UMG 내부 기반 레이아웃 및 렌더링 프레임워크 링크)
+
+### 7-2. 위젯 블루프린트(`WBP_PlayerHUD`) 레이아웃 완성
+* `Size Box`를 활용한 소울라이크 게이지 규격 고정 완료:
+  * HP: 가로 400, 세로 22 (Red)
+  * FP: 가로 350, 세로 18 (Blue)
+  * Stamina: 가로 300, 세로 18 (Green)
+* `Is Variable` 활성화하여 향후 C++ 및 블루프린트 바인딩 준비 완료.
+
+### 7-3. `CharacterStatComponent.h` 인터페이스 및 이벤트 시스템 구축
+* **이벤트 기반 디커플링 (Delegate)**:
+  * `DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStateChangedDelegate, float, CurrentValue, float, MaxValue);`
+  * `OnHPChanged`, `OnFPChanged`, `OnStaminaChanged` 선언을 통해 UI와 스탯 컴포넌트 간의 결합도 최소화.
+* **성능 최적화 및 안정성 (Getter)**:
+  * `FORCEINLINE`과 `const`를 적용한 6종의 기본 게터 구현.
+  * 0으로 나누기 방지 및 `FMath::Clamp(..., 0.f, 1.f)`를 적용한 `UFUNCTION(BlueprintPure)` 비율 게터(`GetHPRatio`, `GetFPRatio`, `GetStaminaRatio`) 구현.
+* **전투 스탯 제어 인터페이스**:
+  * `SetCurrentHP`, `ApplyDamage`, `SetCurrentFP`, `UseFP`, `SetCurrentStamina`, `UseStamina`, `BroadcastAllStats` 선언.
+* **소울라이크 스태미너 자연 회복 파라미터**:
+  * `StaminaRegenRate` (초당 30 회복, `EditAnywhere`로 에디터 튜닝 지원).
+  * `StaminaRegenDelay` (소모 후 1초 지연, `EditAnywhere`로 에디터 튜닝 지원).
+  * `LastStaminaUseTime` 타임스탬프 기록용 변수 및 `RegenerateStamina(float DeltaTime)` 선언.
+
+### 7-4. 프로젝트 코드 일관성 분석 결과
+* **기존 코드와 일치하는 점**:
+  * 인라인 게터 스타일 (`FORCEINLINE ... const { return ...; }`) 및 대괄호 주석 컨벤션 계승.
+* **개선 및 조율 포인트**:
+  * 기존 프로젝트에서는 상태 머신에 `State`(`EMoveState`, `EActionState`), 능력치에는 `Stat`(`CharacterStatComponent`, `FStatDefine`)을 엄격히 구분하여 사용 중.
+  * 따라서 델리게이트 이름도 `FOnStateChangedDelegate`보다 **`FOnStatChangedDelegate`**로 통일하는 것이 프로젝트 전반의 네이밍 일관성에 부합함.
+
+---
+
+## 8. 다음 작업 로드맵 (Next Steps)
+1. `CharacterStatComponent.cpp` 구현:
+   * `BeginPlay()`에서 `BroadcastAllStats()` 호출 (초기 HUD 동기화)
+   * `TickComponent()`에서 `RegenerateStamina(DeltaTime)` 호출
+   * `UseStamina()`, `UseFP()`, `ApplyDamage()` 등 상세 로직 구현
+2. `AWarrior` 캐릭터 클래스 연동:
+   * 생성자에서 `CharacterStatComponent` 인스턴스화 (`CreateDefaultSubobject`)
+   * `Dodge()` 실행 시 `UseStamina(25.f)` 소모 및 부족 시 회피 취소 로직 연결
+3. `WBP_PlayerHUD` 위젯 화면 출력 및 스탯 델리게이트 바인딩:
+   * `AWarriorController::BeginPlay()`에서 위젯 생성(`CreateWidget`) 및 뷰포트 추가(`AddToViewport`)
+   * 캐릭터의 `OnHPChanged`, `OnFPChanged`, `OnStaminaChanged` 이벤트와 위젯 바인딩
+

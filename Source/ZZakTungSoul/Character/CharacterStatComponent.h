@@ -29,16 +29,22 @@ public:
 private:
 	// 능력치로부터 계산되는 최대치
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
-	float MaxHP = 0.f;
+	float MaxHP = 100.f;
 
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
-	float MaxFP = 0.f;
+	float MaxFP = 100.f;
 
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
-	float MaxStamina = 0.f;
+	float MaxStamina = 100.f;
 
 	UPROPERTY(VisibleAnywhere, Category = "CurrentStat")
-	float CurrentStamina = 0.f;
+	float CurrentHP = 100.f;
+	
+	UPROPERTY(VisibleAnywhere, Category = "CurrentStat")
+	float CurrentFP = 100.f;
+	
+	UPROPERTY(VisibleAnywhere, Category = "CurrentStat")
+	float CurrentStamina = 100.f;
 
 	// 계산된 전투 스탯
 	UPROPERTY(VisibleAnywhere, Category = "Stat")

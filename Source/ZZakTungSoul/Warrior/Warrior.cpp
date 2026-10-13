@@ -12,6 +12,8 @@
 
 //DataTable
 //#include "Data/CharacterStatData.h"
+#include <Warrior/WarriorPlayerState.h>
+#include <Character/CharacterStatComponent.h>
 
 #include "Anim/WarriorAnimInstance.h"
 #include "Enemy/WarriorAIController.h"
@@ -66,8 +68,8 @@ AWarrior::AWarrior()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	bUseControllerRotationYaw = false;
 
-	// Load DataTable
-	//CharacterDataTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/DataTable/DT_CharacterStat.DT_CharacterStat"));
+	// Character Stat
+	CharacterStatComponent = CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStat"));
 
 	// Player가 소유하지 않으면 AI가 소유해
 	AIControllerClass = AWarriorAIController::StaticClass();
@@ -78,7 +80,7 @@ void AWarrior::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UpdateCharacterStats(1);
+	UpdateCharacterStats();
 }
 
 void AWarrior::PostInitializeComponents()
@@ -265,7 +267,7 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 	SetActionState(EActionState::None);
 }
 
-void AWarrior::UpdateCharacterStats(int32 CharacterLevel)
+void AWarrior::UpdateCharacterStats()
 {
 	//if (CharacterDataTable == nullptr)
 	//	return;
@@ -284,6 +286,13 @@ void AWarrior::UpdateCharacterStats(int32 CharacterLevel)
 	//	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
 	//	GetCharacterMovement()->BrakingDecelerationWalking = CharacterStats->BrakingDecelerationWalking;
 	//}
+
+	AWarriorPlayerState* PS = GetPlayerState<AWarriorPlayerState>();
+	
+	if (!PS)
+		return;
+
+	CharacterStatComponent->UpdateCharacterStat(PS->GetSaveData().Attributes);
 
 	// 임시로 직접 값 넣어준거
 	GetCharacterMovement()->MaxAcceleration = 600.f;

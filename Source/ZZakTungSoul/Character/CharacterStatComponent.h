@@ -20,11 +20,13 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	void LoadCharacterStat();
+public:
+	// 초기값에서 Attribute 값을 계산하여 최종 스탯 로드해주기
+	void UpdateCharacterStat(const struct FWarriorAttributeData& Attributes);
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+private:
+	// 초기값 csv에서 읽어온 데이터 테이블 값으로 초기화해주기
+	float GetStatInitialValue(const FName& StatName) const;
 
 private:
 	// 능력치로부터 계산되는 최대치
@@ -66,4 +68,19 @@ private:
 private:
 	UPROPERTY()
 	TObjectPtr<UDataTable> StatDefineTable;
+
+	UPROPERTY()
+	TObjectPtr<UDataTable> StatGrowthTable;
+
+	// 키 값 설정
+	inline static const FName HpKey = TEXT("HP");
+	inline static const FName FpKey = TEXT("FP");
+	inline static const FName StaminaKey = TEXT("Stamina");
+	inline static const FName EquipLoadKey = TEXT("EquipLoad");
+	inline static const FName PoiseKey = TEXT("Poise");
+	inline static const FName AttackPowerKey = TEXT("AttackPower");
+	inline static const FName DefenseKey = TEXT("Defense");
+	inline static const FName ResistanceKey = TEXT("Resistance");
+	inline static const FName WalkSpeedKey = TEXT("MaxWalkSpeed");
+	inline static const FName OverloadedSpeedKey = TEXT("OverloadedSpeed");
 };

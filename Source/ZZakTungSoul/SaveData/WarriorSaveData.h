@@ -4,33 +4,33 @@
 #include "WarriorSaveData.generated.h"
 
 USTRUCT(BlueprintType)
-struct ZZAKTUNGSOUL_API FWarriorAttributeData
+struct FWarriorAttributeData
 {
 	GENERATED_BODY()
 
 
     // 플레이어가 성장/증가시킨 값
     UPROPERTY()
-    int32 Vigor = 10;
+    int32 Vigor = 0;
 
     UPROPERTY()
-    int32 Attunement = 10;
+    int32 Attunement = 0;
 
     UPROPERTY()
-    int32 Endurance = 10;
+    int32 Endurance = 0;
 
     UPROPERTY()
-    int32 Vitality = 10;
+    int32 Vitality = 0;
 
     UPROPERTY()
-    int32 Strength = 10;
+    int32 Strength = 0;
 
     UPROPERTY()
-    int32 Dexterity = 10;
+    int32 Dexterity = 0;
 };
 
 USTRUCT(BlueprintType)
-struct ZZAKTUNGSOUL_API FWarriorSaveData
+struct FWarriorSaveData
 {
     GENERATED_BODY()
 

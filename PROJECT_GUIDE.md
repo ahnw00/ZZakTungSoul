@@ -251,15 +251,46 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 ---
 
-## 8. 다음 작업 로드맵 (Next Steps)
-1. `CharacterStatComponent.cpp` 구현:
-   * `BeginPlay()`에서 `BroadcastAllStats()` 호출 (초기 HUD 동기화)
-   * `TickComponent()`에서 `RegenerateStamina(DeltaTime)` 호출
-   * `UseStamina()`, `UseFP()`, `ApplyDamage()` 등 상세 로직 구현
-2. `AWarrior` 캐릭터 클래스 연동:
-   * 생성자에서 `CharacterStatComponent` 인스턴스화 (`CreateDefaultSubobject`)
-   * `Dodge()` 실행 시 `UseStamina(25.f)` 소모 및 부족 시 회피 취소 로직 연결
-3. `WBP_PlayerHUD` 위젯 화면 출력 및 스탯 델리게이트 바인딩:
-   * `AWarriorController::BeginPlay()`에서 위젯 생성(`CreateWidget`) 및 뷰포트 추가(`AddToViewport`)
-   * 캐릭터의 `OnHPChanged`, `OnFPChanged`, `OnStaminaChanged` 이벤트와 위젯 바인딩
+## 8. `CharacterStatComponent.cpp` 구현 및 핵심 원리 정리 (2026-10-13 진행)
 
+### 🤝 멘토링 및 협업 규칙 (Pair Programming Rule)
+* **원칙 1**: 모든 실제 소스 코드(`.h`, `.cpp`) 타이핑 및 작성은 개발자(Bae)가 직접 수행하며, AI(Antigravity)는 원리 설명과 가이드 역할만 수행한다.
+* **원칙 2**: 코드 가이드를 제공할 때는 한 번에 모든 파트를 쏟아내지 않고, **한 번에 한 파트씩만 설명**한 뒤 질의응답을 모두 마치고 다음 파트로 넘어간다.
+
+### 8-1. `CharacterStatComponent.cpp` 구현 완료 내역
+1. **초기화 및 틱 연동**:
+   * `BeginPlay()`: `BroadcastAllStats()` 호출로 게임 시작 시 HUD 초기 상태 동기화.
+   * `TickComponent()`: 매 프레임 `RegenerateStamina(DeltaTime)` 호출.
+2. **Setter 및 델리게이트 방송 (`Broadcast`)**:
+   * `SetCurrentHP`, `SetCurrentFP`, `SetCurrentStamina`: `FMath::Clamp`로 범위를 제한하고 `OnHPChanged`, `OnFPChanged`, `OnStaminaChanged` 델리게이트를 각각 `Broadcast`.
+3. **전투 소모 및 피해 처리**:
+   * `ApplyDamage(float InDamage)`: `0.f` 이하 데미지 무시 후 `SetCurrentHP(CurrentHP - InDamage)` 호출.
+   * `UseFP(float Amount)`: 잔여 FP 확인 후 차감.
+   * `UseStamina(float Amount)`: 스태미너 차감 및 `LastStaminaUseTime` 갱신.
+4. **스태미너 자연 회복 (`RegenerateStamina`)**:
+   * `CurrentTime - LastStaminaUseTime < StaminaRegenDelay`(1초) 동안 회복 대기 후, 초당 `StaminaRegenRate * DeltaTime`만큼 부드럽게 회복.
+
+### 8-2. 핵심 Q&A 및 개념 노트
+
+#### Q1. 다크 소울 스타일의 `UseStamina` 구현 방식은?
+* **일반 RPG 방식**: `if (CurrentStamina < Amount) return false;` (필요량보다 적으면 아예 행동 불가)
+* **심플 다크 소울 방식**: `if (CurrentStamina <= 0.f) return false;` (스태미너가 `1`이라도 남아 있으면 무조건 마지막 회피/공격 발동 후 `0`이 됨)
+* **찐 다크 소울 (마이너스 스태미너/빚) 방식**:
+  * 스태미너가 `5` 남았을 때 `25`짜리 액션을 쓰면 내부적으로 `-20`까지 내려가며, 다시 양수가 될 때까지 회복 시간이 더 걸리는 패널티 부여.
+  * 구현 시 `SetCurrentStamina`의 하한이 `0.f`로 막혀 있으면 음수가 잘리므로, 하한을 `-50.f`로 낮추거나 `UseStamina` 내부에서 `SetCurrentStamina`를 거치지 않고 직접 `FMath::Clamp(CurrentStamina - Amount, -50.f, MaxStamina)` 처리 후 직접 1회 `Broadcast` 수행 (중복 방송 주의).
+
+#### Q2. `if (UWorld* World = GetWorld()) { LastStaminaUseTime = World->GetTimeSeconds(); }`의 원리는?
+1. **`UWorld`와 `GetWorld()`**: 액터 컴포넌트가 자신이 속한 게임 월드(세상)의 포인터를 가져옴.
+2. **선언과 동시 Null 체크**: 에디터 프리뷰나 맵 전환 시 `GetWorld()`가 `nullptr`일 수 있으므로 크래시 방지를 위해 조건문 안에서 포인터 유효성을 검사함.
+3. **스톱워치 원리 (`GetTimeSeconds()`)**: 게임 시작(`0.0초`)부터 흐른 시간을 기록해 두고, 매 프레임 `현재 시각 - 마지막 사용 시각` 뺄셈만으로 1초 지연(`StaminaRegenDelay`)을 별도 타이머 없이 효율적으로 구현함.
+
+---
+
+## 9. 다음 작업 로드맵 (Next Steps - 2단계부터 이어서 진행)
+
+* **[진행 예정] 2단계: `AWarrior` 캐릭터 클래스에 스탯 컴포넌트 연동**
+  * **파트 1**: `Warrior.h`의 `public:` 영역에 `GetCharacterStatComponent()` Getter 추가
+  * **파트 2**: `Warrior.cpp` 생성자에서 `CreateDefaultSubobject`로 컴포넌트 생성 및 `Dodge()` 시 `UseStamina(25.f)` 연결
+* **[대기] 3단계: `WBP_PlayerHUD` 화면 출력 및 델리게이트 바인딩**
+  * `AWarriorController::BeginPlay()`에서 위젯 생성(`CreateWidget`) 및 뷰포트 출력(`AddToViewport`)
+  * `OnHPChanged`, `OnFPChanged`, `OnStaminaChanged` 이벤트와 프로그레스 바 연동

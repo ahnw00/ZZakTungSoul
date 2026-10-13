@@ -6,7 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CharacterStatComponent.generated.h"
 
-// 1. 델리게이트 선언
+// 델리게이트 선언
 // 스탯이 바뀔 때(현재값, 최대값) 2개의 float 데이터를 방송하는 델리게이트 타입 정의.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatChangedDelegate, float, CurrentValue, float, MaxValue);
 
@@ -30,7 +30,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 
-	// 2. [이벤트 방송 변수]: UI나 다른 시스템이 바인딩(구독)할 수 있는 델리게이트.
+	// [이벤트 방송 변수]: UI나 다른 시스템이 바인딩(구독)할 수 있는 델리게이트.
 	UPROPERTY(BlueprintAssignable, Category = "Stat|Events")
 	FOnStatChangedDelegate OnHPChanged;
 
@@ -40,7 +40,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Stat|Events")
 	FOnStatChangedDelegate OnStaminaChanged;
 
-	// 3. [Getter].
+	// [Getter].
 	FORCEINLINE float GetCurrentHP() const { return CurrentHP; }
 	FORCEINLINE float GetMaxHP() const { return MaxHP; }
 	FORCEINLINE float GetCurrentFP() const { return CurrentFP; }
@@ -48,7 +48,7 @@ public:
 	FORCEINLINE float GetCurrentStamina() const { return CurrentStamina; }
 	FORCEINLINE float GetMaxStamina() const { return MaxStamina; }
 
-	// 4. [비율 Getter].
+	// [비율 Getter].
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetHPRatio() const { return MaxHP > 0.f ? FMath::Clamp(CurrentHP / MaxHP, 0.f, 1.f) : 0.f; }
 
@@ -58,7 +58,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetStaminaRatio() const { return MaxStamina > 0.f ? FMath::Clamp(CurrentStamina / MaxStamina, 0.f, 1.f) : 0.f; }
 
-	// 5. [스탯 제어 및 소모 함수].
+	// [스탯 제어 및 소모 함수].
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void SetCurrentHP(float NewHP);
 
@@ -83,7 +83,7 @@ public:
 	void BroadcastAllStats();
 
 private:
-	//6. [스테미너 자연 회복 파라미터].
+	// [스테미너 자연 회복 파라미터].
 	UPROPERTY(EditAnywhere, Category = "Stat|Stamina")
 	float StaminaRegenRate = 30.f; // 초당 30 회복.
 
@@ -98,19 +98,16 @@ private:
 	// 능력치로부터 계산되는 최대치
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	float MaxHP = 100.f;
-
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	float MaxFP = 100.f;
-
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	float MaxStamina = 100.f;
 
+	// 적이나 보스 등 다른 객체에도 사용할 것이기 때문에 CurrentHP, CurrentFP 추가.
 	UPROPERTY(VisibleAnywhere, Category = "CurrentStat")
 	float CurrentHP = 100.f;
-	
 	UPROPERTY(VisibleAnywhere, Category = "CurrentStat")
 	float CurrentFP = 100.f;
-	
 	UPROPERTY(VisibleAnywhere, Category = "CurrentStat")
 	float CurrentStamina = 100.f;
 
@@ -123,17 +120,14 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	float AttackPower = 0.f;
-
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	float Defense = 0.f;
-
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	float Resistance = 0.f;
 
 	// 이동 속도 값
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	float MaxWalkSpeed = 0.f;
-
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	float OverloadedSpeed = 0.f;
 

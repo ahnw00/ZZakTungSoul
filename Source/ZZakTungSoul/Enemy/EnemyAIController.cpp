@@ -5,6 +5,7 @@
 #include <Enemy/EnemyBase.h>
 
 #include <BehaviorTree/BehaviorTree.h>
+#include <BehaviorTree/BlackboardData.h>
 #include <BehaviorTree/BlackboardComponent.h>
 #include <Perception/AIPerceptionComponent.h>
 #include <Perception/AISenseConfig_Sight.h>
@@ -13,7 +14,12 @@
 
 AEnemyAIController::AEnemyAIController()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	// Blackboard 설정
+	static ConstructorHelpers::FObjectFinder<UBlackboardData> BlackboardAssetRef(TEXT("/Game/Blueprints/Enemy/AI/BB_EnemyBase.BB_EnemyBase"));
+	if (BlackboardAssetRef.Succeeded())
+	{
+		BlackboardAsset = BlackboardAssetRef.Object;
+	}
 
 	// Perception 컴포넌트 생성
 	EnemyPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerceptionComponent"));

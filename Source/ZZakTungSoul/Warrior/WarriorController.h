@@ -78,6 +78,13 @@ private:
 
 	void ActionPressed();
 	void ActionReleased();
+	
+	// [UI]
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<class UUserWidget> PlayerHUDWidgetClass;
+	UPROPERTY()
+	TObjectPtr<class UUserWidget> PlayerHUDWidget;
+
 
 	// 세이브/로드 함수
 	void Save();

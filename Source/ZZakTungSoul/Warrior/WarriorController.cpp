@@ -15,6 +15,8 @@
 
 #include <GamePlay/ZTSGameMode.h>
 
+#include <Blueprint/UserWidget.h>
+
 AWarriorController::AWarriorController()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -43,6 +45,16 @@ AWarriorController::AWarriorController()
 	if (ia_save.Succeeded()) IA_Save = ia_save.Object;
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_load(TEXT("/Game/Input/IA_Load.IA_Load"));
 	if (ia_load.Succeeded()) IA_Load = ia_load.Object;
+
+	// [UI]
+	static ConstructorHelpers::FClassFinder<UUserWidget> PlayerHUDClassRef(
+		TEXT("/Game/UI/WBP_PlayerHUD.WBP_PlayerHUD_C")
+	);
+	if (PlayerHUDClassRef.Succeeded())
+	{
+		PlayerHUDWidgetClass = PlayerHUDClassRef.Class;
+	}
+
 }
 
 void AWarriorController::BeginPlay()
@@ -62,6 +74,16 @@ void AWarriorController::BeginPlay()
 		PlayerCameraManager->ViewPitchMax = 45.f;
 	}
 	else UE_LOG(LogTemp, Log, TEXT("No PlayerCameraManager"));
+
+	// [HUD 위젯]
+	if (PlayerHUDWidgetClass)
+	{
+		PlayerHUDWidget = CreateWidget<UUserWidget>(this, PlayerHUDWidgetClass);
+		if (PlayerHUDWidget)
+		{
+			PlayerHUDWidget->AddToViewport();
+		}
+	}
 }
 
 void AWarriorController::Tick(float DeltaTime)

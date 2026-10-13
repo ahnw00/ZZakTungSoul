@@ -300,10 +300,69 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 ---
 
-## 9. 다음 작업 로드맵 (Next Steps - 대망의 3단계!)
+## 9. C++ 기반 UMG HUD 위젯 시스템 구축 및 화면 연동 완료 (2026-10-13 진행)
+
+### 9-1. 컨트롤러의 위젯 화면 생성 및 출력 (`AWarriorController`)
+* **변수 선언 및 클래스 기본값 로드**:
+  * `TSubclassOf<UUserWidget> PlayerHUDWidgetClass;`
+  * `TObjectPtr<UUserWidget> PlayerHUDWidget;`
+  * 생성자에서 `ConstructorHelpers::FClassFinder<UUserWidget> PlayerHUDClassRef(TEXT("/Game/UI/WBP_PlayerHUD.WBP_PlayerHUD_C"));`로 기본 클래스 자동 매핑 (언리얼 파스칼 케이스 표준 준수 및 `PlayerHUD` 접두사 일관성 유지).
+* **화면 출력 (`BeginPlay`)**:
+  * `CreateWidget<UUserWidget>(this, PlayerHUDWidgetClass)` 후 `AddToViewport()`로 게임 시작 즉시 화면에 렌더링.
+
+### 9-2. 순수 C++ UI 두뇌 클래스 제작 (`UPlayerHUDWidget`)
+* **경로**: `Source/ZZakTungSoul/UI/PlayerHUDWidget.h`, `.cpp`
+* **아키텍처 철학 (MVC 패턴 적용)**:
+  * 블루프린트는 오직 비주얼 디자인(뷰)만 담당하고, 복잡한 데이터 바인딩 및 계산 로직은 100% C++에 위임하여 블루프린트 스파게티 선을 원천 배제.
+* **`meta = (BindWidget)`을 통한 1:1 자동 바인딩**:
+  * `ProgressBar_HP`, `ProgressBar_FP`, `ProgressBar_Stamina`를 C++ 변수로 선언하여 `WBP_PlayerHUD`의 프로그레스 바와 컴파일 타임 1:1 자동 결합.
+* **생명주기 초기화 (`NativeConstruct`)**:
+  * `Super::NativeConstruct()` 호출로 엔진 기본 초기화 수행.
+  * `GetOwningPlayerPawn()` ➔ `AWarrior` ➔ `GetCharacterStatComponent()` 탐색 및 안전한 널 체크.
+  * `AddDynamic`으로 델리게이트 3총사 전선 연결:
+    * `StatComp->OnHPChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateHP);`
+    * `StatComp->OnFPChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateFP);`
+    * `StatComp->OnStaminaChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateStamina);`
+  * `StatComp->BroadcastAllStats()` 호출: 게임 시작 시 현재 스탯(100/100)을 즉시 1회 방송하여 UI 초기화(0% 빈 화면 문제 해결).
+* **콜백 함수 구현 (`SetPercent`)**:
+  * `UpdateHP(float CurrentHP, float MaxHP)`: `FMath::Clamp(CurrentHP / MaxHP, 0.f, 1.f)` 연산 후 `ProgressBar_HP->SetPercent(Ratio)`.
+  * `UpdateFP`, `UpdateStamina` 동일 구현 (`CharacterStatComponent`의 명명 규칙과 일관성 유지).
+
+### 9-3. 위젯 블루프린트 부모 변경 (Reparent) 및 인게임 검증
+* `WBP_PlayerHUD`의 부모 클래스를 `UserWidget`에서 우리가 작성한 `PlayerHUDWidget`으로 성공적으로 Reparent 완료.
+* 인게임(`Alt + P`) 실행 시, 게임 시작과 동시에 HP(Red), FP(Blue), Stamina(Green) 게이지가 100%로 꽉 채워진 채 화면 좌측 상단에 정상 출력됨을 최종 검증 완료.
+
+---
+
+## 10. 향후 UI 고도화 로드맵 (UI Specialist Next Steps)
 
 * **[완료] 1단계: `CharacterStatComponent` 설계 및 구현**
 * **[완료] 2단계: `AWarrior` 캐릭터에 스탯 컴포넌트 부착 및 구르기 스태미너 소모 연동**
-* **[진행 예정] 3단계: `WBP_PlayerHUD` 위젯 화면 출력 및 델리게이트 바인딩 (UI 시각화)**
-  * **파트 1**: `AWarriorController`에 `TSubclassOf<UUserWidget>` HUD 클래스 변수 추가 및 `BeginPlay()`에서 `CreateWidget` $\rightarrow$ `AddToViewport()`로 화면에 띄우기
-  * **파트 2**: `WBP_PlayerHUD` 위젯 블루프린트에서 캐릭터의 `OnHPChanged`, `OnFPChanged`, `OnStaminaChanged` 델리게이트를 구독하여 프로그레스 바(HP, FP, Stamina) Percent 실시간 갱신하기!
+* **[완료] 3단계: `PlayerHUDWidget` C++ 클래스 제작 및 `WBP_PlayerHUD` 실시간 델리게이트 바인딩**
+
+---
+
+### 🎯 [진행 예정] 1. UI 코드베이스 고도화 (가독성 / 일관성 / 확장성 리팩토링)
+1. **델리게이트 네이밍 일관성 완성**:
+   * `FOnStateChangedDelegate` ➔ `FOnStatChangedDelegate`로 변경하여 상태 머신(`State`)과 능력치(`Stat`) 어휘 명확히 분리.
+2. **UI 클래스 확장성 및 구조 정리**:
+   * HUD 외에 향후 추가될 다양한 UI(스탯창, 보스 바, 알림창 등)를 체계적으로 관리할 수 있도록 컨트롤러의 UI 관리 구조 및 널 안전성 강화.
+3. **주석 및 코딩 컨벤션 정돈**:
+   * 파스칼 케이스, 주석 번호 체계, 카테고리 일관성 통일.
+
+---
+
+### 🎯 [진행 예정] 2. 소울라이크 스탯 정보창 (Status Window UI) 제작 & CSV 연동
+1. **스탯창 토글 단축키 매핑**:
+   * 특정 키(예: `C` 키 또는 `Tab` 키)를 눌렀을 때 스탯 정보창을 열고 닫는 토글 기능 구현.
+   * 메뉴가 열렸을 때 마우스 커서 표시(`bShowMouseCursor`) 및 UI 입력 모드 전환(`SetInputModeGameAndUI`).
+2. **C++ 위젯 기반 클래스 (`UStatusWindowWidget`) 제작**:
+   * `Source/ZZakTungSoul/UI/StatusWindowWidget.h`, `.cpp`
+3. **`Content/Data` CSV 데이터 테이블(DT)과의 동적 연동**:
+   * `StatDefine.csv` (주 스탯 6종: Vigor, Attunement, Endurance, Vitality, Strength, Dexterity 및 파생 스탯 10종).
+   * `StatGrowth.csv` (소프트캡 구간별 성장치) & `LevelRequiredSouls.csv` (레벨업 필요 소울).
+   * 캐릭터의 현재 레벨, 보유 소울, 스탯 수치를 읽어와 텍스트 블록에 실시간 반영.
+4. **위젯 블루프린트 (`WBP_StatusWindow`) 디자인**:
+   * 소울라이크 특유의 중후한 메뉴 레이아웃 및 텍스트 블록 배치.
+
+

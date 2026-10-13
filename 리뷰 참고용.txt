@@ -12,8 +12,8 @@ StatDefine의 EquipLoad는 최대 하중 성장 수치입니다.
 HP/FP/Stamina가 거의 같은 코드로 세 번 반복됩니다. Current, Max, Delegate, Set, Use, Ratio가 각각 세 벌입니다. 
 스탯을 하나 더 넣으려면 6곳 이상을 고쳐야 합니다. 
 적이나 보스처럼 FP/Stamina가 없는 개체도 구조상 불필요한 멤버를 갖게 됩니다. 두 가지 방향이 있습니다.
-가볍게: Clamp, 대입, Broadcast를 하는 private 헬퍼 하나로 SetCurrent*의 중복만 줄입니다.
-데이터 기반으로: EResourceType(또는 StatDefine 행 이름과 같은 FName) 키와 {Current, Max} 구조체의 맵으로 합칩니다. 
+1. 가볍게: Clamp, 대입, Broadcast를 하는 private 헬퍼 하나로 SetCurrent*의 중복만 줄입니다.
+2. 데이터 기반으로: EResourceType(또는 StatDefine 행 이름과 같은 FName) 키와 {Current, Max} 구조체의 맵으로 합칩니다. 
 델리게이트가 하나뿐이면 UI 바인딩이 불편해지는 대신 타입 인자를 받으면 됩니다. 
 이쪽이 StatDefine과 StatGrowth가 이미 FName 키 기반이라 방향이 맞습니다.
 

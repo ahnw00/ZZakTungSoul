@@ -68,6 +68,7 @@ protected:
 	TObjectPtr<class UCharacterStatComponent> CharacterStatComponent;
 
 public:
+
 	void SprintStart();
 	void SprintEnd();
 	FORCEINLINE bool IsSprint() const { return bIsSprint; }
@@ -89,6 +90,10 @@ public:
 	FORCEINLINE bool IsLockOn() const { return bLockOn; }
 
 	// Getter/Setter
+	
+	// [캐릭터 스탯].
+	FORCEINLINE class UCharacterStatComponent* GetCharacterStatComponent() const { return CharacterStatComponent; }
+	
 	void SetLockOnTarget(ACharacter* Target);
 	void ResetLockOnTarget();
 	FORCEINLINE ACharacter* GetLockOnTarget() { return LockOnTarget; }

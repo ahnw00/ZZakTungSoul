@@ -100,9 +100,6 @@ bool UCharacterStatComponent::UseFP(float Amount)
 }
 bool UCharacterStatComponent::UseStamina(float Amount)
 {
-	// TODO: 다크 소울 형식 고려.
-	// 1. 간단 버전.
-	//if (CurrentStamina <= 0.f)
 	if (CurrentStamina <= Amount)
 	{
 		return false;
@@ -118,6 +115,27 @@ bool UCharacterStatComponent::UseStamina(float Amount)
 	
 	return true;
 }
+
+//	// TODO: 다크 소울 형식 고려.
+//	// 1. 간단 버전.
+//bool UCharacterStatComponent::UseStamina(float Amount)
+//{
+//	//if (CurrentStamina <= 0.f)
+//	if (CurrentStamina <= Amount)
+//	{
+//		return false;
+//	}
+//	SetCurrentStamina(CurrentStamina - Amount);
+//	
+//	if (UWorld* World = GetWorld())
+//	{
+//		// GetTimeSeconds()는 게임 시작부터 몇초가 흘렀는지 알려준다.
+//		// 게임 시작 후 10초인 순간 구르기를 쓴다. LastStaminaUseTime = 10초.
+//		LastStaminaUseTime = World->GetTimeSeconds();
+//	}
+//	
+//	return true;
+//}
 	// 2. 어려운 버전.
 	// 실제 다크소울은 스테미나가 음수까지 떨어지고 차오른다.
 //bool UCharacterStatComponent::UseStamina(float NewStamina)

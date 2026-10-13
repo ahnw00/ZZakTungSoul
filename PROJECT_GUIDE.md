@@ -282,15 +282,28 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 #### Q2. `if (UWorld* World = GetWorld()) { LastStaminaUseTime = World->GetTimeSeconds(); }`의 원리는?
 1. **`UWorld`와 `GetWorld()`**: 액터 컴포넌트가 자신이 속한 게임 월드(세상)의 포인터를 가져옴.
 2. **선언과 동시 Null 체크**: 에디터 프리뷰나 맵 전환 시 `GetWorld()`가 `nullptr`일 수 있으므로 크래시 방지를 위해 조건문 안에서 포인터 유효성을 검사함.
-3. **스톱워치 원리 (`GetTimeSeconds()`)**: 게임 시작(`0.0초`)부터 흐른 시간을 기록해 두고, 매 프레임 `현재 시각 - 마지막 사용 시각` 뺄셈만으로 1초 지연(`StaminaRegenDelay`)을 별도 타이머 없이 효율적으로 구현함.
+#### Q3. 헤더에서 왜 `#include` 대신 `class`를 붙인 전방 선언(Forward Declaration)을 쓸까?
+1. **빌드(컴파일) 시간 대폭 단축**: 헤더에 불필요한 include를 줄여 다른 파일 수정 시 연쇄적으로 재컴파일되는 것을 방지함.
+2. **순환 참조(Circular Include) 방지**: 두 헤더가 서로를 include하면서 발생하는 무한 루프 에러를 원천 차단함.
+3. **포인터 크기(8바이트)의 특성**: 컴파일러가 클래스의 세부 멤버를 몰라도 포인터 주소 크기만 알면 되므로 헤더에서는 `class` 키워드로 존재만 귀띔하고, 실제 멤버 함수를 호출하는 `.cpp` 파일에서 진짜 `#include`를 수행함.
+
+### 8-3. `AWarrior` 캐릭터 연동 완료 (2단계 완료)
+1. **Getter 추가 (`Warrior.h`)**:
+   * 외부(컨트롤러 및 UI)에서 컴포넌트에 접근할 수 있도록 `public:`에 `FORCEINLINE class UCharacterStatComponent* GetCharacterStatComponent() const` 선언.
+2. **부품 인스턴스화 (`Warrior.cpp`)**:
+   * `#include "Character/CharacterStatComponent.h"` 추가.
+   * `AWarrior::AWarrior()` 생성자에서 `CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStatComponent"))`로 부품 생성 및 장착.
+3. **액션과 스태미너 연동 (`Warrior.cpp`)**:
+   * `Dodge(FVector ControlDir)` 함수 시작 지점에 `if (CharacterStatComponent && !CharacterStatComponent->UseStamina(25.f)) return;` 추가.
+   * 스태미너가 25 이상이면 정상 회피/백스텝 후 25 소모, 부족하면 액션 취소.
+4. **빌드 검증**: Visual Studio 빌드 성공 (`Ctrl + Shift + B`).
 
 ---
 
-## 9. 다음 작업 로드맵 (Next Steps - 2단계부터 이어서 진행)
+## 9. 다음 작업 로드맵 (Next Steps - 대망의 3단계!)
 
-* **[진행 예정] 2단계: `AWarrior` 캐릭터 클래스에 스탯 컴포넌트 연동**
-  * **파트 1**: `Warrior.h`의 `public:` 영역에 `GetCharacterStatComponent()` Getter 추가
-  * **파트 2**: `Warrior.cpp` 생성자에서 `CreateDefaultSubobject`로 컴포넌트 생성 및 `Dodge()` 시 `UseStamina(25.f)` 연결
-* **[대기] 3단계: `WBP_PlayerHUD` 화면 출력 및 델리게이트 바인딩**
-  * `AWarriorController::BeginPlay()`에서 위젯 생성(`CreateWidget`) 및 뷰포트 출력(`AddToViewport`)
-  * `OnHPChanged`, `OnFPChanged`, `OnStaminaChanged` 이벤트와 프로그레스 바 연동
+* **[완료] 1단계: `CharacterStatComponent` 설계 및 구현**
+* **[완료] 2단계: `AWarrior` 캐릭터에 스탯 컴포넌트 부착 및 구르기 스태미너 소모 연동**
+* **[진행 예정] 3단계: `WBP_PlayerHUD` 위젯 화면 출력 및 델리게이트 바인딩 (UI 시각화)**
+  * **파트 1**: `AWarriorController`에 `TSubclassOf<UUserWidget>` HUD 클래스 변수 추가 및 `BeginPlay()`에서 `CreateWidget` $\rightarrow$ `AddToViewport()`로 화면에 띄우기
+  * **파트 2**: `WBP_PlayerHUD` 위젯 블루프린트에서 캐릭터의 `OnHPChanged`, `OnFPChanged`, `OnStaminaChanged` 델리게이트를 구독하여 프로그레스 바(HP, FP, Stamina) Percent 실시간 갱신하기!

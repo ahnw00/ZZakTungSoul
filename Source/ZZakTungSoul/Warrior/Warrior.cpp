@@ -12,6 +12,7 @@
 
 //DataTable
 //#include "Data/CharacterStatData.h"
+#include <Character/CharacterStatComponent.h>
 
 #include "Anim/WarriorAnimInstance.h"
 #include "Enemy/WarriorAIController.h"
@@ -68,6 +69,10 @@ AWarrior::AWarrior()
 
 	// Load DataTable
 	//CharacterDataTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/DataTable/DT_CharacterStat.DT_CharacterStat"));
+
+	// [스탯 컴포넌트].
+	CharacterStatComponent = CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStatComponent"));
+	
 
 	// Player가 소유하지 않으면 AI가 소유해
 	AIControllerClass = AWarriorAIController::StaticClass();
@@ -355,6 +360,12 @@ void AWarrior::Dodge(FVector ControlDir)
 	//UE_LOG(LogTemp, Warning, TEXT("MoveState : %d"), (int)GetMoveState());
 	if (ActionState != EActionState::None)
 		return;
+
+	// [스테미너 소모]
+	if (CharacterStatComponent && !CharacterStatComponent->UseStamina(25.f))
+	{
+		return;
+	}
 
 	if (MoveState == EMoveState::Idle)
 	{

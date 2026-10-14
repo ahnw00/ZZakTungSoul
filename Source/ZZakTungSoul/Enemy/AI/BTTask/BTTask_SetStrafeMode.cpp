@@ -24,33 +24,35 @@ EBTNodeResult::Type UBTTask_SetStrafeMode::ExecuteTask(UBehaviorTreeComponent& O
 
 	// AIController가 제어하고 있는 Enemy 획득
 	AEnemyBase* Enemy = Cast<AEnemyBase>(AIController->GetPawn());
-	if (!Enemy)
+	if (!Enemy || Enemy->IsDead())
 	{
 		return EBTNodeResult::Failed;
 	}
-
-	// Blackboard 획득
-	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-	if (!BlackboardComp)
-	{
-		return EBTNodeResult::Failed;
-	}
-
-	// 블랙보드에 저장된 캐릭터 가져오기
-	APawn* TargetActor = Cast<APawn>(BlackboardComp->GetValueAsObject(BBBKEY_TARGETACTOR));
-	if (!TargetActor)
-	{
-		return EBTNodeResult::Failed;
-	}
-
-	Enemy->SetStrafeMode(bEnableStrafe);
 
 	if (bEnableStrafe)
 	{
+		// Blackboard 획득
+		UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+		if (!BlackboardComp)
+		{
+			return EBTNodeResult::Failed;
+		}
+
+		// 블랙보드에 저장된 캐릭터 가져오기
+		APawn* TargetActor = Cast<APawn>(BlackboardComp->GetValueAsObject(BBBKEY_TARGETACTOR));
+		if (!IsValid(TargetActor))
+		{
+			return EBTNodeResult::Failed;
+		}
+
+		Enemy->SetStrafeMode(bEnableStrafe);
+
 		AIController->SetFocus(TargetActor);
 	}
 	else
 	{
+		Enemy->SetStrafeMode(bEnableStrafe);
+
 		AIController->ClearFocus(EAIFocusPriority::Gameplay);
 	}
 

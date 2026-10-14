@@ -36,7 +36,7 @@ void AEnemyBase::BeginPlay()
 void AEnemyBase::UpdateMovementSpeed()
 {
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
-	if (!Movement)
+	if (!Movement || !EnemyAIData)
 	{
 		return;
 	}
@@ -105,13 +105,11 @@ void AEnemyBase::SetStrafeMode(bool bEnable)
 
 	if (bEnable)
 	{
-		bIsCombat = true;
 		bUseControllerRotationYaw = true;
 		GetCharacterMovement()->bOrientRotationToMovement = false;
 	}
 	else
 	{
-		bIsCombat = false;
 		bUseControllerRotationYaw = false;
 		GetCharacterMovement()->bOrientRotationToMovement = true;
 	}

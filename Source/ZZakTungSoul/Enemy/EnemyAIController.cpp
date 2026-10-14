@@ -83,15 +83,15 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 		return;
 	}
 
-	// Behavior Tree 실행
-	RunBehaviorTree(BehaviorTreeAsset);
-
 	// Blackboard 상태 설정
 	if (UBlackboardComponent* BlackboardComponent = GetBlackboardComponent())
 	{
 		BlackboardComponent->ClearValue(BBBKEY_TARGETACTOR);
 		BlackboardComponent->SetValueAsBool(BBBKEY_HASLINEOFSIGHT, false);
 	}
+
+	// Behavior Tree 실행
+	RunBehaviorTree(BehaviorTreeAsset);
 }
 
 void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)

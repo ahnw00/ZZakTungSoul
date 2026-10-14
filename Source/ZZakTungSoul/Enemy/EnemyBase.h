@@ -7,6 +7,9 @@
 #include "EnemyStates.h"
 #include "EnemyBase.generated.h"
 
+// 전방 선언
+class UEnemyAIData;
+
 /**
  * 
  */
@@ -32,16 +35,37 @@ public:
 	// 사망 여부
 	bool IsDead() const { return CurrentState == EEnemyState::Dead; }
 
+	// Strafe 상태 여부
+	bool IsStrafeMode() const { return bIsStrafeMode; }
+
+	// 적 애셋 데이터 반환
+	const UEnemyAIData* GetEnemyAIData() const { return EnemyAIData; }
+
 public:
 	// 적 상태 변경
 	void SetEnemyState(EEnemyState NewState);
+
+	// Strafe 상태일 때 캐릭터 매쉬 회전 관련 플래그 설정 함수
+	void SetStrafeMode(bool bEnable);
 
 protected:
 	// 적의 현재 상태
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|State")
 	EEnemyState CurrentState = EEnemyState::Idle;
 
-	// 이동속도 =========================
+	// AI Data -> Behavior Tree / Movement Speed
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|AIData")
+	TObjectPtr<UEnemyAIData> EnemyAIData;
+
+	// 현재 전투 상태 플래그
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
+	uint32 bIsCombat : 1;
+
+	// Strafe 여부 플래그
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
+	uint32 bIsStrafeMode : 1;
+
+	/* 이동속도 =========================
 	// Patrol(순찰) 이동속도
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Movement")
 	float PatrolSpeed = 200.0f;
@@ -52,5 +76,5 @@ protected:
 
 	// Strafe(간보기) 이동속도
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Movement")
-	float StarfeSpeed = 150.0f;
+	float StarfeSpeed = 150.0f;	//*/
 };

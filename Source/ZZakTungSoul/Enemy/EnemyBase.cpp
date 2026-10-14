@@ -3,6 +3,7 @@
 
 #include "Enemy/EnemyBase.h"
 #include <Enemy/EnemyAIController.h>
+#include <Enemy/Data/EnemyAIData.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
 
@@ -15,7 +16,7 @@ AEnemyBase::AEnemyBase()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
 	// 초기 이동 속도 설정
-	GetCharacterMovement()->MaxWalkSpeed = PatrolSpeed;
+	//GetCharacterMovement()->MaxWalkSpeed = PatrolSpeed;
 
 	// AIController 설정
 	AIControllerClass = AEnemyAIController::StaticClass();
@@ -47,15 +48,15 @@ void AEnemyBase::UpdateMovementSpeed()
 		break;
 
 	case EEnemyState::Patrol:
-		Movement->MaxWalkSpeed = PatrolSpeed;
+		Movement->MaxWalkSpeed = EnemyAIData->PatrolSpeed;
 		break;
 
 	case EEnemyState::Chase:
-		Movement->MaxWalkSpeed = ChaseSpeed;
+		Movement->MaxWalkSpeed = EnemyAIData->ChaseSpeed;
 		break;
 
 	case EEnemyState::Strafe:
-		Movement->MaxWalkSpeed = StarfeSpeed;
+		Movement->MaxWalkSpeed = EnemyAIData->StrafeSpeed;
 		break;
 
 	case EEnemyState::Attack:
@@ -90,4 +91,28 @@ void AEnemyBase::SetEnemyState(EEnemyState NewState)
 
 	// 변경된 상태에 따라 이동속도 갱신
 	UpdateMovementSpeed();
+}
+
+void AEnemyBase::SetStrafeMode(bool bEnable)
+{
+	// 현재 Strafe 상태와 설정할 상태가 같으면 건너뜀
+	if (bIsStrafeMode == bEnable)
+	{
+		return;
+	}
+
+	bIsStrafeMode = bEnable;
+
+	if (bEnable)
+	{
+		bIsCombat = true;
+		bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+	}
+	else
+	{
+		bIsCombat = false;
+		bUseControllerRotationYaw = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+	}
 }

@@ -3,6 +3,8 @@
 
 #include "Enemy/EnemyAIController.h"
 #include <Enemy/EnemyBase.h>
+#include <Enemy/Data/EnemyAIData.h>
+#include <Enemy/AI/EnemyAIBlackboardKey.h>
 
 #include <BehaviorTree/BehaviorTree.h>
 #include <BehaviorTree/BlackboardData.h>
@@ -15,7 +17,7 @@
 AEnemyAIController::AEnemyAIController()
 {
 	// Blackboard 설정
-	static ConstructorHelpers::FObjectFinder<UBlackboardData> BlackboardAssetRef(TEXT("/Game/Blueprints/Enemy/AI/BB_EnemyBase.BB_EnemyBase"));
+	static ConstructorHelpers::FObjectFinder<UBlackboardData> BlackboardAssetRef(TEXT("/Game/BehaviorTree/BB_EnemyBase.BB_EnemyBase"));
 	if (BlackboardAssetRef.Succeeded())
 	{
 		BlackboardAsset = BlackboardAssetRef.Object;
@@ -68,6 +70,13 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 		return;
 	}
 
+	const UEnemyAIData* AIData = Enemy->GetEnemyAIData();
+	if (nullptr == AIData)
+	{
+		return;
+	}
+
+	BehaviorTreeAsset = AIData->MainBT;
 	// BehaviorTree 검사
 	if (!BehaviorTreeAsset)
 	{
@@ -80,8 +89,8 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 	// Blackboard 상태 설정
 	if (UBlackboardComponent* BlackboardComponent = GetBlackboardComponent())
 	{
-		BlackboardComponent->ClearValue(TEXT("TargetActor"));
-		BlackboardComponent->SetValueAsBool(TEXT("HasLineOfSight"), false);
+		BlackboardComponent->ClearValue(BBBKEY_TARGETACTOR);
+		BlackboardComponent->SetValueAsBool(BBBKEY_HASLINEOFSIGHT, false);
 	}
 }
 
@@ -92,7 +101,7 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
 		return;
 	}
 
-	// 현재 플레이어 인지 확인
+	// 현재 플레이어인지 아닌지 확인
 	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 	if (Actor != PlayerPawn)
 	{
@@ -108,16 +117,16 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
 	if (Stimulus.WasSuccessfullySensed())
 	{
 		// 플레이어 감지 성공
-		BlackboardComponent->SetValueAsObject(TEXT("TargetActor"), Actor);
-		BlackboardComponent->SetValueAsBool(TEXT("HasLineOfSight"), true);
+		BlackboardComponent->SetValueAsObject(BBBKEY_TARGETACTOR, Actor);
+		BlackboardComponent->SetValueAsBool(BBBKEY_HASLINEOFSIGHT, true);
 	}
 	else
 	{
 		// 마지막 감지 위치 저장
-		BlackboardComponent->SetValueAsVector(TEXT("LastKnownLocation"), Stimulus.StimulusLocation);
-		BlackboardComponent->SetValueAsBool(TEXT("HasLineOfSight"), false);
+		BlackboardComponent->SetValueAsVector(BBBKEY_LASTKNOWNLOCATION, Stimulus.StimulusLocation);
+		BlackboardComponent->SetValueAsBool(BBBKEY_HASLINEOFSIGHT, false);
 
-		BlackboardComponent->ClearValue(TEXT("TargetActor"));
+		BlackboardComponent->ClearValue(BBBKEY_TARGETACTOR);
 	}
 
 

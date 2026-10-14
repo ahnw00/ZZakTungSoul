@@ -5,6 +5,33 @@
 
 ---
 
+## 0. 병합 전 필수 확인 사항 (2026-10-14)
+
+`Bae`를 `main`(`b42a975`)에 병합하는 담당자는 아래 항목을 **병합 전에 반드시 확인**한다. 시험 병합(`git merge-tree`) 결과 `CharacterStatComponent.cpp`, `Warrior.cpp`에서 충돌한다. 상세 근거는 섹션 4의 3)과 섹션 5의 2) 참고.
+
+- [ ] **M-1. `FWarriorAttributeData` 기본값의 의미를 정한다.** `main`은 10 → 0으로 바꾸고 `ZZAKTUNGSOUL_API`를 제거했다.
+  0이 "초기값 10에서 올린 포인트 수"라면 `StatGrowth`의 MinLevel/MaxLevel도 0부터 세는 증가 포인트 기준이어야 하고, 스탯창은 `10 + 값`을 표시해야 한다.
+  `StatusWindowWidget`은 값을 그대로 표시하므로 Vigor가 0으로 보인다. 기존 세이브 파일(값 10)과의 호환도 같이 정한다.
+- [ ] **M-2. `UpdateCharacterStat`의 책임 범위를 정한다.** `main` 버전은 `Max*`와 전투 스탯만 계산하고 `Current*`를 갱신하지 않으며 방송도 하지 않는다.
+  그대로 합치면 최대치만 250이고 현재값은 0이라 HUD가 빈 채로 시작한다. `Current* = Max*`와 `BroadcastAllStats()`를 함수 끝에 두거나, 계산과 복원을 별도 함수로 분리한다.
+- [ ] **M-3. `Bae`의 `CharacterStatComponent` 기능을 잃지 않는다.** `main`은 `TickComponent`, 스태미나 회복, `UseStamina`/`UseFP`, 델리게이트, `CurrentHP`/`CurrentFP`를 삭제했고 `Max*` 기본값을 0으로 바꿨다.
+  `main` 쪽을 그대로 받으면 HUD와 구르기가 깨진다. 구조는 `Bae`를 기준으로 하고, `main`에서는 static `FName` 키, `GetStatInitialValue`, `UpdateCharacterStat(Attributes)` 시그니처, `StatGrowthTable` 로딩을 가져온다.
+- [ ] **M-4. `Warrior.cpp` / `Warrior.h`의 충돌 해소.** `UpdateCharacterStats()`(인자 없음, `main`)와 `UpdateCharacterStats(int32)`(`Bae`) 시그니처를 하나로 맞춘다.
+  `Dodge`의 스태미나 소모, 인터페이스 상속, `PlayerState` 연결(`main`)을 모두 남긴다.
+- [ ] **M-5. `PlayerState`가 null일 때의 동작.** `main`의 `Warrior::BeginPlay`는 `PS`가 없으면 조용히 return하므로 **AI가 조종하는 `AWarrior`는 모든 스탯이 0**이 된다. 플레이어가 아닐 때는 기본값 로드로 fallback한다.
+  `BeginPlay` 시점에 `PlayerState`가 항상 유효하다는 보장도 없으므로(리스폰/로드) `PossessedBy`/`OnRep_PlayerState` 이후 호출이 안전한지 확인한다.
+- [ ] **M-6. 컴포넌트 `BeginPlay`의 `BroadcastAllStats()`를 삭제하지 않는다.** 위젯 바인딩이 폰의 `BeginPlay`보다 먼저 실행될 수 있어, 이 방송이 HUD를 250/50/60으로 맞추는 유일한 경로이다(섹션 4의 4-2).
+- [ ] **M-7. `ZZakTungSoul.Build.cs`는 수동으로 합친다.** `Bae`는 `UMG`/`Slate`/`SlateCore`를, `Kang`은 `NavigationSystem`/`GameplayTasks`를 추가해 같은 `PublicDependencyModuleNames` 블록을 둘 다 바꿨다.
+- [ ] **M-8. `ZZAKTUNGSOUL_API` 제거의 의도를 `main` 작업자에게 확인한다.** 같은 모듈 안에서는 문제가 없으나 다른 모듈에서 쓰면 링크 오류가 난다.
+- [ ] **M-9. 병합 직후 확인 (빌드와 PIE).**
+  - 빌드 성공.
+  - 시작 시 HUD의 HP/FP/Stamina 바가 가득 찬 상태로 표시되는지, 최대치가 250/50/60인지.
+  - 구르기 소모, 스태미나 회복(1초 후 시작), 구르기 횟수.
+  - AI가 조종하는 `AWarrior`가 크래시 없이 동작하고 스탯이 0이 아닌지.
+  - C키 스탯창과 Attribute 표시값.
+
+---
+
 ## 1. CharacterStatComponent (2026-10-13)
 
 **리뷰 대상**
@@ -22,10 +49,10 @@
 - [x] **1-1. 컴포넌트가 생성되지 않는다.** (2026-10-14 확인: `Warrior.cpp` 생성자에서 생성, `Dodge`와 HUD 연동까지 반영됨)
   `Warrior.h:67-68`에 포인터만 선언되어 있고 `Warrior.cpp` 생성자에 `CreateDefaultSubobject<UCharacterStatComponent>`가 없다.
   프로젝트 전체에서 `ApplyDamage`, `UseStamina` 등을 호출하는 곳도 없다. BP에서 따로 추가하지 않았다면 포인터는 항상 `nullptr`.
-- [ ] **1-2. `LoadCharacterStat()`가 아무 일도 하지 않는다.** (`.cpp:36-43`)
+- [x] **1-2. `LoadCharacterStat()`가 아무 일도 하지 않는다.** (`.cpp:36-43`) (2026-10-14 확인: `48e7420`에서 `BeginPlay`가 호출하고 InitialValue를 반영함. 성장 연결은 섹션 4의 4-3)
   행을 지역 배열에 담고 버리며 어디서도 호출되지 않는다. 그래서 `MaxHP/MaxFP/MaxStamina`는 항상 100이다.
   `StatDefine.csv`의 초기값(HP 250, FP 50, Stamina 60)과 어긋난다.
-- [ ] **1-3. `GetAllRows`로는 어느 행이 HP인지 알 수 없다.**
+- [x] **1-3. (2026-10-14 확인: `FindRow`로 변경됨) `GetAllRows`로는 어느 행이 HP인지 알 수 없다.**
   행 이름(`HP`, `FP` 등)이 키인데 `GetAllRows`는 순서 있는 배열만 돌려준다.
   `FindRow<FStatDefine>(FName("HP"), ...)`처럼 이름으로 찾고, 이름 문자열은 상수/enum으로 한 곳에 모은다.
 - [x] **1-4. `UseFP`와 `UseStamina`의 비교가 다르다.** (2026-10-14 코드 확인: 둘 다 `< Amount`로 통일됨. 2-1 참고.)
@@ -212,7 +239,108 @@
 
 ---
 
-## 4. 현재 코드 점검 + main 병합 대비 (2026-10-14)
+## 4. 신규 커밋 리뷰 (2026-10-14)
+
+**리뷰 대상**
+- `Bae` `48e7420` (로컬 HEAD. 섹션 3의 미커밋 변경분이 커밋됨 + `StatusWindowWidget`, C키 토글, `LoadCharacterStat` 구현)
+- `origin/main` `b42a975` (ahnw00, "Actor Component Save/Load": `CharacterStatComponent`, `Warrior`, `WarriorSaveData`)
+- `origin/Kang` `289d384` 외 4개 (적 AI: `EnemyBase`, `EnemyAIController`, `BTTask_*`, `EnemyAIData`)
+- `origin/Ahn` `cc56451` ("Layered blend per bone")는 `Source` 변경이 없어 코드 리뷰는 생략.
+
+빌드와 실행은 하지 않았고 코드 읽기만 했다. `.uasset`/`.umap`은 검토하지 못했다.
+
+**총평**: Bae 쪽은 섹션 3의 지적이 대부분 그대로 남아 있고 새 위험은 적다. 가장 큰 문제는 **`Bae`와 `main`이 `CharacterStatComponent`와 `Warrior`를 서로 다르게 바꿔서 병합 시 충돌과 빌드 실패가 확실**하다는 점이다. 적 AI(Kang)는 구조가 깔끔하지만 크래시 가능성이 있는 곳이 있고 Stat 시스템과 연결이 없다.
+
+### 1) Bae `48e7420` 확인 결과
+
+| 항목 | 결과 | 근거 |
+|---|---|---|
+| 1-2 최대치 로딩 | 반영됨 | `LoadCharacterStat`이 `BeginPlay`에서 호출되어 HP 250, FP 50, Stamina 60이 적용됨 |
+| 1-3 행 이름 조회 | 반영됨 | `FindRow`로 이름 조회. 이름은 아직 문자열 리터럴(`TEXT("HP")`)로 흩어져 있음 |
+| 1-4 비교 연산자 | 반영됨 | `UseFP`/`UseStamina` 모두 `< Amount` |
+| 1-5 `Use*` 음수 가드 | 미반영 | |
+| 1-6 주석 처리된 코드 | 미반영 | `UseStamina` 아래 주석 블록이 그대로 있음 |
+| 2-4 구르기 비용 매직 넘버 | 미반영 | 25.f 그대로. Stamina 60이 적용되어 구르기는 2번만 가능 |
+| 3-1 ~ 3-7 | 미반영 | 주석 코드, 빈 줄, include 각괄호, 전방 선언 혼재 등 |
+| 3-8 (`BeginPlay` 방송 삭제) | **권고 철회** | 아래 4-2 참고 |
+
+### 2) 새로 발견한 문제 (Bae)
+
+- [ ] **4-1. `StatusWindowWidgetClass`의 경로가 빈 문자열이다.** (`WarriorController.cpp` 생성자)
+  `FClassFinder<UStatusWindowWidget>(TEXT(""))`는 생성자 실행 시마다 "Failed to find" 오류 로그를 남기고, 클래스가 없으므로 C키를 눌러도 아무것도 열리지 않는다.
+  경로가 정해질 때까지 `FClassFinder` 블록을 지우고 `UPROPERTY(EditDefaultsOnly)`만 두어 BP에서 지정하게 한다.
+- [ ] **4-2. 섹션 3의 3-8("`BeginPlay`의 `BroadcastAllStats()` 삭제")은 현재 구조에서는 틀린 권고이다.**
+  컨트롤러 `OnPossess`나 위젯 `NativeConstruct`는 폰의 `BeginPlay`보다 먼저 실행될 수 있다. 그 시점의 `Max*`는 헤더 기본값 100이고,
+  `LoadCharacterStat`이 `BeginPlay`에서 250/50/60으로 바꾼 뒤에는 `BroadcastAllStats()`가 HUD를 고쳐 주는 유일한 경로이다. 삭제하면 HUD가 100/100 기준으로 남을 수 있다.
+  2-3은 삭제가 아니라 **방송을 `LoadCharacterStat` 끝에서 한 번만** 하도록 정리한다. 호출 순서(Pawn `BeginPlay` ↔ HUD 바인딩)는 로그로 한 번 확인할 것.
+- [ ] **4-3. 성장 데이터가 여전히 연결되지 않았다.** `LoadCharacterStat`은 `StatDefine`의 InitialValue만 읽는다.
+  `FWarriorAttributeData`(Vigor 등)와 `DT_StatGrowth`는 컴포넌트가 모른다. 레벨을 올려도 최대치는 바뀌지 않는다.
+- [ ] **4-4. 로그 서식 오류와 중복.** `LoadCharacterStat`의 `%1.f`는 `%.1f`의 오타이다. 첫 `UE_LOG`의 `TEXT("{StatComponent] ...")`는 `{`가 `[`의 오타이고 줄 끝 세미콜론도 없다.
+  두 람다(`LoadPoolStat`, `LoadStat`)가 거의 같은 코드이므로 하나로 합친다.
+- [ ] **4-5. 피격 경로가 없다.** `ApplyDamage`와 `UseFP`를 호출하는 곳이 없고 `UseStamina`는 `Dodge`에서만 쓰인다. HP 바가 움직일 수 없고 사망 신호(`OnDeath`)도 없다.
+- [ ] **4-6. `AWarrior`가 AI 적에도 쓰이는 구조이면** 컴포넌트와 Tick이 적마다 돈다. Kang 브랜치가 `EnemyBase`로 분리 중이므로 이 시점에 컴포넌트를 `ACharacterBase`로 올릴지 정해야 한다 (3-2).
+- [ ] **4-7. 스탯창이 "최대값"만 보여준다.** `StatusWindowWidget`은 HP/FP/Stamina에 `GetMax*`를 표시한다. 라벨이 "HP"라면 현재값처럼 보일 수 있으므로 라벨 또는 "현재/최대" 표기를 정한다.
+- [ ] **4-8. C키가 `BindKey`로 바인딩되어 있다.** 나머지 입력은 모두 Enhanced Input(`IA_*`)이므로 `IA_StatusWindow`로 맞추면 리매핑과 일관성에 유리하다.
+  창을 열 때 `FInputModeGameAndUI()`만 쓰므로 카메라 입력과 이동은 계속 받는다. 의도인지 확인.
+- 좋은 점: `ICharacterStatInterface` 분리, `BindStatComponent`의 `RemoveDynamic`/`AddUniqueDynamic`, `TWeakObjectPtr` 사용은 올바르다.
+
+### 3) `origin/main` `b42a975`와 병합 충돌 (중요)
+
+`git merge-tree` 결과 `Bae`와 `main`은 아래 파일을 둘 다 수정해서 충돌한다.
+
+| 파일 | main 쪽 | Bae 쪽 |
+|---|---|---|
+| `CharacterStatComponent.h/.cpp` | `LoadCharacterStat`/`TickComponent` 삭제, `CurrentHP`/`CurrentFP` 삭제, `UpdateCharacterStat(const FWarriorAttributeData&)` + `GetStatInitialValue` + static `FName` 키 추가, `Max*`/`CurrentStamina` 기본값 0 | `LoadCharacterStat` 구현, 델리게이트/`Use*`/스태미나 회복/`Tick` 추가, `CurrentHP`/`CurrentFP` 사용 |
+| `Warrior.h/.cpp` | `UpdateCharacterStats()` (인자 없음), `BeginPlay`에서 PlayerState의 Attributes로 호출 | `UpdateCharacterStats(int32)` 유지, `Dodge` 소모, 인터페이스 상속 |
+| `WarriorSaveData.h` | Attribute 기본값 10 → 0, `ZZAKTUNGSOUL_API` 제거 | 변경 없음 (`StatusWindowWidget`이 이 값을 표시) |
+
+그대로 합치면 `Tick`과 `CurrentHP` 삭제 때문에 Bae의 스태미나 회복과 HP 바가 컴파일 오류가 되거나 동작하지 않는다.
+
+- [ ] **4-9. 합칠 때의 기준 제안.**
+  - 구조는 Bae(델리게이트, `Use*`, 회복 Tick, 인터페이스)를 기준으로 하고, main에서는 **static `FName` 키 + `GetStatInitialValue` + `UpdateCharacterStat(Attributes)` 시그니처**를 가져온다. 이는 4-4와 1-3의 해결책이기도 하다.
+  - main의 `UpdateCharacterStat`은 `Max*`만 갱신하고 **`Current*`는 갱신하지 않으며 방송도 하지 않는다**. 그대로 합치면 최대치만 250이고 현재값은 0이라 HUD가 빈 채로 시작한다. `Current* = Max*`와 `BroadcastAllStats()`를 함수 끝에 둔다 (로드 시 저장된 현재값 복원은 별도 과제).
+  - `AWarrior::BeginPlay`에서 `GetPlayerState<AWarriorPlayerState>()`가 없으면 조용히 return하므로 **AI가 조종하는 `AWarrior`는 모든 스탯이 0**이다. Max 0이면 `Get*Ratio`가 0을 돌려준다. 플레이어가 아닐 때는 기본값 로드로 fallback한다.
+  - `PlayerState`가 `BeginPlay` 시점에 항상 유효한지 보장되지 않는다(리스폰/로드). `PossessedBy`/`OnRep_PlayerState` 이후 호출이 안전하다.
+  - Attribute 기본값이 0으로 바뀐 의미는 `Claude.md`의 "레벨의 기준" 쟁점과 직접 연결된다. 0이 "초기값 10에서 올린 포인트 수"라면 `StatGrowth`의 MinLevel/MaxLevel도 0부터 세는 증가 포인트 기준이어야 하고, 스탯창에는 `10 + 값`을 표시해야 한다. 현재 `StatusWindowWidget`은 값을 그대로 표시하므로 Vigor가 0으로 보인다.
+- [ ] **4-10. main의 `// Todo` (성장 계산)는 구조 확정 후에 구현.** 예시로 적힌 `MaxHp += Vigor * 10.f`는 고정 곱셈이라 소프트캡 모델과 맞지 않는다. 구간 누적 합산이어야 하며 공식은 `Claude.md` 3-2 표를 기준으로 한다.
+- main에서 구조체의 `ZZAKTUNGSOUL_API`를 제거한 것은 같은 모듈 안에서는 문제가 없으나 다른 모듈에서 쓰면 링크 오류가 난다. 의도라면 이유를 남길 것.
+
+### 4) `origin/Kang` 적 AI 리뷰
+
+**총평**: `EnemyBase` → `EnemyAIController` → BT Task의 책임 분리가 명확하고 `EnemyAIData`(DataAsset)로 BT와 이동 속도를 데이터화한 점, 블랙보드 키를 `EnemyAIBlackboardKey.h`로 모은 점이 좋다. 아래는 위험도 순이다.
+
+- [ ] **K-1. `EnemyBase::UpdateMovementSpeed`가 `EnemyAIData`를 null 검사 없이 역참조한다.** (`EnemyBase.cpp`)
+  `EnemyAIData`는 `EditDefaultsOnly`라 BP에서 지정하지 않으면 `nullptr`이다. `Patrol`/`Chase`/`Strafe` 분기에서 즉시 크래시한다. 초기 상태가 `Idle`이라 `BeginPlay`는 통과하지만 BT가 상태를 바꾸는 순간 크래시한다. 함수 앞에서 null 검사 + `UE_LOG`.
+- [ ] **K-2. `bIsCombat`, `bIsStrafeMode` 비트필드가 초기화되지 않는다.** `uint32 bIsCombat : 1;`처럼 선언만 되어 있다. 명시적으로 `= false`를 주거나 `bool`로 선언한다. `BTTask_SetStrafeMode.h`는 `= true`로 초기화하고 있어 일관성도 없다.
+- [ ] **K-3. 타겟 판별이 `GetPlayerPawn(0)` 비교이다.** (`OnTargetPerceptionUpdated`) 플레이어 폰이 교체되면 비교 대상이 바뀐다. 태그나 팀(`IGenericTeamAgentInterface`)이 확장에 안전하다. `DetectionByAffiliation`을 적/우호/중립 모두 `true`로 둔 의도도 주석으로 남긴다.
+- [ ] **K-4. `OnPossess`의 실패 경로가 조용하다.** `Enemy`/`AIData`/`BehaviorTreeAsset`이 없으면 `return`만 하고 로그가 없다. 적이 서 있을 때 원인을 찾기 어려우므로 `UE_LOG(Warning)` 추가. `BehaviorTreeAsset`을 `AIData->MainBT`로 덮어쓰므로 멤버가 `EditDefaultsOnly`일 의미가 없다.
+- [ ] **K-5. `BlackboardAsset`이 사용되지 않는 것으로 보인다.** `FObjectFinder`로 로드하지만 `RunBehaviorTree`는 BT가 가진 블랙보드를 쓴다. 안 쓰면 삭제.
+- [ ] **K-6. `SetEnemyState`에서 `Dead`는 되돌릴 수 없다.** 리스폰/풀링이 필요하면 초기화 경로가 필요하다. `Attack`/`Hit` 분기는 속도를 바꾸지 않는다(의도인지 확인).
+- [ ] **K-7. `bIsCombat`이 Strafe와 같은 값으로 묶여 있다.** 전투 중이지만 Strafe가 아닌 상태(공격 중 등)를 표현할 수 없다. `EEnemyState::Attack`과의 관계를 정리할 것.
+- [ ] **K-8. `BTTask_SetStrafeMode`가 해제 때도 `TargetActor`가 없으면 `Failed`를 반환한다.** Perception이 타겟을 `ClearValue`한 직후에 해제 Task가 실패해서 `bIsStrafeMode`가 `true`로 남을 수 있다. 해제 경로는 타겟 검사 없이 처리한다.
+- [ ] **K-9. 테스트 자산 정리.** `Source/Test/DA_Test`, `TestKangMap`, `BP_TestEnemyBase`는 병합 전에 정리 여부를 정한다.
+- `Build.cs`는 Bae가 `UMG`/`Slate`/`SlateCore`를, Kang이 `NavigationSystem`/`GameplayTasks`를 추가해 같은 `PublicDependencyModuleNames` 블록을 둘 다 바꿨다. 병합 시 수동으로 합쳐야 한다.
+- Stat 연결: `EnemyBase`가 `ACharacterBase`를 상속하므로 컴포넌트를 `CharacterBase`로 올리면(3-2) 적도 같은 HP/데미지 경로를 쓸 수 있다.
+
+### 5) CSV 확장 계획(`Claude.md`)과 코드의 접점
+
+- 코드는 `StatDefine`을 `FName` 행 키로 읽는 구조(`FindRow`)를 갖췄으므로 `StatDefine.csv`는 그대로 확장해도 된다.
+- `StatGrowth.csv` 설계 전에 **Attributes가 "값(10~)"인지 "증가 포인트(0~)"인지**를 확정해야 한다 (4-9). 이 결정이 `MinLevel`/`MaxLevel`의 의미, 스탯창 표시, 세이브 호환성을 모두 정한다.
+- 적도 같은 테이블을 쓰려면 `UpdateCharacterStat`이 `FWarriorAttributeData` 대신 공용 속성 구조체를 받는 쪽이 낫다.
+
+### 6) 다음 순서 제안
+
+1. `Bae`와 `main` 병합 방식 확정 (4-9). 그 전에는 `CharacterStatComponent`를 두 사람이 동시에 수정하지 않도록 조율.
+2. 4-1(빈 경로 오류), 4-2/2-3(방송 정리), 4-4, 1-5, 1-6.
+3. Attributes 의미 확정 → `StatGrowth.csv` 확장 → 성장 계산 (4-10).
+4. 피격 경로와 `OnDeath` (4-5), 컴포넌트를 `CharacterBase`로 이동 (3-2).
+5. Kang 브랜치 K-1, K-8부터 수정 요청.
+
+---
+
+## 5. 현재 코드 점검 + main 병합 비교표 (2026-10-14, 섹션 4와 병행)
+
+> 이 섹션은 섹션 4(Kang/Ahn/main 포함 전체 리뷰)와 같은 날 병행해 쓴 것이다. 번호는 `5-n`으로 구분했고, 겹치는 항목(빈 경로 `FClassFinder` = 4-1/5-3 등)은 섹션 4를 기준으로 본다.
 
 **대상**: `Bae` 작업 트리의 현재 상태와 `origin/main`(`b42a975`, "Actor Component Save/Load").
 빌드와 실행은 확인하지 않았고 코드 읽기와 `git merge-tree` 시험 병합만 했다. 문서 갱신만 하고 코드는 수정하지 않았다.
@@ -222,18 +350,18 @@
 
 ### 1) 새로 발견된 버그 / 동작 문제
 
-- [ ] **4-1. FP 분기가 HP에 대입한다.** (`CharacterStatComponent.cpp:44`) `CurrentHP = FMath::Clamp(CurrentFP, 0.f, MaxFP);` → `CurrentFP = ...`여야 한다.
-- [ ] **4-2. `UpdateCharacterStat`이 의도한 일을 하지 않는다.**
+- [ ] **5-1. FP 분기가 HP에 대입한다.** (`CharacterStatComponent.cpp:44`) `CurrentHP = FMath::Clamp(CurrentFP, 0.f, MaxFP);` → `CurrentFP = ...`여야 한다.
+- [ ] **5-2. `UpdateCharacterStat`이 의도한 일을 하지 않는다.**
   - 매개변수 `Attributes`를 쓰지 않는다. (`StatGrowth` 계산 없음)
   - 내부에서 `LoadCharacterStat()`을 호출하는데, 이 함수가 끝에서 Current를 Max로 덮어쓴다(`.cpp:106-108`). 따라서 뒤따르는 "저장된 현재값 복원/Clamp" 분기는 의미가 없다.
   - 호출하는 곳이 `Bae`에는 없다. `BeginPlay`의 `LoadCharacterStat()`과 중복 로드되는 구조이기도 하다.
   - 정리 방향: 최대치/스탯 계산(`main`의 `UpdateCharacterStat` 정의)과 현재값 복원(Initialize류)을 분리한다.
-- [ ] **4-3. `WarriorController` 생성자에 빈 경로 `FClassFinder`.** (`.cpp:68-70`, `TEXT("")`) 로드 경고/오류 가능, 스탯창도 열리지 않는다.
+- [ ] **5-3. `WarriorController` 생성자에 빈 경로 `FClassFinder`.** (`.cpp:68-70`, `TEXT("")`) 로드 경고/오류 가능, 스탯창도 열리지 않는다.
   WBP 제작 전이라면 `FClassFinder`를 빼고 `UPROPERTY(EditDefaultsOnly)`로 BP에서 지정하게 한다.
-- [ ] **4-4. 스탯창 갱신 경로가 없다.** `StatusWindowWidget`은 Max 값만 읽고, 레벨/능력치가 바뀔 때 `RefreshStatus`를 부르는 경로가 없다. 데이터 흐름을 한 줄로 확정할 것(1-2/G-3과 연결).
-- [ ] **4-5. `UpdateCharacterStats(int32)`(Warrior)와 `UpdateCharacterStat`(컴포넌트)이 이름만 비슷하고 책임이 겹친다.** `main`은 전자를 `UpdateCharacterStats()`로 바꿔 후자를 호출한다.
-- [ ] **4-6. 로그 오타**: `.cpp:97` `{StatComponent]`. 닫는 괄호 종류가 다르다.
-- 열려 있는 기존 항목: 1-5(`Use*` 음수 가드), 3-1, 3-2, 3-3~3-8, 2-3/3-8(`BeginPlay` 방송 삭제), `Set*` 공개 범위, `ApplyDamage` 이름, 사망 신호.
+- [ ] **5-4. 스탯창 갱신 경로가 없다.** `StatusWindowWidget`은 Max 값만 읽고, 레벨/능력치가 바뀔 때 `RefreshStatus`를 부르는 경로가 없다. 데이터 흐름을 한 줄로 확정할 것(1-2/G-3과 연결).
+- [ ] **5-5. `UpdateCharacterStats(int32)`(Warrior)와 `UpdateCharacterStat`(컴포넌트)이 이름만 비슷하고 책임이 겹친다.** `main`은 전자를 `UpdateCharacterStats()`로 바꿔 후자를 호출한다.
+- [ ] **5-6. 로그 오타**: `.cpp:97` `{StatComponent]`. 닫는 괄호 종류가 다르다.
+- 열려 있는 기존 항목: 1-5(`Use*` 음수 가드), 3-1, 3-2, 3-3~3-8, 2-3(방송 정리. 3-8 삭제 권고는 섹션 4의 4-2에서 철회됨), `Set*` 공개 범위, `ApplyDamage` 이름, 사망 신호.
 
 ### 2) main 병합 시 확인할 것
 
@@ -242,21 +370,21 @@
 
 | 항목 | `main` | `Bae` | 병합 시 판단 |
 |---|---|---|---|
-| `UpdateCharacterStat(Attributes)` | 최대치/스탯을 Define 초기값으로 계산, Growth 계산은 Todo | 같은 이름이지만 Current까지 덮어씀(4-2) | `main`의 "계산만 담당" 정의에 맞추고 복원은 분리 |
+| `UpdateCharacterStat(Attributes)` | 최대치/스탯을 Define 초기값으로 계산, Growth 계산은 Todo | 같은 이름이지만 Current까지 덮어씀(5-2) | `main`의 "계산만 담당" 정의에 맞추고 복원은 분리 |
 | `StatGrowthTable` 로딩 | 있음 | 없음 | `main` 것을 받는다 |
 | `Warrior::UpdateCharacterStats()` | `PlayerState`의 `SaveData.Attributes`를 컴포넌트에 전달 | `int32 CharacterLevel` 시그니처, PlayerState 연결 없음 | `main` 연결을 먼저 받고 `Bae` 코드 얹기 |
 | Tick, 스태미나 회복, `UseStamina`, 델리게이트 | **삭제됨** | 있음 | 그대로 `main`을 받으면 HUD/구르기가 깨진다. `Bae` 쪽 유지 필수 |
 | `FWarriorAttributeData` 기본값 | 10 → **0**, `ZZAKTUNGSOUL_API` 제거 | 10, API 있음 | 0은 "추가로 올린 값"이라는 의미. Growth 계산식 확정 후 결정 |
 | `Warrior::BeginPlay` | `UpdateCharacterStats()` 호출, `PS`가 없으면 조용히 return | `UpdateCharacterStats(1)` | 빙의 시점 순서에 따라 PS가 null일 수 있다. `OnPossess` 흐름과 함께 확인 |
 
-### 3) 통합 작업 순서 (섹션 1, 2, 3, 4를 대체)
+### 3) 통합 작업 순서 (섹션 1~3, 4를 보완. 섹션 4의 6) 순서와 충돌하면 섹션 4 우선)
 
-1. `main` 병합 방향 결정 (위 표). 병합 전에 4-2의 책임 분리 방침을 `main` 담당자와 맞춘다.
+1. `main` 병합 방향 결정 (위 표). 병합 전에 5-2의 책임 분리 방침을 `main` 담당자와 맞춘다.
 2. 병합 후 충돌 해소: `CharacterStatComponent` (Tick/델리게이트/Use* 유지 + `main`의 Growth 로딩), `Warrior.cpp` (`PlayerState` 연결 + Dodge/HUD).
-3. 한 줄 버그: 4-1, 1-5, 3-7, 4-6.
-4. 데이터 로딩: 4-2(계산/복원 분리), `StatGrowth` 계산식, G-3(데이터 모델 확정), 4-5.
-5. UI: 4-3, 3-1, 4-4, 2-3/3-8.
+3. 한 줄 버그: 5-1, 1-5, 3-7, 5-6.
+4. 데이터 로딩: 5-2(계산/복원 분리), `StatGrowth` 계산식, G-3(데이터 모델 확정), 5-5.
+5. UI: 5-3, 3-1, 5-4, 2-3.
 6. 구조: 3-2(`ACharacterBase`로 이동), `ApplyDamage` 이름, `Set*` 공개 범위, 사망 신호.
 7. 정리: include 스타일(2-8, 3-3), 주석 코드(3-4), 공백(3-5), 전방 선언(3-6), G-3/G-5/G-6/G-8.
 
-※ 3번의 4-1은 병합 방향과 무관한 한 줄 오류이지만, 4-2와 같은 함수 안이라 함께 고치는 편이 충돌이 적다.
+※ 3번의 5-1은 병합 방향과 무관한 한 줄 오류이지만, 5-2와 같은 함수 안이라 함께 고치는 편이 충돌이 적다.

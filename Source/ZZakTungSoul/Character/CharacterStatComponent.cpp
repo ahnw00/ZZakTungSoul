@@ -167,6 +167,11 @@ void UCharacterStatComponent::ApplyDamage(float InDamage)
 }
 bool UCharacterStatComponent::UseFP(float Amount)
 {
+	if (Amount <= 0.f)
+	{
+		return false;
+	}
+
 	if (CurrentFP < Amount)
 	{
 		return false;
@@ -176,6 +181,11 @@ bool UCharacterStatComponent::UseFP(float Amount)
 }
 bool UCharacterStatComponent::UseStamina(float Amount)
 {
+	if (Amount <= 0.f)
+	{
+		return false;
+	}
+
 	if (CurrentStamina < Amount)
 	{
 		return false;

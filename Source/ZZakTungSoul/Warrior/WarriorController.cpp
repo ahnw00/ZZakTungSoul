@@ -64,14 +64,14 @@ AWarriorController::AWarriorController()
 	{
 		PlayerHUDWidgetClass = PlayerHUDClassRef.Class;
 	}
-	// [스탯창]
-	static ConstructorHelpers::FClassFinder<UStatusWindowWidget> StatusWindowClassRef(
-		TEXT("") // Todo: 경로.
-	);
-	if (StatusWindowClassRef.Succeeded())
-	{
-		StatusWindowWidgetClass = StatusWindowClassRef.Class;
-	}
+	// [스탯창] Todo: 경로.
+	//static ConstructorHelpers::FClassFinder<UStatusWindowWidget> StatusWindowClassRef(
+	//	TEXT("") // 
+	//);
+	//if (StatusWindowClassRef.Succeeded())
+	//{
+	//	StatusWindowWidgetClass = StatusWindowClassRef.Class;
+	//}
 }
 
 void AWarriorController::BeginPlay()

@@ -2,9 +2,9 @@
 
 
 #include "UI/PlayerHUDWidget.h"
-#include <Components/ProgressBar.h>
-#include <Character/CharacterStatComponent.h>
-#include <Interface/CharacterStatInterface.h>
+#include "Components/ProgressBar.h"
+#include "Character/CharacterStatComponent.h"
+#include "Interface/CharacterStatInterface.h"
 
 
 
@@ -17,25 +17,6 @@ void UPlayerHUDWidget::NativeConstruct()
 	{
 		BindStatComponent(StatOwner->GetCharacterStatComponent());
 	}
-
-	//// 플레이어 가져오기.
-	//AWarrior* Warrior = Cast<AWarrior>(GetOwningPlayerPawn());
-	//if (nullptr == Warrior)
-	//{
-	//	return;
-	//}
-	//// 전사 스탯 가져오기.
-	//UCharacterStatComponent* StatComp = Warrior->GetCharacterStatComponent();
-	//if (nullptr == StatComp)
-	//{
-	//	return;
-	//}
-	//// 델리게이트 연결.
-	//StatComp->OnHPChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateHP);
-	//StatComp->OnFPChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateFP);
-	//StatComp->OnStaminaChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateStamina);
-	//// 게임 시작 시 현재 스탯으로 화면 즉시 초기화.
-	//StatComp->BroadcastAllStats();
 }
 
 void UPlayerHUDWidget::NativeDestruct()
@@ -78,10 +59,19 @@ void UPlayerHUDWidget::BindStatComponent(UCharacterStatComponent* InStatComp)
 // 프로그레스바 헬퍼 함수.
 void UPlayerHUDWidget::UpdateProgressBar(UProgressBar* Bar, float Current, float Max)
 {
-	if (Bar && Max > 0.f)
+	if (!Bar)
+	{
+		return;
+	}
+	if (Max > 0.f)
 	{
 		const float Ratio = FMath::Clamp(Current / Max, 0.f, 1.f);
 		Bar->SetPercent(Ratio);
+	}
+	else
+	{
+		// Max가 0이하면 0으로 초기화.
+		Bar->SetPercent(0.f);
 	}
 }
 // 프로그레스바 3종.

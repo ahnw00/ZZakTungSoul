@@ -8,6 +8,7 @@
 
 // [전방 선언].
 class UCharacterStatComponent;
+class UProgressBar;
 
 /**
  * 
@@ -29,7 +30,7 @@ protected:
 	virtual void NativeDestruct() override;
 
 	// [프로그레스바 헬퍼]
-	void UpdateProgressBar(class UProgressBar* Bar, float Current, float Max);
+	void UpdateProgressBar(UProgressBar* Bar, float Current, float Max);
 
 	UFUNCTION()
 	void UpdateHP(float CurrentHP, float MaxHP);
@@ -46,9 +47,9 @@ protected:
 
 	// [BindWidget Progress Bar]
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UProgressBar> ProgressBar_HP;
+	TObjectPtr<UProgressBar> ProgressBar_HP;
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UProgressBar> ProgressBar_FP;
+	TObjectPtr<UProgressBar> ProgressBar_FP;
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UProgressBar> ProgressBar_Stamina;
+	TObjectPtr<UProgressBar> ProgressBar_Stamina;
 };

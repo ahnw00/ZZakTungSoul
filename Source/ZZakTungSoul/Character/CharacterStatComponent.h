@@ -6,7 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CharacterStatComponent.generated.h"
 
-// 델리게이트 선언
+// [델리게이트 선언]
 // 스탯이 바뀔 때(현재값, 최대값) 2개의 float 데이터를 방송하는 델리게이트 타입 정의.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatChangedDelegate, float, CurrentValue, float, MaxValue);
 
@@ -41,12 +41,32 @@ public:
 	FOnStatChangedDelegate OnStaminaChanged;
 
 	// [Getter].
+	// Pool.
+	UFUNCTION(BlueprintPure, Category = "Stat")
 	FORCEINLINE float GetCurrentHP() const { return CurrentHP; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
 	FORCEINLINE float GetMaxHP() const { return MaxHP; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
 	FORCEINLINE float GetCurrentFP() const { return CurrentFP; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
 	FORCEINLINE float GetMaxFP() const { return MaxFP; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
 	FORCEINLINE float GetCurrentStamina() const { return CurrentStamina; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
 	FORCEINLINE float GetMaxStamina() const { return MaxStamina; }
+	// Stat.
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	FORCEINLINE float GetAttackPower() const { return AttackPower; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	FORCEINLINE float GetDefense() const { return Defense; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	FORCEINLINE float GetPoise() const { return Poise; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	FORCEINLINE float GetEquipLoad() const { return EquipLoad; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	FORCEINLINE float GetResistance() const { return Resistance; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	FORCEINLINE float GetMaxWalkSpeed() const { return MaxWalkSpeed; }
 
 	// [비율 Getter].
 	UFUNCTION(BlueprintPure, Category = "Stat")

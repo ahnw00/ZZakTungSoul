@@ -17,6 +17,7 @@
 #include "Anim/WarriorAnimInstance.h"
 #include "Enemy/WarriorAIController.h"
 #include "Engine/OverlapResult.h"
+#include <Warrior/WarriorPlayerState.h>
 
 AWarrior::AWarrior()
 {
@@ -532,4 +533,13 @@ void AWarrior::SetOverlayState(EOverlayState NewState)
 		return;
 
 	OverlayState = NewState;
+}
+
+const FWarriorSaveData* AWarrior::GetSaveData() const
+{
+	if (AWarriorPlayerState* WarriorPlayerState = GetPlayerState<AWarriorPlayerState>())
+	{
+		return &WarriorPlayerState->GetSaveData();
+	}
+	return nullptr;
 }

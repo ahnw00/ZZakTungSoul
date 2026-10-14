@@ -11,7 +11,7 @@
 
 본 프로젝트는 **다크 소울(Dark Souls)** 및 **엘든 링(Elden Ring)**과 같은 정통 **소울라이크(Soul-like) 3인칭 액션 RPG**의 핵심 시스템을 언리얼 엔진 5의 C++과 블루프린트를 결합하여 체계적으로 구현한 프로젝트입니다.
 
-* **엔진 버전**: Unreal Engine 5 (Enhanced Input, UMG, AIModule, StateTree 포함)
+* **엔진 버전**: Unreal Engine 5 (Enhanced Input, UMG, AIModule / 현재 AI는 Behavior Tree를 주력 사용하며 StateTree 플러그인은 비활성 또는 미사용)
 * **모듈**: `ZZakTungSoul` (Runtime)
 * **핵심 타겟 메커니즘**:
   1. 탭(Tap) 회피 / 홀드(Hold) 달리기 소울라이크 입력 체계
@@ -160,7 +160,7 @@ flowchart TD
 * 그러나 **적(Enemy) AI는 `PlayerState`를 갖지 않으므로**, 적 캐릭터의 체력을 관리하기 위해서도 `CharacterStatComponent`에 실시간 `CurrentHP`, `CurrentFP`가 반드시 필요함.
 
 ### 개선 완료 (반영 내역):
-[`Source/ZZakTungSoul/Character/CharacterStatComponent.h`](file:///c:/Workspace/Unreal/ZZakTungSoul/Source/ZZakTungSoul/Character/CharacterStatComponent.h)에 다음 항목 적용 완료:
+[`Source/ZZakTungSoul/Character/CharacterStatComponent.h`](Source/ZZakTungSoul/Character/CharacterStatComponent.h)에 다음 항목 적용 완료:
 ```cpp
 // 능력치로부터 계산되는 최대치 (가데이터 100.f 세팅)
 UPROPERTY(VisibleAnywhere, Category = "Stat")
@@ -230,7 +230,7 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 ### 7-3. `CharacterStatComponent.h` 인터페이스 및 이벤트 시스템 구축
 * **이벤트 기반 디커플링 (Delegate)**:
-  * `DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStateChangedDelegate, float, CurrentValue, float, MaxValue);`
+  * `DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatChangedDelegate, float, CurrentValue, float, MaxValue);`
   * `OnHPChanged`, `OnFPChanged`, `OnStaminaChanged` 선언을 통해 UI와 스탯 컴포넌트 간의 결합도 최소화.
 * **성능 최적화 및 안정성 (Getter)**:
   * `FORCEINLINE`과 `const`를 적용한 6종의 기본 게터 구현.
@@ -253,9 +253,15 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 ## 8. `CharacterStatComponent.cpp` 구현 및 핵심 원리 정리 (2026-10-13 진행)
 
-### 🤝 멘토링 및 협업 규칙 (Pair Programming Rule)
-* **원칙 1**: 모든 실제 소스 코드(`.h`, `.cpp`) 타이핑 및 작성은 개발자(Bae)가 직접 수행하며, AI(Antigravity)는 원리 설명과 가이드 역할만 수행한다.
-* **원칙 2**: 코드 가이드를 제공할 때는 한 번에 모든 파트를 쏟아내지 않고, **한 번에 한 파트씩만 설명**한 뒤 질의응답을 모두 마치고 다음 파트로 넘어간다.
+### 🤝 멘토링 및 협업 규칙 (Pair Programming & Code Review Rule)
+* **원칙 1 (코드 작성 주체)**: 모든 실제 소스 코드(`.h`, `.cpp`) 타이핑 및 작성은 개발자(Bae)가 직접 수행하며, AI(Antigravity)는 아키텍처 설계와 가이드 문서(`PROJECT_GUIDE.md`) 관리만 수행한다 (소스 코드는 직접 수정하지 않음).
+* **원칙 2 (독립적 코드 리뷰)**: 코드 리뷰어(Claude)는 작성된 코드와 가이드북을 교차 검증하여 `Review(Claude).md`에 개선점과 버그를 기록한다. 리뷰 문서의 체크 관리(`[x]`)는 리뷰어 전담 영역이므로 AI(Antigravity)는 리뷰 문서를 임의로 수정하거나 간섭하지 않는다.
+* **원칙 3 (답변 습관 및 단계별 진행 규칙 - 필수 준수)**:
+  - 질문과 진도 따라잡기를 원활히 하기 위해, 한 번에 원리와 코드를 쏟아내지 않고 **반드시 한 번에 한 단계씩만 답변하고 대기**한다.
+  - **1단계 [원리 설명]**: 구현 배경과 원리만 간결하게 설명하고, 질문이 있는지 반드시 확인 후 대기.
+  - **2단계 [헤더(.h) 가이드]**: 헤더 파일 코드 가이드만 제공하고, 작성 및 질문 확인 후 대기. (코드 블록의 언어 라벨로 인한 오해를 막기 위해 대상 파일 경로와 확장자 `.h`를 최상단에 명확히 표기).
+  - **3단계 [소스(.cpp) 가이드]**: 소스 파일 코드 가이드만 제공하고, 작성 및 컴파일/빌드 확인 후 대기.
+  - **4단계 [마무리 및 효과 정리]**: 모든 작성이 끝나면 *"이 설계를 적용하시면"* 형태로 아키텍처적 이점과 효과를 총정리하고 다음 단계 안내.
 
 ### 8-1. `CharacterStatComponent.cpp` 구현 완료 내역
 1. **초기화 및 틱 연동**:
@@ -273,10 +279,14 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 ### 8-2. 핵심 Q&A 및 개념 노트
 
 #### Q1. 다크 소울 스타일의 `UseStamina` 구현 방식은?
-* **일반 RPG 방식**: `if (CurrentStamina < Amount) return false;` (필요량보다 적으면 아예 행동 불가)
-* **심플 다크 소울 방식**: `if (CurrentStamina <= 0.f) return false;` (스태미너가 `1`이라도 남아 있으면 무조건 마지막 회피/공격 발동 후 `0`이 됨)
-* **찐 다크 소울 (마이너스 스태미너/빚) 방식**:
-  * 스태미너가 `5` 남았을 때 `25`짜리 액션을 쓰면 내부적으로 `-20`까지 내려가며, 다시 양수가 될 때까지 회복 시간이 더 걸리는 패널티 부여.
+* **현재 프로젝트 구현 방식 (엄격한 소모)**:
+  * `if (CurrentStamina < Amount) return false;`
+  * 잔여 스태미나가 요구량(25.f) 이상일 때만 액션을 허용하고 차감 (현재 Max 100 기준 4회 구르기 가능). `<` 비교로 경계값(25)에서도 정상 발동.
+* **심플 다크 소울 방식 (최소 잔여량 허용)**:
+  * `if (CurrentStamina <= 0.f) return false;`
+  * 스태미나가 `1`이라도 남아 있으면 무조건 마지막 회피/공격 발동 후 `0`으로 소진.
+* **찐 다크 소울 (마이너스 스태미나/빚) 방식**:
+  * 스태미나가 `5` 남았을 때 `25`짜리 액션을 쓰면 내부적으로 `-20`까지 내려가며, 다시 양수가 될 때까지 회복 시간이 더 걸리는 패널티 부여.
   * 구현 시 `SetCurrentStamina`의 하한이 `0.f`로 막혀 있으면 음수가 잘리므로, 하한을 `-50.f`로 낮추거나 `UseStamina` 내부에서 `SetCurrentStamina`를 거치지 않고 직접 `FMath::Clamp(CurrentStamina - Amount, -50.f, MaxStamina)` 처리 후 직접 1회 `Broadcast` 수행 (중복 방송 주의).
 
 #### Q2. `if (UWorld* World = GetWorld()) { LastStaminaUseTime = World->GetTimeSeconds(); }`의 원리는?
@@ -338,31 +348,59 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 * **[완료] 1단계: `CharacterStatComponent` 설계 및 구현**
 * **[완료] 2단계: `AWarrior` 캐릭터에 스탯 컴포넌트 부착 및 구르기 스태미너 소모 연동**
-* **[완료] 3단계: `PlayerHUDWidget` C++ 클래스 제작 및 `WBP_PlayerHUD` 실시간 델리게이트 바인딩**
+* **[완료] 4단계: `ICharacterStatInterface` 도입 및 주입식 HUD 바인딩 (사망/리스폰 대응 완료)**
 
 ---
 
-### 🎯 [진행 예정] 1. UI 코드베이스 고도화 (가독성 / 일관성 / 확장성 리팩토링)
-1. **델리게이트 네이밍 일관성 완성**:
-   * `FOnStateChangedDelegate` ➔ `FOnStatChangedDelegate`로 변경하여 상태 머신(`State`)과 능력치(`Stat`) 어휘 명확히 분리.
-2. **UI 클래스 확장성 및 구조 정리**:
-   * HUD 외에 향후 추가될 다양한 UI(스탯창, 보스 바, 알림창 등)를 체계적으로 관리할 수 있도록 컨트롤러의 UI 관리 구조 및 널 안전성 강화.
-3. **주석 및 코딩 컨벤션 정돈**:
-   * 파스칼 케이스, 주석 번호 체계, 카테고리 일관성 통일.
+### 🎯 [완료] 1. UI 코드베이스 고도화 및 안정성 강화 (Refactoring)
+1. **[완료] 델리게이트 네이밍 일관성 완성**:
+   * `FOnStateChangedDelegate` ➔ `FOnStatChangedDelegate`로 변경하여 상태 머신(`State`)과 능력치(`Stat`) 어휘 명확히 분리 완료.
+2. **[완료] HUD 생명주기 및 안전한 바인딩 구조 개선**:
+   * `ICharacterStatInterface`를 생성하여 `AWarrior`에 상속하고, 위젯의 구체 클래스 의존성을 완전 분리.
+   * `AWarriorController::OnPossess`에서 빙의 시점마다 `PlayerHUDWidget->BindStatComponent(...)`로 주입 (사망/리스폰 시 Pawn 재생성 완벽 대응).
+   * `PlayerHUDWidget::UpdateProgressBar` 공통 헬퍼 함수로 프로그레스 바 연산 일원화.
+   * 위젯 제거 시 `NativeDestruct`에서 안전하게 델리게이트 해제.
+3. **[진행 예정] 주석 및 코딩 컨벤션 정돈**:
+   * 프로젝트 include 스타일 따옴표(`"..."`) 통일 및 불필요한 주석/가데이터 정리.
 
 ---
 
-### 🎯 [진행 예정] 2. 소울라이크 스탯 정보창 (Status Window UI) 제작 & CSV 연동
-1. **스탯창 토글 단축키 매핑**:
-   * 특정 키(예: `C` 키 또는 `Tab` 키)를 눌렀을 때 스탯 정보창을 열고 닫는 토글 기능 구현.
-   * 메뉴가 열렸을 때 마우스 커서 표시(`bShowMouseCursor`) 및 UI 입력 모드 전환(`SetInputModeGameAndUI`).
-2. **C++ 위젯 기반 클래스 (`UStatusWindowWidget`) 제작**:
-   * `Source/ZZakTungSoul/UI/StatusWindowWidget.h`, `.cpp`
-3. **`Content/Data` CSV 데이터 테이블(DT)과의 동적 연동**:
-   * `StatDefine.csv` (주 스탯 6종: Vigor, Attunement, Endurance, Vitality, Strength, Dexterity 및 파생 스탯 10종).
-   * `StatGrowth.csv` (소프트캡 구간별 성장치) & `LevelRequiredSouls.csv` (레벨업 필요 소울).
-   * 캐릭터의 현재 레벨, 보유 소울, 스탯 수치를 읽어와 텍스트 블록에 실시간 반영.
-4. **위젯 블루프린트 (`WBP_StatusWindow`) 디자인**:
-   * 소울라이크 특유의 중후한 메뉴 레이아웃 및 텍스트 블록 배치.
+### 🎯 [진행 중] 2. 데이터 파이프라인 정립 및 스탯 정보창 (Status Window UI) 연동
+1. **[완료] 기본 스탯 로딩 구현 (`CharacterStatComponent::LoadCharacterStat`)**:
+   * `DT_StatDefine` 테이블에서 `HP(250)`, `FP(50)`, `Stamina(60)` 및 전투 스탯들을 `FindRow`와 람다 헬퍼로 로드 및 초기화 완료.
+2. **[완료] C++ 위젯 기반 클래스 (`UStatusWindowWidget`) 제작 및 인터페이스 단일 창구 연동**:
+   * `ICharacterStatInterface`를 통해 영속 세이브 데이터(`GetSaveData()`)와 실시간 전투 스탯(`GetCharacterStatComponent()`)을 단일 창구로 조회.
+   * `BindWidgetOptional`을 적용하여 점진적 UI 디자인 환경 지원.
+   * 람다 헬퍼를 활용한 안전한 텍스트 갱신 함수(`RefreshStatus`) 구현 완료.
+3. **[완료] 스탯창 토글 단축키 매핑 (`AWarriorController`)**:
+   * 키보드 `C` 키 입력 바인딩을 통해 스탯 정보창 열기/닫기 토글 기능 구현.
+   * 메뉴가 열렸을 때 마우스 커서 표시(`bShowMouseCursor = true`) 및 소울라이크 특유의 UI/게임 입력 겸용 모드(`SetInputMode(FInputModeGameAndUI())`) 전환.
+   * 메뉴가 닫히면 마우스 커서 숨김 및 게임 조작 모드(`FInputModeGameOnly()`)로 복구.
+4. **[진행 예정] 위젯 블루프린트 (`WBP_StatusWindow`) 디자인**:
+   * 다크 소울 3 스타일의 중후한 전체 화면 반투명 레이아웃 및 텍스트 블록 배치.
+
+---
+
+## 11. 소울라이크 스탯 정보창(Status Window) 시스템 구축 및 아키텍처 (2026-10-14 진행)
+
+### 11-1. 인터페이스 기반 단일 창구 아키텍처 (Decoupled Data Query)
+* **문제의식**:
+  * 스탯창 UI가 `AWarriorPlayerState`(주 스탯)와 `CharacterStatComponent`(전투 스탯)라는 서로 다른 두 구체 클래스에 각각 결합되는 것을 방지.
+* **해결책**:
+  * `ICharacterStatInterface`에 `virtual const FWarriorSaveData* GetSaveData() const { return nullptr; }`를 추가하여, 플레이어 캐릭터(`AWarrior`)만 이를 오버라이드.
+  * UI(`UStatusWindowWidget`)는 특정 캐릭터나 PlayerState를 전혀 모른 채, 오직 `ICharacterStatInterface` 하나만 조회하여 모든 스탯을 일괄 갱신하는 **단일 창구(Single Point of Access)** 완성.
+
+### 11-2. C++ 베이스 위젯 설계 (`UStatusWindowWidget`)
+* **경로**: `Source/ZZakTungSoul/UI/StatusWindowWidget.h`, `.cpp`
+* **점진적 UI 디자인 지원 (`BindWidgetOptional`)**:
+  * 15개 이상의 텍스트 블록에 `BindWidgetOptional`을 적용하여, WBP 디자이너가 원하는 텍스트 블록부터 순차적으로 배치해도 컴파일 에러나 크래시가 발생하지 않음.
+* **람다 헬퍼 기반 새로고침 (`RefreshStatus`)**:
+  * `auto SetNumberText` 람다를 통해 유효한 텍스트 블록에만 `FText::AsNumber`로 값을 안전하게 대입.
+
+### 11-3. 컨트롤러 토글 및 입력 모드 제어 (`AWarriorController`)
+* **단축키**: `InputComponent->BindKey(EKeys::C, ...)`로 `C` 키 토글 바인딩.
+* **소울라이크 실시간 메뉴 철학 반영**:
+  * 메뉴가 열려도 백그라운드 월드가 멈추지 않고 실시간으로 돌아가도록 `FInputModeGameAndUI` 적용.
+  * 위젯 Z-Order를 `10`으로 지정하여 기존 HUD보다 위에 떠서 화면 전체를 덮도록 구성.
 
 

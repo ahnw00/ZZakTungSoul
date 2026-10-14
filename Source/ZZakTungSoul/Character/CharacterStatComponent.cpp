@@ -28,18 +28,74 @@ void UCharacterStatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+
+
+	// 게임 시작 시 테이블로부터 기본 스탯 로드.
+	LoadCharacterStat();
+
 	// 게임 시작 시 현재 HP, FP, Stamina 스탯을 UI에 방송.
 	BroadcastAllStats();
 	
 }
 
+// 기본 스탯 로딩.
 void UCharacterStatComponent::LoadCharacterStat()
 {
-	if (StatDefineTable)
+	if (!StatDefineTable)
 	{
-		TArray<FStatDefine*> CharacterStatsRows;
-		StatDefineTable->GetAllRows<FStatDefine>(TEXT(""), CharacterStatsRows);
+		UE_LOG(LogTemp, Error, TEXT("{StatComponent] 유효하지 않은 CSV 파일."))
+		return;
 	}
+
+	// Pool 스탯.
+	// HP, FP, Stamina용 헬퍼 람다.
+	auto LoadPoolStat = [this](const FName& RowName, float& OutMax, float& OutCurrent)
+		{
+			static const FString ContextString(TEXT("LoadCharacterStat"));
+			if (const FStatDefine* Row = StatDefineTable->FindRow<FStatDefine>(RowName, ContextString))
+			{
+				OutMax = static_cast<float>(Row->InitialValue);
+				OutCurrent = OutMax;
+			}
+			else
+			{
+				// CSV 행 누락시 기본 값 유지 및 경고 출력.
+				UE_LOG(LogTemp, Warning,
+					TEXT("[%s] StatDefineTable에서 행을 찾지 못함: %s (기존 Max 유지: %1.f)"),
+					*GetName(), *RowName.ToString(), OutMax);
+				OutCurrent = OutMax;
+			}
+		};
+	// Pool 로드.
+	LoadPoolStat(TEXT("HP"), MaxHP, CurrentHP);
+	LoadPoolStat(TEXT("FP"), MaxFP, CurrentFP);
+	LoadPoolStat(TEXT("Stamina"), MaxStamina, CurrentStamina);
+
+	// 나머지 스탯.
+	// 헬퍼 람다.
+	auto LoadStat = [this](const FName& RowName, float& OutStat)
+		{
+			static const FString ContextString(TEXT("LoadCharacterStat"));
+			if (const FStatDefine* Row = StatDefineTable->FindRow<FStatDefine>(RowName, ContextString))
+			{
+				OutStat = static_cast<float>(Row->InitialValue);
+			}
+			else
+			{
+				// CSV 행 누락시 기본 값 유지 및 경고 출력.
+				UE_LOG(LogTemp, Warning,
+					TEXT("[%s] StatDefineTable에서 행을 찾지 못함: %s (기존 Max 유지: %1.f)"),
+					*GetName(), *RowName.ToString(), OutStat);
+			}
+		};
+	// 스탯 로드.
+	LoadStat(TEXT("EquipLoad"), EquipLoad);
+	LoadStat(TEXT("Poise"), Poise);
+	LoadStat(TEXT("AttackPower"), AttackPower);
+	LoadStat(TEXT("Defense"), Defense);
+	LoadStat(TEXT("Resistance"), Resistance);
+	LoadStat(TEXT("MaxWalkSpeed"), MaxWalkSpeed);
+	LoadStat(TEXT("OverloadedSpeed"), OverloadedSpeed);
 }
 
 
@@ -91,7 +147,7 @@ void UCharacterStatComponent::ApplyDamage(float InDamage)
 }
 bool UCharacterStatComponent::UseFP(float Amount)
 {
-	if (CurrentFP <= Amount)
+	if (CurrentFP < Amount)
 	{
 		return false;
 	}
@@ -100,7 +156,7 @@ bool UCharacterStatComponent::UseFP(float Amount)
 }
 bool UCharacterStatComponent::UseStamina(float Amount)
 {
-	if (CurrentStamina <= Amount)
+	if (CurrentStamina < Amount)
 	{
 		return false;
 	}

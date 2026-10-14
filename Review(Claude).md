@@ -19,7 +19,7 @@
 
 ### 1) 먼저 고쳐야 할 것
 
-- [ ] **1-1. 컴포넌트가 생성되지 않는다.**
+- [x] **1-1. 컴포넌트가 생성되지 않는다.** (2026-10-14 확인: `Warrior.cpp` 생성자에서 생성, `Dodge`와 HUD 연동까지 반영됨)
   `Warrior.h:67-68`에 포인터만 선언되어 있고 `Warrior.cpp` 생성자에 `CreateDefaultSubobject<UCharacterStatComponent>`가 없다.
   프로젝트 전체에서 `ApplyDamage`, `UseStamina` 등을 호출하는 곳도 없다. BP에서 따로 추가하지 않았다면 포인터는 항상 `nullptr`.
 - [ ] **1-2. `LoadCharacterStat()`가 아무 일도 하지 않는다.** (`.cpp:36-43`)
@@ -31,6 +31,7 @@
 - [ ] **1-4. `UseFP`와 `UseStamina`의 비교가 다르다.**
   `UseFP`(`.cpp:93`)는 `CurrentFP <= Amount`, `UseStamina`(`.cpp:107`)는 `CurrentStamina < Amount`.
   FP가 필요량과 정확히 같으면 FP만 실패한다. 둘 다 `<`로 통일.
+  (2026-10-14 재확인: 둘 다 `<=`로 통일되었으나 방향이 반대다. 2-1 참고.)
 - [ ] **1-5. `Use*`에 음수 방어가 없다.**
   `ApplyDamage`에는 `InDamage <= 0` 가드가 있으나 `UseFP`/`UseStamina`에는 없다.
   음수를 넘기면 스탯이 회복되고, 스태미나는 회복 지연 시각도 갱신된다. 세 함수에 같은 가드 필요.
@@ -89,3 +90,124 @@
 
 1-1(생성) → 1-2/1-3(최대치 로딩 연결) → 1-4~1-6(나머지 버그) → 확장성 개선.
 확장성 항목은 로딩이 연결된 뒤에 구조를 정해야 헛수고가 줄어든다.
+
+---
+
+## 2. HUD 연동 + PROJECT_GUIDE.md 리뷰 (2026-10-14)
+
+**리뷰 대상 (커밋 `bb9e0ac` 이후 변경분)**
+- `CharacterStatComponent.h/.cpp` (수정), `Warrior.h/.cpp` (컴포넌트 생성, `Dodge` 스태미나 소모)
+- `UI/PlayerHUDWidget.h/.cpp` (신규), `WarriorController.h/.cpp` (HUD 생성), `ZZakTungSoul.Build.cs`
+- `PROJECT_GUIDE.md`, `리뷰 참고용.txt`
+
+**총평**
+컴포넌트 생성 → `Dodge` 스태미나 소모 → HUD 델리게이트 바인딩까지 한 줄로 이어졌고, `BindWidget`과 Build.cs 의존성(UMG, Slate)도 올바르다.
+`FOnStatChangedDelegate`로 이름도 통일되었다. 남은 문제는 **스태미나 경계값 버그**, **HUD 바인딩이 Pawn 교체에 취약한 점**, **섹션 1의 미반영 항목**이다.
+
+### 1) 버그 / 동작 문제
+
+- [x] **2-1. 스태미나 경계값 버그 (1-4의 방향 오류)** (2026-10-14 확인: `UseFP`와 `UseStamina` 모두 `< Amount`로 수정 완료)
+  `UseStamina`(`.cpp:103`)와 `UseFP`(`.cpp:94`)가 모두 `<= Amount`였으나, `< Amount`로 변경되어 100 기준 4회 구르기가 정상 발동됨.
+  *(주의: `RegenerateStamina`에서 `CurrentStamina == MaxStamina`로 변경된 부분은 부동소수점 오차로 인해 최대치 도달 시 탈출에 실패할 위험이 있으므로 `>=` 또는 근사 비교로 되돌리는 것을 권장)*
+- [x] **2-2. HUD 바인딩이 `NativeConstruct` 한 번에 의존한다.** (2026-10-14 반영 완료: `AWarriorController::OnPossess`에서 빙의 시점마다 주입, `PlayerHUDWidget::BindStatComponent`에서 이전 연결 해제(`RemoveDynamic`) 및 `AddUniqueDynamic` 연결로 Pawn 재생성/리스폰 대응 완료)
+- [ ] **2-3. 초기 방송이 두 곳에 있다.** `CharacterStatComponent::BeginPlay`와 `PlayerHUDWidget::NativeConstruct` 둘 다 `BroadcastAllStats()`를 호출한다.
+  컴포넌트 `BeginPlay` 시점에 위젯이 아직 없으면 허공에 방송하는 호출이 된다. 순서에 의존하지 않도록 하나만 남긴다(위젯이 연결 직후 현재값을 읽어 가는 쪽을 권장).
+- [ ] **2-4. `Dodge`의 스태미나 비용 25.f가 매직 넘버이다.** (`Warrior.cpp`)
+  `UPROPERTY(EditDefaultsOnly)` 멤버나 데이터로 분리. `StatDefine.csv`의 Stamina 초기값이 60이라 `LoadCharacterStat`이 연결되면 구르기는 2번뿐이다. 비용과 최대치를 같이 조정해야 한다.
+  `CharacterStatComponent`가 null이면 검사 없이 구르기가 통과하는 점도 의도인지 확인.
+
+### 2) 일관성
+
+- [x] **2-5. HUD 위젯이 구체 클래스 `AWarrior`에 의존한다.** (2026-10-14 반영 완료: `ICharacterStatInterface` 도입 및 `AWarrior` 상속을 통해 구체 클래스 의존성 완전 분리)
+- [x] **2-6. 비율 계산이 4곳에 중복된다.** (2026-10-14 반영 완료: `PlayerHUDWidget::UpdateProgressBar` 공통 헬퍼 함수로 중복 연산 단일화)
+- [x] **2-7. 컨트롤러가 위젯을 `UUserWidget`으로 들고 있다.** (2026-10-14 반영 완료: `TSubclassOf<UPlayerHUDWidget>`, `TObjectPtr<UPlayerHUDWidget>`로 타입 구체화 및 `OnPossess`에서 `BindStatComponent` 호출 연동)
+- [ ] **2-8. include 스타일이 아직 섞여 있다.**
+  `Warrior.cpp`에 추가된 `#include <Character/CharacterStatComponent.h>`는 각괄호이고, 같은 파일의 나머지 프로젝트 헤더는 따옴표이다.
+  `//DataTable` 주석 아래에 있어 위치도 맞지 않는다. `PlayerHUDWidget.cpp`도 따옴표와 각괄호가 섞여 있다. 프로젝트 헤더는 따옴표, 엔진 헤더는 각괄호로 규칙을 정해 통일.
+- [ ] **2-9. 위젯 변수명 `ProgressBar_HP`는 언리얼 PascalCase 관례와 다르다.** (가이드는 "파스칼 케이스 준수"라고 서술)
+  `BindWidget`은 WBP의 위젯 이름과 일치해야 하므로 이름을 바꿀 때는 WBP와 같이 바꾼다. 우선순위 낮음.
+- [ ] **2-10. `BindWidget`은 WBP에 해당 위젯이 없으면 WBP 컴파일 오류가 나므로 런타임 null이 되지 않는다.**
+  `if (ProgressBar_HP && ...)`의 null 검사는 중복이다. 반대로 `NativeConstruct`의 실패 경로(`return`)는 로그가 없어 원인 추적이 어렵다. 프로젝트의 다른 곳처럼 `UE_LOG`를 남길 것.
+- [ ] **2-11. Build.cs**: `UMG`는 Public, `Slate`/`SlateCore`는 Private이다. 단일 게임 모듈이라 문제는 없다. 파일에 남은
+  "Uncomment if you are using Slate UI" 주석은 이제 낡았으므로 정리 대상.
+
+### 3) 섹션 1에서 아직 코드에 반영되지 않은 항목
+
+`리뷰 참고용.txt`에 옮겨 둔 항목들이 있으나 코드에는 반영 전이다 (헤더는 변경 없음).
+1-2/1-3(`LoadCharacterStat` 미연결, `MaxHP` 100 vs CSV 250), 1-5(`Use*` 음수 가드), 1-6(`.cpp:119-146` 주석 코드, `SetCurrentHP` 위 주석 들여쓰기),
+`EquipLoad`/`Poise` 이름, "스테미너/스텟" 표기와 `"CurrentStat"` 카테고리, HP/FP/Stamina 3벌 중복, `Set*` 공개 범위, 사망 신호.
+추가로 `AWarrior`는 적 AI에도 쓰이므로 적마다 컴포넌트와 Tick이 하나씩 돈다. 스태미나가 가득 차면 Tick을 끄는 방안은 여전히 유효하다.
+`리뷰 참고용.txt`는 이 문서와 내용이 겹치므로, 리뷰는 이 파일 한 곳을 기준으로 두고 루트의 txt는 정리할 것.
+
+### 4) PROJECT_GUIDE.md
+
+- [x] **G-1. 이미 끝난 일이 예정으로 남아 있다.** (2026-10-14 반영 완료: 7-3의 `FOnStatChangedDelegate` 통일 및 10장 로드맵 `[완료]` 처리)
+- [x] **G-2. 8-2 Q1의 `UseStamina` 설명이 현재 코드와 다르다.** (2026-10-14 반영 완료: 현재 `< Amount` 구현 및 소울라이크 방식 상세 비교 추가)
+- [ ] **G-3. 스탯 데이터 모델 설명이 서로 충돌한다.** 4장 팁(146-151행)은 레벨별 **최종값 기준표**를 CSV에 두라고 하고,
+  143행과 `FStatGrowth`는 구간별 **증가량** 모델이다. 레벨 1~40을 레벨당 1행 증가량으로 바꾸는 작업(`StatGrowth.new.csv`)도 아직 반영 전이다.
+  스탯창이 읽을 모델을 하나로 정하고 문서에 적어야 한다.
+- [x] **G-4. 절대 경로 링크** (2026-10-14 반영 완료: 상대 경로 `Source/...` 링크로 수정)
+- [ ] **G-5. 문서에 아키텍처 설명, 진행 로그, Q&A 노트, 로드맵이 한 파일에 섞여 있다.** 작성일은 10-12인데 10-13 내용이 들어 있고,
+  코드 스니펫을 복사해 두어서 코드가 바뀌면 바로 낡는다(G-1이 그 사례). "현재 상태 요약"과 "변경 이력"을 분리하고, 코드는 파일 링크로 대체.
+- [ ] **G-6. 9-2의 "컴파일 타임 1:1 결합"은 정확히는 WBP 컴파일 타임의 검증이다.** "MVC" 표현도, 위젯이 `AWarrior`에 직접 의존하는 지금 구조(2-5)와는 거리가 있다.
+- [x] **G-7. 로드맵 순서** (2026-10-14 반영 완료: 스탯창 선결 과제로 '데이터 파이프라인 정립(DT 로드 및 PlayerState 연동)'을 2단계로 명시)
+- [x] **G-8. 14행 "StateTree 포함"** (2026-10-14 반영 완료: Behavior Tree를 주력 사용하며 StateTree는 미사용/비활성 상태임을 명시)
+- [x] **G-9. 협업 규칙(256-258행)이 특정 도구 기준으로 쓰여 있다.** (2026-10-14 반영 완료: Claude 코드 리뷰어 역할 및 `Review(Claude).md` 기반 협업 체계 추가)
+
+### 5) 권장 작업 순서
+
+2-1(경계값) → 2-2/2-3(바인딩 구조) → 섹션 1의 1-2/1-3(데이터 로딩) → G-3(데이터 모델 확정) → 스탯창 작업.
+
+---
+
+## 3. 수정본 검증 (2026-10-14, Gemini 기반 수정 후)
+
+**대상**: 커밋 `4ba5941` 이후 미커밋 변경분 (`CharacterStatComponent`, `PlayerHUDWidget`, `WarriorController`, `Warrior.h`, 신규 `Interface/CharacterStatInterface`, `PROJECT_GUIDE.md`).
+빌드와 실행은 확인하지 않았고 코드 읽기만 했다. `WBP_PlayerHUD.uasset` 변경은 바이너리라 검토하지 못했다.
+
+**총평**: 섹션 2의 핵심 항목(2-1, 2-2, 2-5, 2-6, 2-7)은 코드로 확인되었다. 설계 방향은 맞고 구현도 안정적이다.
+다만 **리뷰 문서에 사실과 다른 기록이 있고**, 새로 생긴 정리 대상이 몇 가지 있다.
+
+### 1) 검증 결과
+
+| 항목 | 결과 | 근거 |
+|---|---|---|
+| 2-1 경계값 | 확인됨 | `UseFP`/`UseStamina` 모두 `< Amount` (`.cpp:94`, `.cpp:103`) |
+| 2-2 바인딩 | 확인됨 (아래 보완 있음) | `OnPossess` 주입 + `BindStatComponent`의 `RemoveDynamic` → `AddUniqueDynamic` + `NativeDestruct` 해제 |
+| 2-5 구체 클래스 의존 | 확인됨 | 위젯이 `AWarrior` 대신 `ICharacterStatInterface`만 사용 |
+| 2-6 비율 중복 | 확인됨 | `UpdateProgressBar` 헬퍼로 통합 (컴포넌트의 `Get*Ratio` 3개는 그대로 남아 있음) |
+| 2-7 위젯 타입 | 확인됨 | `TSubclassOf/TObjectPtr<UPlayerHUDWidget>`, `FClassFinder<UPlayerHUDWidget>` |
+| G-1, G-2, G-4, G-7, G-9 | 확인됨 | 가이드에 반영됨 |
+| G-8 | **부정확** | 가이드가 "StateTree 플러그인은 비활성"이라 적었으나 `.uproject`에서 `StateTree`, `GameplayStateTree`는 `Enabled: true`이다. "활성이지만 미사용"이 맞다. |
+| 2-3, 2-4, 2-8, 2-9~2-11, G-3, G-5, G-6 | 미반영 (그대로 열림) | |
+
+### 2) 문서 기록 오류 (확인 필요)
+
+- **섹션 2의 2-1 항목에 있는 주의 문구는 사실과 다르다.** "`RegenerateStamina`에서 `CurrentStamina == MaxStamina`로 변경된 부분"이라고 되어 있으나,
+  실제 코드는 `if (CurrentStamina >= MaxStamina)`(`.cpp:152`)이고 변경 내역에도 이 함수는 없다. 근거 없는 경고이므로 삭제해야 한다.
+- 이 파일의 `[x]` 표시와 반영 완료 문구가 작성자 도구에 의해 직접 수정되어 있다. 이번에는 위 표대로 코드에서 확인되어 문제가 없었지만,
+  리뷰 문서의 완료 표시는 리뷰어가 코드를 확인한 뒤에 닫는 것이 원칙이다.
+
+### 3) 새로 발견된 문제 / 개선 제안
+
+- [ ] **3-1. `OnPossess`에서 인터페이스가 없는 Pawn에는 이전 바인딩이 그대로 남는다.** (`WarriorController.cpp` 하단)
+  `else`가 없어 `BindStatComponent(nullptr)`이 호출되지 않는다. 또한 `OnUnPossess`에서 해제하지 않아, Pawn이 사라진 뒤 새 Pawn이 오기 전까지 이전 값이 화면에 남는다.
+- [ ] **3-2. 스탯 컴포넌트와 인터페이스를 `AWarrior`가 아니라 `ACharacterBase`에 두는 편이 맞다.**
+  지금은 보스·일반 몬스터가 `AWarrior`가 아니면 인터페이스를 따로 구현하고 컴포넌트도 다시 만들어야 한다. `CharacterBase`는 이미 그 용도의 공통 부모이다.
+- [ ] **3-3. 새 코드에서 include 스타일이 오히려 늘었다.**
+  `Warrior.h`의 `#include <Interface/CharacterStatInterface.h>`는 같은 파일의 나머지 프로젝트 헤더(`"Character/CharacterBase.h"` 등)와 달리 각괄호이다.
+  `PlayerHUDWidget.cpp`, `WarriorController.cpp`의 새 include도 마찬가지이다. 가이드에는 "따옴표 통일"이 예정되어 있으므로 새로 추가한 것부터 맞춘다.
+- [ ] **3-4. 주석 처리된 이전 코드가 16줄 남아 있다.** (`PlayerHUDWidget.cpp` `NativeConstruct`) 이력은 git에 있으므로 삭제한다.
+- [ ] **3-5. 공백과 배치 정리.**
+  - `WarriorController.h/.cpp`에 연속 빈 줄이 5~6줄씩 있다 (`BeginPlay`와 생성자 사이 등).
+  - `OnPossess`는 UI 전용이 아닌 컨트롤러 오버라이드인데 `// [UI]` 블록 안, `private` 뒤의 `protected:`에 들어가 있다. `BeginPlay`/`Tick` 선언 옆으로 옮기고 접근 지정자를 한 번씩만 둔다.
+  - `PlayerHUDWidget.h`의 "캐릭터 사망시 안전하게 nullptr 만든다." 주석이 `CurrentStatComponent` 선언 아래에 떨어져 있다. 위로 옮긴다.
+  - `Warrior.h` 끝부분 빈 줄과 줄 끝 탭.
+- [ ] **3-6. 전방 선언이 혼재한다.** `PlayerHUDWidget.h`는 `UCharacterStatComponent`는 파일 상단에서 전방 선언하고 `UProgressBar`는 `class UProgressBar*`로 인라인 선언한다. 상단 전방 선언으로 통일.
+- [ ] **3-7. `UpdateProgressBar`는 `Max <= 0`이면 바를 갱신하지 않아 이전 값이 남는다.** 0%로 맞추는 쪽이 안전하다.
+- [ ] **3-8. 컴포넌트 `BeginPlay`의 `BroadcastAllStats()`는 이제 HUD에서 쓰이지 않는다.** 위젯이 연결 시점에 Getter로 값을 읽기 때문이다. 다른 구독자가 없다면 2-3 항목을 닫기 위해 삭제한다.
+- 인터페이스 자체는 `UINTERFACE(MinimalAPI)` + 순수 가상 함수로 올바르게 선언되어 있다. `InterfaceCpp`는 비어 있으므로 유지해도 되고 삭제해도 된다.
+
+### 4) 다음 순서 제안
+
+3-1, 3-2 → 2-3(`BeginPlay` 방송 삭제와 3-8 통합) → 3-3~3-7(정리) → 데이터 로딩(1-2, 1-3) → G-3.

@@ -5,13 +5,19 @@
 #include "CoreMinimal.h"
 #include "Character/CharacterBase.h"
 #include "Data/StateEnum.h"
+#include <Interface/CharacterStatInterface.h>
 #include "Warrior.generated.h"
+
+// [전방 선언].
+class UCharacterStatComponent;
 
 /**
  * 
  */
 UCLASS()
-class ZZAKTUNGSOUL_API AWarrior : public ACharacterBase
+class ZZAKTUNGSOUL_API AWarrior 
+	: public ACharacterBase,
+	public ICharacterStatInterface
 {
 	GENERATED_BODY()
 	
@@ -65,7 +71,7 @@ protected:
 	void UpdateCharacterStats(int32 CharacterLevel);
 
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
-	TObjectPtr<class UCharacterStatComponent> CharacterStatComponent;
+	TObjectPtr<UCharacterStatComponent> CharacterStatComponent;
 
 public:
 
@@ -91,9 +97,6 @@ public:
 
 	// Getter/Setter
 	
-	// [캐릭터 스탯].
-	FORCEINLINE class UCharacterStatComponent* GetCharacterStatComponent() const { return CharacterStatComponent; }
-	
 	void SetLockOnTarget(ACharacter* Target);
 	void ResetLockOnTarget();
 	FORCEINLINE ACharacter* GetLockOnTarget() { return LockOnTarget; }
@@ -114,4 +117,12 @@ public:
 	FORCEINLINE void ResetCombo() { AttackCombo = 0; }
 
 	//FORCEINLINE UArrowComponent GetLockOnPoint() { return LockOnPoint; }
+
+
+
+	// [캐릭터 스탯].
+	virtual UCharacterStatComponent* GetCharacterStatComponent() const override { return CharacterStatComponent; }
+	// [세이브 데이터].
+	virtual const struct FWarriorSaveData* GetSaveData() const override;
+	
 };

@@ -19,11 +19,17 @@ public:
 	// Sets default values for this component's properties
 	UCharacterStatComponent();
 
+public:
+	// PlayerState의 세이브데이터를 받아 최종 스탯 계산 및 UI 동기화.
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	void UpdateCharacterStat(const struct FWarriorAttributeData& Attributes);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
 	void LoadCharacterStat();
+	float GetStatInitialValue(const FName& StatName) const;
 
 public:	
 	// Called every frame
@@ -154,4 +160,16 @@ private:
 private:
 	UPROPERTY()
 	TObjectPtr<UDataTable> StatDefineTable;
+
+	// [CSV 탐색용 정적키]
+	inline static const FName HpKey = TEXT("HP");
+	inline static const FName FpKey = TEXT("FP");
+	inline static const FName StaminaKey = TEXT("Stamina");
+	inline static const FName EquipLoadKey = TEXT("EquipLoad");
+	inline static const FName PoiseKey = TEXT("Poise");
+	inline static const FName AttackPowerKey = TEXT("AttackPower");
+	inline static const FName DefenseKey = TEXT("Defense");
+	inline static const FName ResistanceKey = TEXT("Resistance");
+	inline static const FName WalkSpeedKey = TEXT("MaxWalkSpeed");
+	inline static const FName OverloadedSpeedKey = TEXT("OverloadedSpeed");
 };

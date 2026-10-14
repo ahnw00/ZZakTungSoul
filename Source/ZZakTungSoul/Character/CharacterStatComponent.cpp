@@ -3,7 +3,8 @@
 
 #include "Character/CharacterStatComponent.h"
 
-#include <Data/StatDefine.h>
+#include "SaveData/WarriorSaveData.h"
+#include "Data/StatDefine.h"
 
 
 // Sets default values for this component's properties
@@ -22,6 +23,33 @@ UCharacterStatComponent::UCharacterStatComponent()
 	}
 }
 
+void UCharacterStatComponent::UpdateCharacterStat(const FWarriorAttributeData& Attributes)
+{
+	LoadCharacterStat();
+
+	if (CurrentHP <= 0.f)
+	{
+		CurrentHP = MaxHP;
+	}
+	else
+	{
+		CurrentHP = FMath::Clamp(CurrentHP, 0.f, MaxHP);
+	}
+	if (CurrentFP <= 0.f)
+	{
+		CurrentFP = MaxFP;
+	}
+	else
+	{
+		CurrentFP = FMath::Clamp(CurrentFP, 0.f, MaxFP);
+	}
+	
+	
+	CurrentStamina = MaxStamina;
+
+	BroadcastAllStats();
+}
+
 
 // Called when the game starts
 void UCharacterStatComponent::BeginPlay()
@@ -38,65 +66,57 @@ void UCharacterStatComponent::BeginPlay()
 	
 }
 
+float UCharacterStatComponent::GetStatInitialValue(const FName& StatName) const
+{
+	if (!StatDefineTable)
+	{
+		return 0.f;
+	}
+
+	static const FString ContextString(TEXT("GetStatInitialValue"));
+	if (const FStatDefine* Row = StatDefineTable->FindRow<FStatDefine>(StatName, ContextString))
+	{
+		return static_cast<float>(Row->InitialValue);
+	}
+
+	UE_LOG(
+		LogTemp, 
+		Warning, 
+		TEXT("[%s] StatDefineTable에서 행을 찾지 못함: %s"), 
+		*GetName(), *StatName.ToString()
+	);
+	
+	return 0.f;
+}
+
 // 기본 스탯 로딩.
 void UCharacterStatComponent::LoadCharacterStat()
 {
 	if (!StatDefineTable)
 	{
-		UE_LOG(LogTemp, Error, TEXT("{StatComponent] 유효하지 않은 CSV 파일."))
+		UE_LOG(LogTemp, Error, TEXT("{StatComponent] 유효하지 않은 CSV 파일."));
 		return;
 	}
 
-	// Pool 스탯.
-	// HP, FP, Stamina용 헬퍼 람다.
-	auto LoadPoolStat = [this](const FName& RowName, float& OutMax, float& OutCurrent)
-		{
-			static const FString ContextString(TEXT("LoadCharacterStat"));
-			if (const FStatDefine* Row = StatDefineTable->FindRow<FStatDefine>(RowName, ContextString))
-			{
-				OutMax = static_cast<float>(Row->InitialValue);
-				OutCurrent = OutMax;
-			}
-			else
-			{
-				// CSV 행 누락시 기본 값 유지 및 경고 출력.
-				UE_LOG(LogTemp, Warning,
-					TEXT("[%s] StatDefineTable에서 행을 찾지 못함: %s (기존 Max 유지: %1.f)"),
-					*GetName(), *RowName.ToString(), OutMax);
-				OutCurrent = OutMax;
-			}
-		};
-	// Pool 로드.
-	LoadPoolStat(TEXT("HP"), MaxHP, CurrentHP);
-	LoadPoolStat(TEXT("FP"), MaxFP, CurrentFP);
-	LoadPoolStat(TEXT("Stamina"), MaxStamina, CurrentStamina);
-
-	// 나머지 스탯.
-	// 헬퍼 람다.
-	auto LoadStat = [this](const FName& RowName, float& OutStat)
-		{
-			static const FString ContextString(TEXT("LoadCharacterStat"));
-			if (const FStatDefine* Row = StatDefineTable->FindRow<FStatDefine>(RowName, ContextString))
-			{
-				OutStat = static_cast<float>(Row->InitialValue);
-			}
-			else
-			{
-				// CSV 행 누락시 기본 값 유지 및 경고 출력.
-				UE_LOG(LogTemp, Warning,
-					TEXT("[%s] StatDefineTable에서 행을 찾지 못함: %s (기존 Max 유지: %1.f)"),
-					*GetName(), *RowName.ToString(), OutStat);
-			}
-		};
-	// 스탯 로드.
-	LoadStat(TEXT("EquipLoad"), EquipLoad);
-	LoadStat(TEXT("Poise"), Poise);
-	LoadStat(TEXT("AttackPower"), AttackPower);
-	LoadStat(TEXT("Defense"), Defense);
-	LoadStat(TEXT("Resistance"), Resistance);
-	LoadStat(TEXT("MaxWalkSpeed"), MaxWalkSpeed);
-	LoadStat(TEXT("OverloadedSpeed"), OverloadedSpeed);
+	// 1. 최대치(Max) 스탯 로드
+	MaxHP = GetStatInitialValue(HpKey);
+	MaxFP = GetStatInitialValue(FpKey);
+	MaxStamina = GetStatInitialValue(StaminaKey);
+	// 2. 현재값(Current) 초기화
+	CurrentHP = MaxHP;
+	CurrentFP = MaxFP;
+	CurrentStamina = MaxStamina;
+	// 3. 전투 및 이동 스탯 로드
+	EquipLoad = GetStatInitialValue(EquipLoadKey);
+	Poise = GetStatInitialValue(PoiseKey);
+	AttackPower = GetStatInitialValue(AttackPowerKey);
+	Defense = GetStatInitialValue(DefenseKey);
+	Resistance = GetStatInitialValue(ResistanceKey);
+	MaxWalkSpeed = GetStatInitialValue(WalkSpeedKey);
+	OverloadedSpeed = GetStatInitialValue(OverloadedSpeedKey);
 }
+
+
 
 
 // Called every frame

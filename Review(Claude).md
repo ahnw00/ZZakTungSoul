@@ -28,10 +28,8 @@
 - [ ] **1-3. `GetAllRows`로는 어느 행이 HP인지 알 수 없다.**
   행 이름(`HP`, `FP` 등)이 키인데 `GetAllRows`는 순서 있는 배열만 돌려준다.
   `FindRow<FStatDefine>(FName("HP"), ...)`처럼 이름으로 찾고, 이름 문자열은 상수/enum으로 한 곳에 모은다.
-- [ ] **1-4. `UseFP`와 `UseStamina`의 비교가 다르다.**
-  `UseFP`(`.cpp:93`)는 `CurrentFP <= Amount`, `UseStamina`(`.cpp:107`)는 `CurrentStamina < Amount`.
-  FP가 필요량과 정확히 같으면 FP만 실패한다. 둘 다 `<`로 통일.
-  (2026-10-14 재확인: 둘 다 `<=`로 통일되었으나 방향이 반대다. 2-1 참고.)
+- [x] **1-4. `UseFP`와 `UseStamina`의 비교가 다르다.** (2026-10-14 코드 확인: 둘 다 `< Amount`로 통일됨. 2-1 참고.)
+  `UseFP`는 `<=`, `UseStamina`는 `<`로 달랐던 문제. FP가 필요량과 정확히 같으면 FP만 실패했다.
 - [ ] **1-5. `Use*`에 음수 방어가 없다.**
   `ApplyDamage`에는 `InDamage <= 0` 가드가 있으나 `UseFP`/`UseStamina`에는 없다.
   음수를 넘기면 스탯이 회복되고, 스태미나는 회복 지연 시각도 갱신된다. 세 함수에 같은 가드 필요.
@@ -107,8 +105,8 @@
 ### 1) 버그 / 동작 문제
 
 - [x] **2-1. 스태미나 경계값 버그 (1-4의 방향 오류)** (2026-10-14 확인: `UseFP`와 `UseStamina` 모두 `< Amount`로 수정 완료)
-  `UseStamina`(`.cpp:103`)와 `UseFP`(`.cpp:94`)가 모두 `<= Amount`였으나, `< Amount`로 변경되어 100 기준 4회 구르기가 정상 발동됨.
-  *(주의: `RegenerateStamina`에서 `CurrentStamina == MaxStamina`로 변경된 부분은 부동소수점 오차로 인해 최대치 도달 시 탈출에 실패할 위험이 있으므로 `>=` 또는 근사 비교로 되돌리는 것을 권장)*
+  `UseStamina`와 `UseFP`가 모두 `<= Amount`였으나 `< Amount`로 변경되어 100 기준 4회 구르기가 정상 발동됨.
+  (`RegenerateStamina`는 `>=`로 되어 있어 문제 없음. 섹션 3-2에서 이전 경고를 삭제함.)
 - [x] **2-2. HUD 바인딩이 `NativeConstruct` 한 번에 의존한다.** (2026-10-14 반영 완료: `AWarriorController::OnPossess`에서 빙의 시점마다 주입, `PlayerHUDWidget::BindStatComponent`에서 이전 연결 해제(`RemoveDynamic`) 및 `AddUniqueDynamic` 연결로 Pawn 재생성/리스폰 대응 완료)
 - [ ] **2-3. 초기 방송이 두 곳에 있다.** `CharacterStatComponent::BeginPlay`와 `PlayerHUDWidget::NativeConstruct` 둘 다 `BroadcastAllStats()`를 호출한다.
   컴포넌트 `BeginPlay` 시점에 위젯이 아직 없으면 허공에 방송하는 호출이 된다. 순서에 의존하지 않도록 하나만 남긴다(위젯이 연결 직후 현재값을 읽어 가는 쪽을 권장).
@@ -133,7 +131,7 @@
 
 ### 3) 섹션 1에서 아직 코드에 반영되지 않은 항목
 
-`리뷰 참고용.txt`에 옮겨 둔 항목들이 있으나 코드에는 반영 전이다 (헤더는 변경 없음).
+`리뷰 참고용.txt`에 옮겨 둔 항목들이 있으나 코드에는 반영 전이다. (※ 이 단락은 작성 시점 기준이다. 이후 `LoadCharacterStat`/`GetStatInitialValue`가 `FindRow` 방식으로 구현되어 1-2/1-3은 부분 해결되었다. 최신 상태는 섹션 4 참고.)
 1-2/1-3(`LoadCharacterStat` 미연결, `MaxHP` 100 vs CSV 250), 1-5(`Use*` 음수 가드), 1-6(`.cpp:119-146` 주석 코드, `SetCurrentHP` 위 주석 들여쓰기),
 `EquipLoad`/`Poise` 이름, "스테미너/스텟" 표기와 `"CurrentStat"` 카테고리, HP/FP/Stamina 3벌 중복, `Set*` 공개 범위, 사망 신호.
 추가로 `AWarrior`는 적 AI에도 쓰이므로 적마다 컴포넌트와 Tick이 하나씩 돈다. 스태미나가 가득 차면 Tick을 끄는 방안은 여전히 유효하다.
@@ -151,7 +149,7 @@
   코드 스니펫을 복사해 두어서 코드가 바뀌면 바로 낡는다(G-1이 그 사례). "현재 상태 요약"과 "변경 이력"을 분리하고, 코드는 파일 링크로 대체.
 - [ ] **G-6. 9-2의 "컴파일 타임 1:1 결합"은 정확히는 WBP 컴파일 타임의 검증이다.** "MVC" 표현도, 위젯이 `AWarrior`에 직접 의존하는 지금 구조(2-5)와는 거리가 있다.
 - [x] **G-7. 로드맵 순서** (2026-10-14 반영 완료: 스탯창 선결 과제로 '데이터 파이프라인 정립(DT 로드 및 PlayerState 연동)'을 2단계로 명시)
-- [x] **G-8. 14행 "StateTree 포함"** (2026-10-14 반영 완료: Behavior Tree를 주력 사용하며 StateTree는 미사용/비활성 상태임을 명시)
+- [ ] **G-8. 14행 "StateTree 포함"** (2026-10-14 재오픈: 가이드는 "Behavior Tree 주력, StateTree 비활성"이라 적었으나 `.uproject`에서 `StateTree`, `GameplayStateTree`는 `Enabled: true`. "활성이지만 미사용"으로 고칠 것.)
 - [x] **G-9. 협업 규칙(256-258행)이 특정 도구 기준으로 쓰여 있다.** (2026-10-14 반영 완료: Claude 코드 리뷰어 역할 및 `Review(Claude).md` 기반 협업 체계 추가)
 
 ### 5) 권장 작업 순서
@@ -184,7 +182,7 @@
 ### 2) 문서 기록 오류 (확인 필요)
 
 - **섹션 2의 2-1 항목에 있는 주의 문구는 사실과 다르다.** "`RegenerateStamina`에서 `CurrentStamina == MaxStamina`로 변경된 부분"이라고 되어 있으나,
-  실제 코드는 `if (CurrentStamina >= MaxStamina)`(`.cpp:152`)이고 변경 내역에도 이 함수는 없다. 근거 없는 경고이므로 삭제해야 한다.
+  실제 코드는 `if (CurrentStamina >= MaxStamina)`이고 변경 내역에도 이 함수는 없다. 근거 없는 경고이므로 삭제해야 한다. (2026-10-14 삭제 완료)
 - 이 파일의 `[x]` 표시와 반영 완료 문구가 작성자 도구에 의해 직접 수정되어 있다. 이번에는 위 표대로 코드에서 확인되어 문제가 없었지만,
   리뷰 문서의 완료 표시는 리뷰어가 코드를 확인한 뒤에 닫는 것이 원칙이다.
 
@@ -211,3 +209,54 @@
 ### 4) 다음 순서 제안
 
 3-1, 3-2 → 2-3(`BeginPlay` 방송 삭제와 3-8 통합) → 3-3~3-7(정리) → 데이터 로딩(1-2, 1-3) → G-3.
+
+---
+
+## 4. 현재 코드 점검 + main 병합 대비 (2026-10-14)
+
+**대상**: `Bae` 작업 트리의 현재 상태와 `origin/main`(`b42a975`, "Actor Component Save/Load").
+빌드와 실행은 확인하지 않았고 코드 읽기와 `git merge-tree` 시험 병합만 했다. 문서 갱신만 하고 코드는 수정하지 않았다.
+
+**총평**: 섹션 3 이후 `LoadCharacterStat`(`FindRow` 기반), `UpdateCharacterStat`, `StatusWindowWidget`이 추가되어 1-2/1-3은 부분 해결되었다.
+다만 새 코드에 **복사 붙여넣기 버그**와 **목적을 달성하지 못하는 `UpdateCharacterStat`**이 있고, `main`과는 같은 함수를 서로 다르게 구현해 두 파일에서 충돌한다.
+
+### 1) 새로 발견된 버그 / 동작 문제
+
+- [ ] **4-1. FP 분기가 HP에 대입한다.** (`CharacterStatComponent.cpp:44`) `CurrentHP = FMath::Clamp(CurrentFP, 0.f, MaxFP);` → `CurrentFP = ...`여야 한다.
+- [ ] **4-2. `UpdateCharacterStat`이 의도한 일을 하지 않는다.**
+  - 매개변수 `Attributes`를 쓰지 않는다. (`StatGrowth` 계산 없음)
+  - 내부에서 `LoadCharacterStat()`을 호출하는데, 이 함수가 끝에서 Current를 Max로 덮어쓴다(`.cpp:106-108`). 따라서 뒤따르는 "저장된 현재값 복원/Clamp" 분기는 의미가 없다.
+  - 호출하는 곳이 `Bae`에는 없다. `BeginPlay`의 `LoadCharacterStat()`과 중복 로드되는 구조이기도 하다.
+  - 정리 방향: 최대치/스탯 계산(`main`의 `UpdateCharacterStat` 정의)과 현재값 복원(Initialize류)을 분리한다.
+- [ ] **4-3. `WarriorController` 생성자에 빈 경로 `FClassFinder`.** (`.cpp:68-70`, `TEXT("")`) 로드 경고/오류 가능, 스탯창도 열리지 않는다.
+  WBP 제작 전이라면 `FClassFinder`를 빼고 `UPROPERTY(EditDefaultsOnly)`로 BP에서 지정하게 한다.
+- [ ] **4-4. 스탯창 갱신 경로가 없다.** `StatusWindowWidget`은 Max 값만 읽고, 레벨/능력치가 바뀔 때 `RefreshStatus`를 부르는 경로가 없다. 데이터 흐름을 한 줄로 확정할 것(1-2/G-3과 연결).
+- [ ] **4-5. `UpdateCharacterStats(int32)`(Warrior)와 `UpdateCharacterStat`(컴포넌트)이 이름만 비슷하고 책임이 겹친다.** `main`은 전자를 `UpdateCharacterStats()`로 바꿔 후자를 호출한다.
+- [ ] **4-6. 로그 오타**: `.cpp:97` `{StatComponent]`. 닫는 괄호 종류가 다르다.
+- 열려 있는 기존 항목: 1-5(`Use*` 음수 가드), 3-1, 3-2, 3-3~3-8, 2-3/3-8(`BeginPlay` 방송 삭제), `Set*` 공개 범위, `ApplyDamage` 이름, 사망 신호.
+
+### 2) main 병합 시 확인할 것
+
+시험 병합 결과: `CharacterStatComponent.cpp`, `Warrior.cpp`에서 **충돌**, `.h` 두 개는 자동 병합.
+공통 조상은 `bb9e0ac`이며 `main`에는 그 이후 커밋 1개(`b42a975`)만 있다.
+
+| 항목 | `main` | `Bae` | 병합 시 판단 |
+|---|---|---|---|
+| `UpdateCharacterStat(Attributes)` | 최대치/스탯을 Define 초기값으로 계산, Growth 계산은 Todo | 같은 이름이지만 Current까지 덮어씀(4-2) | `main`의 "계산만 담당" 정의에 맞추고 복원은 분리 |
+| `StatGrowthTable` 로딩 | 있음 | 없음 | `main` 것을 받는다 |
+| `Warrior::UpdateCharacterStats()` | `PlayerState`의 `SaveData.Attributes`를 컴포넌트에 전달 | `int32 CharacterLevel` 시그니처, PlayerState 연결 없음 | `main` 연결을 먼저 받고 `Bae` 코드 얹기 |
+| Tick, 스태미나 회복, `UseStamina`, 델리게이트 | **삭제됨** | 있음 | 그대로 `main`을 받으면 HUD/구르기가 깨진다. `Bae` 쪽 유지 필수 |
+| `FWarriorAttributeData` 기본값 | 10 → **0**, `ZZAKTUNGSOUL_API` 제거 | 10, API 있음 | 0은 "추가로 올린 값"이라는 의미. Growth 계산식 확정 후 결정 |
+| `Warrior::BeginPlay` | `UpdateCharacterStats()` 호출, `PS`가 없으면 조용히 return | `UpdateCharacterStats(1)` | 빙의 시점 순서에 따라 PS가 null일 수 있다. `OnPossess` 흐름과 함께 확인 |
+
+### 3) 통합 작업 순서 (섹션 1, 2, 3, 4를 대체)
+
+1. `main` 병합 방향 결정 (위 표). 병합 전에 4-2의 책임 분리 방침을 `main` 담당자와 맞춘다.
+2. 병합 후 충돌 해소: `CharacterStatComponent` (Tick/델리게이트/Use* 유지 + `main`의 Growth 로딩), `Warrior.cpp` (`PlayerState` 연결 + Dodge/HUD).
+3. 한 줄 버그: 4-1, 1-5, 3-7, 4-6.
+4. 데이터 로딩: 4-2(계산/복원 분리), `StatGrowth` 계산식, G-3(데이터 모델 확정), 4-5.
+5. UI: 4-3, 3-1, 4-4, 2-3/3-8.
+6. 구조: 3-2(`ACharacterBase`로 이동), `ApplyDamage` 이름, `Set*` 공개 범위, 사망 신호.
+7. 정리: include 스타일(2-8, 3-3), 주석 코드(3-4), 공백(3-5), 전방 선언(3-6), G-3/G-5/G-6/G-8.
+
+※ 3번의 4-1은 병합 방향과 무관한 한 줄 오류이지만, 4-2와 같은 함수 안이라 함께 고치는 편이 충돌이 적다.

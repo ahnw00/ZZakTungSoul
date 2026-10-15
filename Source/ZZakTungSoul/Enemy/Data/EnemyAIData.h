@@ -35,13 +35,13 @@ public:
 public:
 	// Patrol Speed
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Patrol")
-	float PatrolSpeed;
+	float PatrolMovementSpeed;
 
 	// Chase Speed
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Chase")
-	float ChaseSpeed;
+	float ChaseMovementSpeed;
 
 	// Strafe Speed
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Strafe")
-	float StrafeSpeed;
+	float StrafeMovementSpeed;
 };

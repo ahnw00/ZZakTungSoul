@@ -48,15 +48,15 @@ void AEnemyBase::UpdateMovementSpeed()
 		break;
 
 	case EEnemyState::Patrol:
-		Movement->MaxWalkSpeed = EnemyAIData->PatrolSpeed;
+		Movement->MaxWalkSpeed = EnemyAIData->PatrolMovementSpeed;
 		break;
 
 	case EEnemyState::Chase:
-		Movement->MaxWalkSpeed = EnemyAIData->ChaseSpeed;
+		Movement->MaxWalkSpeed = EnemyAIData->ChaseMovementSpeed;
 		break;
 
 	case EEnemyState::Strafe:
-		Movement->MaxWalkSpeed = EnemyAIData->StrafeSpeed;
+		Movement->MaxWalkSpeed = EnemyAIData->StrafeMovementSpeed;
 		break;
 
 	case EEnemyState::Attack:

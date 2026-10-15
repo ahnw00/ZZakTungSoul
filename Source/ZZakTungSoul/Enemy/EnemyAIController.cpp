@@ -126,7 +126,7 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
 		BlackboardComponent->SetValueAsVector(BBBKEY_LASTKNOWNLOCATION, Stimulus.StimulusLocation);
 		BlackboardComponent->SetValueAsBool(BBBKEY_HASLINEOFSIGHT, false);
 
-		BlackboardComponent->ClearValue(BBBKEY_TARGETACTOR);
+		//BlackboardComponent->ClearValue(BBBKEY_TARGETACTOR);
 	}
 
 

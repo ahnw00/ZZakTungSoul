@@ -68,9 +68,6 @@ AWarrior::AWarrior()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	bUseControllerRotationYaw = false;
 
-	// Character Stat
-	CharacterStatComponent = CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStat"));
-
 	// [스탯 컴포넌트].
 	CharacterStatComponent = CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStatComponent"));
 	
@@ -291,12 +288,6 @@ void AWarrior::UpdateCharacterStats()
 	//	GetCharacterMovement()->BrakingDecelerationWalking = CharacterStats->BrakingDecelerationWalking;
 	//}
 
-	AWarriorPlayerState* PS = GetPlayerState<AWarriorPlayerState>();
-	
-	if (!PS)
-		return;
-
-	CharacterStatComponent->UpdateCharacterStat(PS->GetSaveData().Attributes);
 
 	// 임시로 직접 값 넣어준거
 	GetCharacterMovement()->MaxAcceleration = 600.f;

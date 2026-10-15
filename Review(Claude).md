@@ -532,3 +532,52 @@
 - 6-1은 이 변경을 반영하면 `[x]`로 닫아도 된다(에디터 확인 후).
 
 **여전히 확인하지 못한 것**: 컴파일 결과, `BP_Warrior`에 저장된 컴포넌트 이름, 에셋의 실제 내용, 컴포넌트 `BeginPlay` 호출 순서의 실측, `main` 작업자의 의도.
+
+---
+
+## 8. main 병합 진행 기록과 결과 (2026-10-15)
+
+**결과 요약**: `origin/main`(`b42a975`)이 `Bae`에 병합되었다(병합 커밋 `95665c7`, 부모 `fbb250e` + `b42a975`). 이후 `Warrior.cpp` 정리 커밋 `62022e8`까지 포함해 작성 시점에 `Bae`와 `origin/Bae`가 같다.
+빌드와 PIE(HUD, 스탯창)는 사용자가 직접 확인했다. 저는 빌드와 실행을 하지 않았고 코드 읽기와 `git merge-tree` 시험 병합으로만 점검했다.
+
+### 1) 진행 방식과 이유
+
+- 처음 시험 병합에서 충돌 구간이 서로 다른 함수끼리 뒤섞여 해소가 어려웠다. 병합을 한 번 취소(Abort)하고 **`main`의 의도를 `Bae`에 먼저 손으로 옮긴 뒤** 다시 병합했다.
+  옮긴 것: `StatGrowthTable` 로딩(`CharacterStatComponent.h/.cpp`), `Data/StatGrowth.h` include, `UpdateCharacterStats()` 시그니처(인자 제거), PlayerState 저장 데이터를 컴포넌트에 넘기는 연결(`GetSaveData()` 경유).
+- 그 결과 충돌 3개(`CharacterStatComponent.cpp/.h`, `Warrior.h`)는 **"Bae 파일 통째로"** 처리해도 `main`의 의미 있는 내용을 잃지 않았다. 병합 후 이 3개 파일이 병합 전 `Bae`(`fbb250e`)와 동일함을 확인했다.
+- 병합 방식은 **Create a merge commit**을 사용했다(rebase는 강제 푸시와 반복 충돌, squash는 병합 기록 소실 때문에 제외).
+
+### 2) 병합에서 발견한 함정 (다음 병합 때 같은 확인이 필요)
+
+| 함정 | 설명 |
+|---|---|
+| 충돌 표시 없이 사라지는 줄 | `main`이 컴포넌트 생성자의 `bCanEverTick = true`와 `TickComponent` 선언을 지웠고, 이 삭제가 자동 병합된다. 충돌을 `Bae`로 풀어도 Tick이 꺼진 채라 스태미나가 회복되지 않는다. 빌드는 통과한다 |
+| 충돌 구간 밖의 중복 | `Warrior.cpp`는 충돌 표시가 없었지만 `main`의 `CreateDefaultSubobject`(이름 `"CharacterStat"`)와 `if (!PS) return;` 블록이 `Bae`의 같은 기능 위에 얹혔다. 컴포넌트가 2번 생성되고, 이동 설정이 건너뛰어질 수 있었다 |
+| 구간만 `Current`로 체크했을 때 | `Warrior.h`에 `UpdateCharacterStats()` 선언이 2번, `CharacterStatComponent.h`에 `main`의 `private:` 라벨이 들어와 델리게이트와 Getter가 private이 되는 문제가 구간 밖에서 생김. 충돌 파일은 구간이 아니라 **파일 전체**를 한쪽으로 골랐다 |
+| 일부만 지웠을 때의 크래시 | `Warrior.cpp`에서 `main`의 PS 블록 중 `if (!PS) return;`만 지우고 `PS->GetSaveData()` 호출이 남았을 때, PlayerState가 없는 AI 적에서 null 역참조 크래시 위험이 있었다. 관련 블록 전체를 지워 해소 |
+| Abort 실패 | 파일이 스테이지된 버전과 그 뒤의 수정 두 가지를 동시에 갖는 `MM` 상태에서는 Abort가 거부된다. 해당 파일의 수정을 먼저 Discard 한 뒤 Abort 한다 |
+| 자동 커밋 | GitHub Desktop은 충돌을 모두 해소하면 병합 커밋을 자동으로 만들 수 있다. 충돌 표시가 없는 파일(`Warrior.cpp`)의 점검은 **충돌 해소 직후, 커밋 전에** 해야 하므로 시험 병합으로 미리 확인해 두는 것이 유효했다 |
+
+### 3) 섹션 0(병합 전 필수 확인)과 섹션 7의 항목 상태
+
+| 항목 | 상태 | 비고 |
+|---|---|---|
+| M-3 `Bae` 컴포넌트 기능 유지 | 해결 | `Tick`, 회복, `Use*`, 델리게이트 모두 유지 |
+| M-4 `Warrior.cpp/.h` 충돌 해소 | 해결 | 시그니처 `()` 통일, `Dodge` 소모, 인터페이스 유지 |
+| M-5 PlayerState가 null일 때 | 해결 (일부 확인 필요) | 이동 설정을 먼저 적용하고 `GetSaveData()`가 null이면 연결만 건너뜀. `BeginPlay` 시점에 PlayerState가 항상 유효한지는 아직 미확인 |
+| M-6 컴포넌트 `BeginPlay`의 `BroadcastAllStats()` 유지 | 해결 | 삭제하지 않음 |
+| M-7 `Build.cs` | 해당 없음 | `main`은 이 파일을 바꾸지 않았다. `Kang` 병합 때 `NavigationSystem`/`GameplayTasks`와 합칠 것 |
+| M-9 병합 직후 확인 | 일부 | 빌드와 PIE에서 HUD/스탯창 동작은 사용자가 확인함. 구르기 후 스태미나 회복, AI `AWarrior`의 동작, 세이브/로드는 미확인 |
+| M-1 Attribute 기본값 10 → 0 | **미해결** | 자동 병합으로 `main`의 0이 들어왔다. 스탯창이 Vigor 0으로 보일 수 있다. ahn과 의미 확정 필요 |
+| M-2 / 7-6 `UpdateCharacterStat` 책임 | **미해결** | `Bae` 버전(`LoadCharacterStat` + 현재값 복원 + 방송)을 유지했고 `Attributes` 인자는 아직 쓰지 않는다 |
+| 7-7 초기화 이중 호출 | **미해결** | 컴포넌트 `BeginPlay`와 `Warrior::BeginPlay` 경로 모두에서 로드된다 |
+| M-8 / 7-9 `ZZAKTUNGSOUL_API` 제거 | 미확인 | 자동 병합으로 반영됨. 의도 확인 필요 |
+| 7-10 `DT_LevelRequiredSouls.uasset` | 미확인 | `main`만 에셋을 바꿨고 `LevelRequiredSouls.csv`는 그대로다. 둘이 어긋나지 않는지 확인 필요 |
+| 7-1 ~ 7-5 (숨은 문제) | 해결 | `bCanEverTick`, `TickComponent` 선언, 컴포넌트 생성 1회, 선언 중복 없음, PS 조기 return 제거 |
+| 6-1 스탯창 클래스 연결 | 해결 | `FClassFinder`로 `WBP_StatusWindow` 연결, 사용자 PIE 확인 |
+
+### 4) 아직 남은 일
+
+1. **`Bae → main` PR**: 올리기 전에 문서 3개(`PROJECT_GUIDE.md`, `Review(Claude).md`, `리뷰 참고용.txt`)를 `main`에 포함할지 ahn과 먼저 정한다. 현재는 `Bae`에서 추적 중이므로 PR을 올리면 그대로 포함된다. 합칠 때는 **Create a merge commit**을 쓴다(squash 금지).
+2. ahn과 정할 것: Attribute 기본값 0의 의미(M-1), `UpdateCharacterStat`과 성장 계산의 책임(7-6), `ZZAKTUNGSOUL_API` 제거 의도.
+3. 이후 개선 과제(리뷰 앞 섹션): 컴포넌트와 인터페이스를 `ACharacterBase`로 이동(3-2), 구르기 비용 25 데이터화(2-4), 스탯창 갱신/현재값 표시(4-7), 피격 경로와 `OnDeath`(4-5), `Kang` 브랜치의 `Build.cs` 합치기와 K-1, K-8.

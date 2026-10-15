@@ -420,16 +420,6 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 ---
 
-### 💬 Q1. 왜 구체 클래스 `AWarrior`를 직접 참조하지 않고 `ICharacterStatInterface`를 도입했나요?
-* **핵심 답변**:
-  1. **결합도 분리(Decoupling)**: 기존에는 UI(`PlayerHUDWidget`)가 `AWarrior`를 직접 `#include`하고 캐스팅(`Cast<AWarrior>`)하여 강하게 결합되어 있었습니다. 이 구조에서는 마법사 캐릭터, 보스 몬스터, NPC 등이 추가되어도 동일한 체력바 UI를 재사용할 수 없습니다.
-  2. **다형성(Polymorphism)**: `ICharacterStatInterface`라는 표준 규격을 세워두고, UI는 캐릭터의 구체적인 타입을 전혀 모른 채 오직 인터페이스만 바라보도록 만들어 완벽한 모듈 독립성을 달성했습니다.
-  3. **순수 가상 vs 일반 가상의 설계 차이**:
-     - `GetCharacterStatComponent() = 0;`: 적이든 플레이어든 체력을 가진 모든 액터는 스탯 컴포넌트를 반드시 가져야 하므로 **순수 가상 함수**로 구현을 강제함.
-     - `GetSaveData() { return nullptr; }`: 저장 데이터(레벨, 소울 등)는 오직 플레이어만 가지며 몬스터에게는 불필요하므로, 몬스터에게 강제하지 않도록 **기본값(`nullptr`)을 제공하는 일반 가상 함수**로 유연하게 설계함.
-
----
-
 ### 💬 Q2. 왜 `NativeConstruct`와 `AWarriorController::OnPossess`에서 HUD 바인딩을 병행하나요?
 * **핵심 답변**:
   1. **초기화 순서의 불확실성 극복 (이중 안전망)**:
@@ -471,7 +461,7 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
      - 런타임 Null 포인터 접근을 방지하기 위해 `auto SetNumberText`와 같은 람다 헬퍼를 도입하여 위젯이 바인딩된 경우에만 안전하게 텍스트를 대입합니다.
   2. **인터페이스 단일 창구 (Single Point of Query)**:
      - `ICharacterStatInterface`가 컴포넌트(`GetCharacterStatComponent`)뿐만 아니라 세이브 데이터(`GetSaveData`)까지 한곳에서 제공하므로, 위젯은 `PlayerState` 구체 클래스를 몰라도 인터페이스 하나만으로 영속 스탯과 전투 스탯을 일괄 조회(`RefreshStatus`)할 수 있습니다.
-  3. **현재 상태와 과제**: 현재 C++ 토글 로직과 단일 창구 인터페이스는 구축되었으나, `WBP_StatusWindow` 에셋 생성 및 GameMode의 컨트롤러 BP 연결이 다음 단계로 남아 있습니다.
+  3. **인게임 연동 검증 완료 (2026-10-15)**: `WBP_StatusWindow`를 생성하여 `AWarriorController`에 연결하고, 인게임(`Alt + P`)에서 `C` 키를 눌러 전체 화면 반투명 스탯창이 정상적으로 열리고 닫히며 레벨/HP 데이터가 출력됨을 최종 검증 완료함.
 
 ---
 
@@ -581,6 +571,33 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 ---
 
+### 💬 Q15. UMG 디자이너 실무 테크닉 (Canvas Panel, Is Variable, 일괄 여백)
+* **핵심 답변**:
+  1. **`Canvas Panel`의 본질 (투명 도화지와 절대 좌표)**:
+     - 3D 게임 월드 렌더링 화면 자체가 아니라, 모니터 화면 위에 덧씌워지는 "투명한 2D 유리 셀로판지"입니다.
+     - 자식 위젯을 원하는 화면 좌표(X, Y)에 자유롭게 얹고 앵커(Anchor)를 지정할 수 있는 유일한 자유 배치 패널입니다.
+  2. **`Is Variable`의 켜짐과 꺼짐 (정적 라벨 vs 동적 변수)**:
+     - `Is Variable`을 체크 해제하면 C++이나 블루프린트 그래프에 변수로 등록되지 않는 **순수 정적 라벨(Static Text)**이 되어 에디터에 적어둔 글자("Level", "HP" 등)가 고정 출력되며 메모리와 바인딩 비용이 절약됩니다.
+     - 실시간 수치를 갱신해야 하는 위젯(예: `TextBlock_Level`, `TextBlock_HP`)만 `Is Variable`을 켜고 C++ 변수명과 1:1로 일치시킵니다.
+  3. **`Wrap With...`와 일괄 Padding 팁**:
+     - 여러 텍스트를 한 줄이나 한 열로 묶을 때는 다중 선택 후 우클릭 ➔ `Wrap With... (Vertical Box/Horizontal Box)`를 사용해 한 덩어리로 묶으면 이동과 정렬이 매우 쉬워집니다.
+     - 자식들을 다중 선택한 뒤 `Slot -> Padding -> Bottom`에 값을 넣으면 모든 항목에 균일한 줄 간격(Gap)을 일괄 적용할 수 있습니다.
+
+---
+
+### 💬 Q16. Git 브랜치 병합(`origin/main`)과 데이터 단일 출처(SSOT) 원칙
+* **핵심 답변**:
+  1. **데이터 단일 출처 원칙 (Single Source of Truth)**:
+     - 주 스탯(Vigor, Strength 등)의 태생 기본값(10)은 이미 `DT_StatDefine` (`StatDefine.csv`)에 정의되어 있습니다.
+     - UI나 다른 클래스가 독자적으로 기본값 상수를 하드코딩해서 갖고 있으면, 기획자가 CSV를 수정했을 때 화면에 반영되지 않는 데이터 불일치가 발생합니다. 반드시 데이터테이블을 단일 진실의 원천으로 삼아야 합니다.
+  2. **세이브 데이터(`Attributes`)와 태생 기본값의 분리**:
+     - 세이브 데이터의 `Attributes`는 "레벨업 시 플레이어가 순수하게 투자한 추가 포인트(기본값 0)"를 의미합니다.
+     - 최종 스탯 = `CSV 태생 기본값(10) + 플레이어 투자 포인트(Attributes)`. 이 구조를 통해 향후 직업(출신)별 기본 스탯 분리와 스탯 재분배(초기화) 기능이 완벽하게 지원됩니다.
+  3. **팀 협업 시 작업 영역 존중**:
+     - 스탯 담당자(Ahn)가 작업 중인 컴포넌트 성장 공식(`UpdateCharacterStat`)과 우리 UI 영역의 결합을 분리하여, UI는 스탯창 베이스 위젯의 출력 및 토글을 안정화하고 스탯 세부 연산은 담당자의 작업 완료 후 병합하기로 조율했습니다.
+
+---
+
 ### 📝 [실수에서 배운 실무 지혜 (Troubleshooting Log)]
 
 실제 프로젝트를 빌드하고 교차 검증하는 과정에서 겪었던 시행착오와 그로부터 얻은 교훈입니다:
@@ -597,5 +614,11 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 4. **로그 포맷 및 괄호 불일치 (`{StatComponent]`)**:
    - **현상**: 닫는 괄호 종류가 달라 로그 가독성을 해치고 사소한 컴파일/서식 경고 유발.
    - **교훈**: 프로젝트 전반의 로그 카테고리와 접두사 규칙은 매크로나 상수로 통일하여 관리하는 것이 유지보수에 유리함.
+5. **데이터 중복 정의 함정과 단일 출처(SSOT) 원칙**:
+   - **현상**: 스탯창에 주 스탯이 0으로 표시될 때, UI 헤더에 `BaseAttributeValue = 10`을 임의로 두려던 설계적 오류 발생.
+   - **교훈**: 이미 기획 CSV(`DT_StatDefine`)에 존재하는 기본값을 UI가 코드에 중복 정의하면 기획 변경 시 데이터가 꼬입니다. 데이터는 반드시 생성 및 관리 책임자(컴포넌트/테이블) 한곳에서만 공급받아야 합니다.
+6. **Git 브랜치 병합 시 충돌 표식 없는 소실 위험 (Silent Deletion)**:
+   - **현상**: `origin/main` 병합 시 생성자의 `PrimaryComponentTick.bCanEverTick = true;`가 충돌 표시 없이 자동 삭제될 뻔함.
+   - **교훈**: Git은 한쪽에서 삭제하고 다른 쪽에서 수정하지 않은 줄을 충돌 없이 조용히 삭제합니다. 빌드는 성공하지만 런타임에 틱과 스태미나 회복이 멈추므로, 병합 전후 핵심 로직의 유실 여부를 반드시 소스 수준에서 교차 점검해야 합니다.
 
 

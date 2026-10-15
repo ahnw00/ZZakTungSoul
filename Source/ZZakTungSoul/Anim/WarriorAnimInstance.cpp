@@ -10,7 +10,7 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 	CurrentPawnSpeed = 0.f;
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> RollMontageRef(
-		TEXT("/Game/RetargetAnimations/Warrior_Dodge_Montage.Warrior_Dodge_Montage")
+		TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_Dodge_Montage.Warrior_Dodge_Montage")
 	);
 	if (RollMontageRef.Succeeded())
 	{
@@ -18,7 +18,7 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> BackStepMontageRef(
-		TEXT("/Game/RetargetAnimations/Warrior_BackStep_Montage.Warrior_BackStep_Montage")
+		TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_BackStep_Montage.Warrior_BackStep_Montage")
 	);
 	if (BackStepMontageRef.Succeeded())
 	{

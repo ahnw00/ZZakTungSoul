@@ -53,7 +53,7 @@ void AZTSGameMode::SaveGame()
 		return;
 	}
 
-	// PlayerState에서 저장 데이터 가져오기
+	// PlayerState에서 저장할 데이터 가져오기
 	WarriorSaveGame->SetSaveData(WarriorPlayerState->GetSaveData());
 
 	// 저장해주기

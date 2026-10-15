@@ -49,7 +49,8 @@ void UPlayerHUDWidget::BindStatComponent(UCharacterStatComponent* InStatComp)
 		CurrentStatComponent->OnStaminaChanged.AddUniqueDynamic(this, &UPlayerHUDWidget::UpdateStamina);
 
 		// 초기값은 연결되는 순간 Getter로 딱 1번 확인하고, 그 이후 실시간 변화는 브로드캐스트로 전달받는다.
-		// 따라서 이 부분은 새 컴포넌트 연결이니 Getter로 확인한다.
+		// 델리게이트 바인딩은 되었으나 아직 방송된 적이 없으므로 현재는 빈 깡통상태이다.
+		// 따라서 이 부분은 새 컴포넌트 연결이므로 Getter로 초기값을 확인하고 채운다.
 		UpdateHP(CurrentStatComponent->GetCurrentHP(), CurrentStatComponent->GetMaxHP());
 		UpdateFP(CurrentStatComponent->GetCurrentFP(), CurrentStatComponent->GetMaxFP());
 		UpdateStamina(CurrentStatComponent->GetCurrentStamina(), CurrentStatComponent->GetMaxStamina());

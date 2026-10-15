@@ -388,3 +388,147 @@
 7. 정리: include 스타일(2-8, 3-3), 주석 코드(3-4), 공백(3-5), 전방 선언(3-6), G-3/G-5/G-6/G-8.
 
 ※ 3번의 5-1은 병합 방향과 무관한 한 줄 오류이지만, 5-2와 같은 함수 안이라 함께 고치는 편이 충돌이 적다.
+
+---
+
+## 6. 1015 변경분 점검 + 가이드 12장 검증 (2026-10-15)
+
+**대상**: 커밋 `2324bab`("1014 최종") 이후 미커밋 변경(컴포넌트·HUD·스탯창 주석/include 정리, `PROJECT_GUIDE.md` 12장 신규) + 현재 작업 트리 전체.
+빌드와 실행은 확인하지 않았다. 마지막 빌드 산출물(`DebugGame.dll`, 10-15 07:57)보다 늦은 수정(08:24~08:28)은 주석과 include 따옴표 정리라 영향은 작아 보인다.
+
+**총평**: 이전 리뷰의 한 줄 버그들이 대부분 정리되었다. 남은 큰 문제는 **스탯창이 구조상 열릴 수 없다는 점(6-1)**, **`UpdateCharacterStat`의 책임 미정(5-2)**, **`main` 병합(섹션 0)**이다.
+
+### 1) 이전 항목 검증
+
+| 항목 | 결과 | 근거 |
+|---|---|---|
+| 1-5 `Use*` 음수 가드 | 반영됨 | `UseFP`/`UseStamina` 모두 `Amount <= 0.f`이면 `false` |
+| 5-1 FP 분기가 HP에 대입 | 반영됨 | `CharacterStatComponent.cpp:38-45`가 `CurrentFP`로 수정 |
+| 3-4 HUD의 주석 처리된 이전 코드 | 반영됨 | `PlayerHUDWidget.cpp` |
+| 3-6 전방 선언 혼재 | 반영됨 | `PlayerHUDWidget.h`에 `class UProgressBar;` 추가 |
+| 3-7 `Max <= 0`일 때 바 갱신 | 반영됨 | `UpdateProgressBar`가 0%로 설정 |
+| 3-3 include 스타일 | **부분** | 컴포넌트·HUD·스탯창 `.cpp`는 따옴표로 통일됨. 남은 곳: `Warrior.cpp:15,20`, `WarriorController.cpp:7-22`(프로젝트 헤더 각괄호) |
+| 4-1 빈 경로 `FClassFinder` | 코드는 해소 | 주석 처리됨. 그러나 아래 6-1 |
+| 5-2 `UpdateCharacterStat` | 미반영 | `Attributes`를 쓰지 않고, 내부 `LoadCharacterStat()`이 `Current = Max`로 덮어써 뒤따르는 복원 분기가 무의미. 호출하는 곳도 없음 |
+| 4-4 로그 오타 | 미반영 | `CharacterStatComponent.cpp:96` `{StatComponent]` |
+| 2-3/4-2, 2-4(25.f), 3-1, 3-2, 3-5, 4-5~4-8, 섹션 0의 M-1~M-9 | 미반영 | 컨트롤러의 연속 빈 줄도 그대로 |
+
+### 2) 새로 발견한 문제
+
+- [ ] **6-1. (중요) 스탯창이 열리지 않는 구조이다.**
+  - `StatusWindowWidgetClass`는 `EditDefaultsOnly`이다. 그런데 `ZTSGameMode.cpp:12`가 `PlayerControllerClass = AWarriorController::StaticClass()`로 **C++ 클래스를 직접 지정**하므로 BP에서 값을 채울 컨트롤러 BP가 없다.
+  - `FClassFinder`는 주석 처리되어 있고 `WBP_StatusWindow`도 아직 없다(`Content/UI`에는 `WBP_PlayerHUD`만 있음).
+  - 따라서 C키(`WarriorController.cpp:150`)를 눌러도 `StatusWindowWidgetClass`가 null이라 아무 일도 일어나지 않는다. 가이드 10장의 "[완료] 스탯창 토글"은 "코드 작성 완료, 위젯 에셋 없음"으로 정정할 것.
+  - 해결 방향: `WBP_StatusWindow`를 만든 뒤 경로를 지정하거나, `BP_WarriorController`를 만들어 GameMode에서 그 클래스를 쓰게 한다.
+- [ ] **6-2. 스탯창이 열릴 때 `RefreshStatus()`가 두 번 불린다.** `NativeConstruct`와 `ToggleStatusWindow` 둘 다 호출한다. `AddToViewport`마다 `NativeConstruct`가 다시 실행되므로 하나만 남긴다.
+  `NativeConstruct`의 `// OnPossess는 Controller에만 있는 함수.` 주석은 이 함수와 관계가 없어 읽는 사람이 혼동한다.
+- [ ] **6-3. 스탯창은 열려 있는 동안 갱신되지 않는다.** 값이 바뀌는 순간에 `RefreshStatus`를 부르는 경로가 없다(5-4). HP/FP/Stamina는 현재값이 아니라 `GetMax*`를 보여 준다(4-7).
+- 좋은 점: `ICharacterStatInterface::GetSaveData()`의 기본 `nullptr`과 `AWarrior`의 오버라이드 분리, `BindWidgetOptional`과 람다 헬퍼의 null 처리는 올바르다.
+
+### 3) PROJECT_GUIDE.md 12장(핵심 복습) 검증
+
+| 항목 | 평가 |
+|---|---|
+| Q1 인터페이스 | 정확. 순수 가상 vs 기본 구현의 구분이 코드와 일치 |
+| Q2 `OnPossess` 주입 | **프레이밍 보완 필요.** 실제 코드는 `NativeConstruct`와 `OnPossess`를 **병행**한다. `NativeConstruct`는 위젯이 Pawn보다 늦게 만들어진 경우, `OnPossess`는 위젯이 먼저 있거나 Pawn이 바뀌는 경우를 맡는다. "크래시"는 과장이다. 죽은 컴포넌트의 델리게이트는 더 이상 호출되지 않으므로 증상은 HUD가 갱신되지 않는 것이 주이다. 크래시는 일반 포인터를 보관해 역참조할 때 생긴다 |
+| Q3 초기값 Getter | 정확. 컴포넌트 `BeginPlay`의 `BroadcastAllStats()`를 남겨 둔 이유(호출 순서가 보장되지 않아 이 방송이 `LoadCharacterStat` 이후 250/50/60을 HUD에 반영하는 경로, 4-2)를 한 줄 추가하면 완성 |
+| Q4 `FindRow`와 정적 키 | **보완 필요.** (a) "컴파일 타임에 안전성 확보"는 과장이다. 코드 쪽 오타만 막고, CSV 행 이름과의 불일치는 런타임 경고와 0 반환이다. (b) `GetAllRows`의 문제는 순서가 아니라 **행 이름(키)을 알 수 없다**는 점이다. (c) 3번(스태미나 회복 타이머)은 주제가 달라 별도 문항으로 분리 |
+| Q5 스탯창 | 설명은 정확하나 6-1 때문에 지금은 실제로 열리지 않는다. "구조 설명"이라는 점을 밝혀 둘 것 |
+| 기타 낡은 서술 | 8-3(`FORCEINLINE` Getter → 이제 인터페이스 오버라이드), 9-1/9-2(`UUserWidget`, `NativeConstruct`만으로 바인딩), 14행(StateTree "비활성"; 실제로는 활성이지만 미사용, G-8), 5장 가데이터 100.f |
+
+### 4) 12장에 추가하면 좋은 항목 (제안)
+
+1. **초기화 순서**: 컨트롤러 `BeginPlay` → `OnPossess` → Pawn `BeginPlay` → 컴포넌트 `BeginPlay`의 순서 관련 질문. 실제 로그로 한 번 찍어 보고 그 결과를 적을 것. 이 프로젝트의 HUD 버그 가능성이 모두 여기에서 나온다.
+2. **Dynamic 델리게이트가 필요한 이유**: 콜백이 `UFUNCTION()`이어야 하고, `AddDynamic`/`AddUniqueDynamic`/`RemoveDynamic`을 쓰며, BP에서도 바인딩 가능하다는 점.
+3. **`UINTERFACE`의 U/I 쌍**: `Cast<ICharacterStatInterface>(Pawn)`이 되는 이유와 null 안전성, BP 구현이 필요하면 `BlueprintNativeEvent`가 필요하다는 차이.
+4. **`BindWidget` vs `BindWidgetOptional`**: 이름 불일치 시 WBP 컴파일 오류 vs null. Optional은 사용처마다 null 검사가 필요(그래서 람다 헬퍼가 있음).
+5. **포인터 종류**: `TObjectPtr`(소유/GC 보호, `UPROPERTY` 필요), `TWeakObjectPtr`(비소유, 소멸 감지), raw 포인터의 위험, 그리고 이 프로젝트에서 각각을 쓴 곳.
+6. **`CreateDefaultSubobject`와 `FObjectFinder`/`FClassFinder`**: 생성자에서만 가능한 이유, 클래스 경로의 `_C` 접미사, 생성자 경로가 틀리면 어떤 증상이 나는지. 6-1이 좋은 사례.
+7. **영속 데이터 vs 휘발 데이터**: `PlayerState`/`SaveGame`(Pawn이 죽어도 유지)과 컴포넌트(Pawn과 함께 사라짐)의 분리 근거, 그리고 리스폰 시 컴포넌트를 어떻게 초기화할지(5-2).
+8. **입력 모드 3종 표**: 지금은 `ToggleStatusWindow` 주석에만 있다. `GameOnly`/`UIOnly`/`GameAndUI`와 `bShowMouseCursor`의 조합을 표로.
+9. **"실수에서 배운 것" 목록**: `CurrentHP = Clamp(CurrentFP …)` 복사-붙여넣기 오타, `<=`와 `<` 경계값(구르기 4번이 3번이 된 사례), 빈 경로 `FClassFinder`, `EditDefaultsOnly`인데 BP 컨트롤러가 없는 경우(6-1).
+
+### 5) 다음 순서 제안
+
+6-1(스탯창 클래스 연결 방식 결정) → 6-2 → 5-2(`UpdateCharacterStat` 책임 분리) → 섹션 0(병합) → 나머지 정리(3-3, 3-5).
+
+---
+
+## 7. `main` 병합 충돌 정리 (2026-10-15)
+
+**방법**: `git fetch` 후 `git merge-tree --write-tree`로 시험 병합했다(작업 트리와 브랜치는 변경하지 않음). 비교 대상은 `Bae` HEAD(`2324bab`)와 `origin/main`(`b42a975`).
+공통 조상은 `bb9e0ac`이고 `main`에는 그 이후 커밋이 `b42a975` 1개뿐이다(`main`은 이후 변하지 않았다). 빌드는 하지 않았다.
+이 섹션은 섹션 0(M-1~M-9)의 지시를 대체하지 않고 **정확한 충돌 지점과 자동 병합이 만드는 숨은 문제**를 보강한다.
+
+### 1) 텍스트 충돌 (Git이 표시하는 것)
+
+| 파일 | 충돌 수 | 내용 |
+|---|---|---|
+| `Character/CharacterStatComponent.cpp` | 3 | 상단 include / `GetStatInitialValue`·`UpdateCharacterStat` 정의 부분 / `TickComponent` 이후 본문 전체 |
+| `Character/CharacterStatComponent.h` | 2 | `LoadCharacterStat`·`GetStatInitialValue` 선언부 / `StatGrowthTable`과 정적 키 선언부 |
+| `Warrior/Warrior.cpp` | 1 | `#include <Warrior/WarriorPlayerState.h>` 중복 |
+| `Warrior/Warrior.h` | 0 | 자동 병합됨 (`UpdateCharacterStats()` 선언과 인터페이스 상속이 함께 들어감) |
+
+섹션 0은 "`.cpp` 두 개만 충돌"이라고 했으나, `Bae`도 `GetStatInitialValue`와 정적 키를 같은 이름으로 추가했기 때문에 `CharacterStatComponent.h`도 충돌한다.
+충돌 구간은 Git이 서로 다른 함수를 섞어서 표시하므로 **"ours/theirs" 한쪽을 통째로 고르면 안 된다.** 아래 2)의 숨은 문제 때문에 특히 그렇다.
+
+### 2) 자동 병합이 만드는 숨은 문제 (충돌 표시 없음)
+
+- [ ] **7-1. (치명) 스태미나가 회복되지 않는다.** `main`이 컴포넌트 생성자의 `PrimaryComponentTick.bCanEverTick = true;`를 삭제했고, `Bae`는 그 줄을 건드리지 않아 **삭제가 자동 반영된다.**
+  충돌을 `Bae` 쪽으로 해소해도 Tick이 꺼진 채라 `RegenerateStamina`가 호출되지 않는다. 빌드는 통과하므로 발견이 늦다. 해소 후 `bCanEverTick = true`가 있는지 확인한다.
+- [ ] **7-2. `TickComponent` 선언이 헤더에서 사라진다.** `main`의 삭제가 `.h`에 자동 반영되고, `.cpp`의 `Bae` 쪽 `TickComponent` 정의만 남으면 선언이 없어 **컴파일 오류**이다. 헤더에 선언을 되살린다.
+- [ ] **7-3. `Warrior.cpp`에 `CreateDefaultSubobject`가 두 번 들어간다.** `main`은 이름 `"CharacterStat"`, `Bae`는 `"CharacterStatComponent"`이다. 둘 다 남으면 두 번째가 포인터를 덮어쓰고 첫 번째 컴포넌트는 Pawn에 붙은 채 남는다(Tick과 스탯 로드가 두 번).
+  하나만 남기고, `BP_Warrior`에 저장된 컴포넌트 이름과 맞는 쪽을 쓴다.
+- [ ] **7-4. 헤더에 같은 멤버 함수가 중복 선언된다.** `UpdateCharacterStat`(UFUNCTION 버전과 일반 버전), `GetStatInitialValue`(protected와 private)이 각각 두 번 선언되어 **컴파일 오류**이다.
+  정의도 `.cpp`에서 두 곳에 생긴다. 하나로 합친다(7-6 참고).
+- [ ] **7-5. `UpdateCharacterStats()`의 `PlayerState` 조기 return.** `main` 버전은 `PS`가 없으면 이동 속도 설정(`MaxAcceleration`/`MaxWalkSpeed`/`BrakingDecelerationWalking`)보다 **먼저** return한다.
+  PlayerState가 없는 AI `AWarrior`는 이동 설정을 못 받는다(`Bae` 버전은 무조건 설정). 이동 설정을 return 앞으로 옮기거나 `PS`가 없을 때의 대체 경로를 둔다(M-5).
+
+### 3) 의미 충돌 (둘 다 자동으로 합쳐져도 결정이 필요한 것)
+
+- [ ] **7-6. `UpdateCharacterStat`의 책임.** `main`은 Max와 전투 스탯만 계산하고 `Current*`를 건드리지 않으며 방송도 하지 않는다. `Bae`는 `LoadCharacterStat()`을 호출해 `Current = Max`로 덮어쓰고 `BroadcastAllStats()`까지 한다(M-2, 5-2).
+  결정할 것: (a) 함수 하나로 "계산 + 복원"을 할지 (b) 계산과 복원을 분리할지. 둘 중 어느 쪽이든 `Attributes` 인자를 아직 쓰지 않는 점은 그대로이다(`main`의 Todo).
+- [ ] **7-7. 초기화 호출이 두 번 일어난다.** 컴포넌트는 자기 `BeginPlay`에서 `LoadCharacterStat()`을 호출하고, `AWarrior::BeginPlay`가 `UpdateCharacterStats()` → `UpdateCharacterStat()`을 통해 다시 호출한다.
+  컴포넌트의 `BeginPlay`는 Pawn의 `Super::BeginPlay()` 안에서 실행되므로 Pawn 쪽 호출이 나중에 와서 `Current`를 한 번 더 `Max`로 되돌린다. 나중에 저장된 현재값을 복원하려면 이 순서가 문제가 되므로 호출 경로를 하나로 정한다.
+- [ ] **7-8. `FWarriorAttributeData` 기본값 10 → 0 (M-1).** `main`이 Vigor 등을 0으로 바꿨다(자동 병합됨). 스탯창은 값을 그대로 표시하므로 **Vigor 0**으로 보이고, 기존 세이브 파일에는 10이 저장되어 있다.
+  의미를 "초기값 10에서 올린 포인트"로 확정하면 `StatGrowth`의 MinLevel/MaxLevel도 0부터 세는 기준이어야 하고 스탯창은 `10 + 값`을 보여 준다.
+- [ ] **7-9. `ZZAKTUNGSOUL_API` 제거 (M-8).** 자동 병합으로 적용된다. 같은 모듈 안에서는 문제가 없고, 다른 모듈에서 `FWarriorSaveData`를 쓰면 링크 오류가 난다. `main` 작업자에게 의도를 확인한다.
+- [ ] **7-10. `DT_LevelRequiredSouls.uasset`만 `main`에서 바뀌었다.** `Content/Data/LevelRequiredSouls.csv`는 그대로이다. 에셋과 CSV가 어긋난 채로 남지 않도록 `main` 작업자에게 CSV의 최신본을 확인한다. 바이너리라 충돌은 없지만 내용 확인은 에디터에서만 가능하다.
+
+### 4) 병합 전 준비
+
+- 작업 트리에 **미커밋 변경**이 있다: `CharacterStatComponent.cpp`(충돌 대상 파일), `PlayerHUDWidget.cpp`, `StatusWindowWidget.*`, `WarriorController.cpp`, `WBP_PlayerHUD.uasset`, 그리고 **미추적 `WBP_StatusWindow.uasset`**. 먼저 커밋하거나 stash하지 않으면 병합이 거부되거나 섞인다. 새 위젯 에셋은 이를 참조하는 코드와 같은 커밋에 넣는다.
+- `origin/Ahn`도 `main`과 같은 파일에서 `Bae`와 충돌한다(`Ahn`이 `main`의 변경을 포함). `main`에 먼저 합치고 나서 `Ahn`/`Kang`을 정리하는 편이 중복 해소를 줄인다.
+- `origin/Kang`은 `ZZakTungSoul.Build.cs` 1개 파일에서만 `Bae`와 충돌한다(`UMG`/`Slate`/`SlateCore` ↔ `NavigationSystem`/`GameplayTasks`). 두 의존성 목록을 합치면 된다.
+- `main`의 컴포넌트 파일들은 UTF-8 BOM이 새로 붙었다. 내용에는 영향이 없으나 diff가 파일 전체로 보이므로 편집기 인코딩을 맞춘다.
+
+### 5) 해소 후 확인 목록
+
+1. 모든 파일에 충돌 표식(`<<<<<<<`, `=======`, `>>>>>>>`)이 남지 않았는지 확인.
+2. `CharacterStatComponent.h/.cpp`: `bCanEverTick = true` 있음(7-1), `TickComponent` 선언·정의 각 1개(7-2), `UpdateCharacterStat`/`GetStatInitialValue` 선언·정의 각 1개(7-4), `StatGrowthTable` 로딩(`main`의 추가분)과 `Data/StatGrowth.h` include 유지.
+3. `Warrior.cpp`: `CreateDefaultSubobject<UCharacterStatComponent>` 1개(7-3), `Dodge`의 스태미나 소모 유지, `GetSaveData()` 오버라이드 유지, 이동 설정이 `PS`와 무관하게 적용(7-5).
+4. 프로젝트 헤더 include는 따옴표로 통일(`main`이 가져온 각괄호 include 포함).
+5. 빌드 후 PIE에서: HUD 시작값(HP 250 / FP 50 / Stamina 60 가득 참), 구르기 2회 후 **1초 뒤 스태미나가 회복되는지**, AI Warrior 이동 속도, C키 스탯창 표시값, 세이브/로드(F키 바인딩) 후 값이 유지되는지.
+
+### 6) 권장 해소 방식
+
+`CharacterStatComponent.h/.cpp`는 `Bae` 버전을 기준으로 삼고 `main`에서 아래 세 가지만 옮긴다: ① `StatGrowthTable` 멤버·로딩·`Data/StatGrowth.h` include, ② `UpdateCharacterStat`의 정의 위치(7-6 결정 후), ③ 정적 키 주석 정도.
+`Warrior.cpp`는 컴포넌트 생성 1개, `UpdateCharacterStats()` 시그니처(`main`)와 `Dodge` 소모(`Bae`)를 모두 남긴다. `WarriorSaveData.h`는 7-8 결정이 나기 전에는 `main`의 변경을 그대로 받되 스탯창의 표시 방식을 같이 정한다.
+`main` 작업자(ahnw00)와 `CharacterStatComponent`를 동시에 수정하지 않도록, 해소 완료 전까지 해당 파일의 수정을 멈추도록 알린다.
+
+### 7-A. 재점검 (2026-10-15, 미커밋 변경 포함)
+
+**방법**: 작업 트리 전체(미커밋 수정과 미추적 파일 포함)를 임시 인덱스에서 스냅샷 커밋(어떤 브랜치에도 연결되지 않음)으로 만든 뒤 `git merge-tree`로 `origin/main`(`b42a975`, 변동 없음)과 시험 병합했다.
+작업 트리, 브랜치, 인덱스는 건드리지 않았고(점검 전후 `git status`와 HEAD가 동일함) 코드 수정과 실제 병합은 하지 않았다.
+
+**결과**
+- 충돌 파일과 개수는 이전과 같다: `CharacterStatComponent.cpp` 3, `CharacterStatComponent.h` 2, `Warrior.cpp` 1. `Warrior.h`, `WarriorController.cpp`, `StatusWindowWidget.cpp`는 충돌 없음.
+- 7-1 ~ 7-5의 숨은 문제가 스냅샷 기준으로도 그대로 재현된다: 병합 결과에 `bCanEverTick`이 없고, `TickComponent` 선언이 헤더에 없으며(정의만 `.cpp`에 있음), `CreateDefaultSubobject<UCharacterStatComponent>`가 `"CharacterStat"`과 `"CharacterStatComponent"`로 2번 들어가고, `UpdateCharacterStat`/`GetStatInitialValue` 선언이 헤더에 각각 2개이며, `if (!PS) return;`이 이동 설정(`MaxWalkSpeed = 400`)보다 앞에 있다.
+- 미커밋 `CharacterStatComponent.cpp` 수정은 주석 정리뿐이라 충돌 구성에 영향이 없다.
+
+**이번에 새로 확인된 것**
+- 6-1이 작업 트리에서 해소되었다. `WarriorController.cpp`에 `FClassFinder`(`/Game/UI/WBP_StatusWindow.WBP_StatusWindow_C`)가 활성화되었고 `WBP_StatusWindow.uasset`이 생겼다. 에셋 문자열에서 `StatusWindowWidget` 부모 참조와 C++이 요구하는 `TextBlock_*` 16개 이름이 모두 보인다(문자열 검색일 뿐이므로 에디터에서 부모 클래스와 이름 일치는 따로 확인).
+- 이 에셋과 `WBP_PlayerHUD.uasset`은 `main`이 건드리지 않아 충돌이 없다. **단, `WBP_StatusWindow.uasset`은 아직 Git이 추적하지 않는다.** 커밋하지 않으면 병합·푸시에서 빠져 `FClassFinder`가 실패한다.
+- 6-1은 이 변경을 반영하면 `[x]`로 닫아도 된다(에디터 확인 후).
+
+**여전히 확인하지 못한 것**: 컴파일 결과, `BP_Warrior`에 저장된 컴포넌트 이름, 에셋의 실제 내용, 컴포넌트 `BeginPlay` 호출 순서의 실측, `main` 작업자의 의도.

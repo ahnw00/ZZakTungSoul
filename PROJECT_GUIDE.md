@@ -11,7 +11,7 @@
 
 본 프로젝트는 **다크 소울(Dark Souls)** 및 **엘든 링(Elden Ring)**과 같은 정통 **소울라이크(Soul-like) 3인칭 액션 RPG**의 핵심 시스템을 언리얼 엔진 5의 C++과 블루프린트를 결합하여 체계적으로 구현한 프로젝트입니다.
 
-* **엔진 버전**: Unreal Engine 5 (Enhanced Input, UMG, AIModule / 현재 AI는 Behavior Tree를 주력 사용하며 StateTree 플러그인은 비활성 또는 미사용)
+* **엔진 버전**: Unreal Engine 5 (Enhanced Input, UMG, AIModule / StateTree 및 GameplayStateTree 플러그인은 활성화되어 있으나 AI 로직은 Behavior Tree를 전담 사용)
 * **모듈**: `ZZakTungSoul` (Runtime)
 * **핵심 타겟 메커니즘**:
   1. 탭(Tap) 회피 / 홀드(Hold) 달리기 소울라이크 입력 체계
@@ -297,9 +297,9 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 2. **순환 참조(Circular Include) 방지**: 두 헤더가 서로를 include하면서 발생하는 무한 루프 에러를 원천 차단함.
 3. **포인터 크기(8바이트)의 특성**: 컴파일러가 클래스의 세부 멤버를 몰라도 포인터 주소 크기만 알면 되므로 헤더에서는 `class` 키워드로 존재만 귀띔하고, 실제 멤버 함수를 호출하는 `.cpp` 파일에서 진짜 `#include`를 수행함.
 
-### 8-3. `AWarrior` 캐릭터 연동 완료 (2단계 완료)
-1. **Getter 추가 (`Warrior.h`)**:
-   * 외부(컨트롤러 및 UI)에서 컴포넌트에 접근할 수 있도록 `public:`에 `FORCEINLINE class UCharacterStatComponent* GetCharacterStatComponent() const` 선언.
+### 8-3. `AWarrior` 캐릭터 연동 (초기 연동에서 인터페이스 아키텍처로 진화)
+1. **Getter 및 인터페이스 확장 (`Warrior.h`)**:
+   * 초기에는 구체 클래스의 `GetCharacterStatComponent()`였으나, 현재는 `ICharacterStatInterface`를 상속받아 `virtual UCharacterStatComponent* GetCharacterStatComponent() const override;`로 구현하여 UI와의 결합도를 완벽히 분리.
 2. **부품 인스턴스화 (`Warrior.cpp`)**:
    * `#include "Character/CharacterStatComponent.h"` 추가.
    * `AWarrior::AWarrior()` 생성자에서 `CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStatComponent"))`로 부품 생성 및 장착.
@@ -314,29 +314,25 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 ### 9-1. 컨트롤러의 위젯 화면 생성 및 출력 (`AWarriorController`)
 * **변수 선언 및 클래스 기본값 로드**:
-  * `TSubclassOf<UUserWidget> PlayerHUDWidgetClass;`
-  * `TObjectPtr<UUserWidget> PlayerHUDWidget;`
-  * 생성자에서 `ConstructorHelpers::FClassFinder<UUserWidget> PlayerHUDClassRef(TEXT("/Game/UI/WBP_PlayerHUD.WBP_PlayerHUD_C"));`로 기본 클래스 자동 매핑 (언리얼 파스칼 케이스 표준 준수 및 `PlayerHUD` 접두사 일관성 유지).
-* **화면 출력 (`BeginPlay`)**:
-  * `CreateWidget<UUserWidget>(this, PlayerHUDWidgetClass)` 후 `AddToViewport()`로 게임 시작 즉시 화면에 렌더링.
+  * `TSubclassOf<UPlayerHUDWidget> PlayerHUDWidgetClass;`
+  * `TObjectPtr<UPlayerHUDWidget> PlayerHUDWidget;`
+  * 생성자에서 `ConstructorHelpers::FClassFinder<UPlayerHUDWidget> PlayerHUDClassRef(TEXT("/Game/UI/WBP_PlayerHUD.WBP_PlayerHUD_C"));`로 기본 클래스 자동 매핑 (`UPlayerHUDWidget` 구체 클래스 지정).
+* **화면 출력 (`BeginPlay`) 및 주입 (`OnPossess`)**:
+  * `BeginPlay()`에서 `CreateWidget<UPlayerHUDWidget>(this, PlayerHUDWidgetClass)` 후 `AddToViewport()`로 게임 시작 즉시 화면에 렌더링.
+  * `OnPossess(APawn* InPawn)`에서 `PlayerHUDWidget->BindStatComponent(...)`로 폰 교체/부활 시 실시간 컴포넌트 주입.
 
 ### 9-2. 순수 C++ UI 두뇌 클래스 제작 (`UPlayerHUDWidget`)
 * **경로**: `Source/ZZakTungSoul/UI/PlayerHUDWidget.h`, `.cpp`
-* **아키텍처 철학 (MVC 패턴 적용)**:
-  * 블루프린트는 오직 비주얼 디자인(뷰)만 담당하고, 복잡한 데이터 바인딩 및 계산 로직은 100% C++에 위임하여 블루프린트 스파게티 선을 원천 배제.
+* **아키텍처 철학**:
+  * 블루프린트는 오직 비주얼 디자인(뷰)만 담당하고, 복잡한 데이터 바인딩 및 계산 로직은 100% C++에 위임.
 * **`meta = (BindWidget)`을 통한 1:1 자동 바인딩**:
-  * `ProgressBar_HP`, `ProgressBar_FP`, `ProgressBar_Stamina`를 C++ 변수로 선언하여 `WBP_PlayerHUD`의 프로그레스 바와 컴파일 타임 1:1 자동 결합.
-* **생명주기 초기화 (`NativeConstruct`)**:
-  * `Super::NativeConstruct()` 호출로 엔진 기본 초기화 수행.
-  * `GetOwningPlayerPawn()` ➔ `AWarrior` ➔ `GetCharacterStatComponent()` 탐색 및 안전한 널 체크.
-  * `AddDynamic`으로 델리게이트 3총사 전선 연결:
-    * `StatComp->OnHPChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateHP);`
-    * `StatComp->OnFPChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateFP);`
-    * `StatComp->OnStaminaChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateStamina);`
-  * `StatComp->BroadcastAllStats()` 호출: 게임 시작 시 현재 스탯(100/100)을 즉시 1회 방송하여 UI 초기화(0% 빈 화면 문제 해결).
+  * `ProgressBar_HP`, `ProgressBar_FP`, `ProgressBar_Stamina`를 C++ 변수로 선언하여 `WBP_PlayerHUD`의 프로그레스 바와 결합 (WBP 컴파일 시 이름 일치 필수 검증).
+* **생명주기 초기화 (`NativeConstruct`) 및 안전한 주입 (`BindStatComponent`)**:
+  * `NativeConstruct()`: 위젯 생성 직후 소유 폰을 탐색하여 초기 1회 바인딩 시도.
+  * `BindStatComponent()`: `TWeakObjectPtr`로 댕글링 포인터를 방지하고, 기존 델리게이트 `RemoveDynamic` 후 `AddUniqueDynamic`으로 델리게이트 3총사 연결.
+  * 연결 직후 Getter를 1회 호출(`UpdateProgressBar`)하여 0% 빈 화면 방지.
 * **콜백 함수 구현 (`SetPercent`)**:
-  * `UpdateHP(float CurrentHP, float MaxHP)`: `FMath::Clamp(CurrentHP / MaxHP, 0.f, 1.f)` 연산 후 `ProgressBar_HP->SetPercent(Ratio)`.
-  * `UpdateFP`, `UpdateStamina` 동일 구현 (`CharacterStatComponent`의 명명 규칙과 일관성 유지).
+  * `UpdateHP(float CurrentHP, float MaxHP)`, `UpdateFP`, `UpdateStamina` 콜백에서 공통 헬퍼 `UpdateProgressBar`를 호출해 중복 코드 제거.
 
 ### 9-3. 위젯 블루프린트 부모 변경 (Reparent) 및 인게임 검증
 * `WBP_PlayerHUD`의 부모 클래스를 `UserWidget`에서 우리가 작성한 `PlayerHUDWidget`으로 성공적으로 Reparent 완료.
@@ -372,12 +368,15 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
    * `ICharacterStatInterface`를 통해 영속 세이브 데이터(`GetSaveData()`)와 실시간 전투 스탯(`GetCharacterStatComponent()`)을 단일 창구로 조회.
    * `BindWidgetOptional`을 적용하여 점진적 UI 디자인 환경 지원.
    * 람다 헬퍼를 활용한 안전한 텍스트 갱신 함수(`RefreshStatus`) 구현 완료.
-3. **[완료] 스탯창 토글 단축키 매핑 (`AWarriorController`)**:
+3. **[완료] 스탯창 토글 단축키 매핑 및 에셋 연동 (`AWarriorController`)**:
    * 키보드 `C` 키 입력 바인딩을 통해 스탯 정보창 열기/닫기 토글 기능 구현.
+   * `WarriorController` 생성자에서 `ConstructorHelpers::FClassFinder`로 `WBP_StatusWindow` 자동 매핑 완료.
    * 메뉴가 열렸을 때 마우스 커서 표시(`bShowMouseCursor = true`) 및 소울라이크 특유의 UI/게임 입력 겸용 모드(`SetInputMode(FInputModeGameAndUI())`) 전환.
    * 메뉴가 닫히면 마우스 커서 숨김 및 게임 조작 모드(`FInputModeGameOnly()`)로 복구.
-4. **[진행 예정] 위젯 블루프린트 (`WBP_StatusWindow`) 디자인**:
-   * 다크 소울 3 스타일의 중후한 전체 화면 반투명 레이아웃 및 텍스트 블록 배치.
+4. **[완료] 위젯 블루프린트 (`WBP_StatusWindow`) 1차 제작 및 인게임 연동 검증 (2026-10-15)**:
+   * `UStatusWindowWidget`을 상속받는 `WBP_StatusWindow` 생성 및 반투명 배경 레이아웃 구성.
+   * `BindWidgetOptional` 기반의 `TextBlock_Level`, `TextBlock_HP` 배치 및 정상 바인딩 확인.
+   * 인게임(`Alt + P`)에서 `C` 키를 눌러 스탯창 열림/닫힘 및 최신 스탯 수치 표시 최종 검증 완료.
 
 ---
 
@@ -402,5 +401,201 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 * **소울라이크 실시간 메뉴 철학 반영**:
   * 메뉴가 열려도 백그라운드 월드가 멈추지 않고 실시간으로 돌아가도록 `FInputModeGameAndUI` 적용.
   * 위젯 Z-Order를 `10`으로 지정하여 기존 HUD보다 위에 떠서 화면 전체를 덮도록 구성.
+
+---
+
+## 12. [핵심 복습 & 아키텍처 문답집] 내가 짠 코드 완벽하게 설명하기 (2026-10-15)
+
+> 💡 **학습 목표**: 면접이나 팀 코드 리뷰에서 *"왜 이 코드를 이렇게 설계했는가?"*라는 질문을 받았을 때, 언리얼 엔진의 원리와 객체지향 설계 근거를 바탕으로 거침없이 설명할 수 있는 핵심 문답 노트.
+
+---
+
+### 💬 Q1. 왜 구체 클래스 `AWarrior`를 직접 참조하지 않고 `ICharacterStatInterface`를 도입했나요?
+* **핵심 답변**:
+  1. **결합도 분리(Decoupling)**: 기존에는 UI(`PlayerHUDWidget`)가 `AWarrior`를 직접 `#include`하고 캐스팅(`Cast<AWarrior>`)하여 강하게 결합되어 있었습니다. 이 구조에서는 마법사 캐릭터, 보스 몬스터, NPC 등이 추가되어도 동일한 체력바 UI를 재사용할 수 없습니다.
+  2. **다형성(Polymorphism)**: `ICharacterStatInterface`라는 표준 규격을 세워두고, UI는 캐릭터의 구체적인 타입을 전혀 모른 채 오직 인터페이스만 바라보도록 만들어 완벽한 모듈 독립성을 달성했습니다.
+  3. **순수 가상 vs 일반 가상의 설계 차이**:
+     - `GetCharacterStatComponent() = 0;`: 적이든 플레이어든 체력을 가진 모든 액터는 스탯 컴포넌트를 반드시 가져야 하므로 **순수 가상 함수**로 구현을 강제함.
+     - `GetSaveData() { return nullptr; }`: 저장 데이터(레벨, 소울 등)는 오직 플레이어만 가지며 몬스터에게는 불필요하므로, 몬스터에게 강제하지 않도록 **기본값(`nullptr`)을 제공하는 일반 가상 함수**로 유연하게 설계함.
+
+---
+
+### 💬 Q1. 왜 구체 클래스 `AWarrior`를 직접 참조하지 않고 `ICharacterStatInterface`를 도입했나요?
+* **핵심 답변**:
+  1. **결합도 분리(Decoupling)**: 기존에는 UI(`PlayerHUDWidget`)가 `AWarrior`를 직접 `#include`하고 캐스팅(`Cast<AWarrior>`)하여 강하게 결합되어 있었습니다. 이 구조에서는 마법사 캐릭터, 보스 몬스터, NPC 등이 추가되어도 동일한 체력바 UI를 재사용할 수 없습니다.
+  2. **다형성(Polymorphism)**: `ICharacterStatInterface`라는 표준 규격을 세워두고, UI는 캐릭터의 구체적인 타입을 전혀 모른 채 오직 인터페이스만 바라보도록 만들어 완벽한 모듈 독립성을 달성했습니다.
+  3. **순수 가상 vs 일반 가상의 설계 차이**:
+     - `GetCharacterStatComponent() = 0;`: 적이든 플레이어든 체력을 가진 모든 액터는 스탯 컴포넌트를 반드시 가져야 하므로 **순수 가상 함수**로 구현을 강제함.
+     - `GetSaveData() { return nullptr; }`: 저장 데이터(레벨, 소울 등)는 오직 플레이어만 가지며 몬스터에게는 불필요하므로, 몬스터에게 강제하지 않도록 **기본값(`nullptr`)을 제공하는 일반 가상 함수**로 유연하게 설계함.
+
+---
+
+### 💬 Q2. 왜 `NativeConstruct`와 `AWarriorController::OnPossess`에서 HUD 바인딩을 병행하나요?
+* **핵심 답변**:
+  1. **초기화 순서의 불확실성 극복 (이중 안전망)**:
+     - 엔진 실행 환경(PIE, 독립형 빌드, 레벨 로딩 속도)에 따라 위젯이 먼저 생성될 수도 있고, 폰 빙의가 먼저 일어날 수도 있습니다.
+     - `NativeConstruct`는 위젯 생성 시 소유 폰을 찾아 즉시 바인딩을 시도하고, `OnPossess`는 컨트롤러가 폰을 빙의하는 순간마다 위젯에 컴포넌트를 주입하므로 어느 쪽이 먼저 실행되어도 초기 바인딩 누락이 발생하지 않습니다.
+  2. **사망 및 리스폰(Pawn 재생성) 시 댕글링 방지와 UI 미갱신 해결**:
+     - 위젯의 `NativeConstruct`는 게임 시작 시 위젯이 생성될 때 단 1번만 실행됩니다.
+     - 소울라이크 게임에서 플레이어가 사망하여 액터가 파괴되고 새 캐릭터로 부활했을 때, 1회성 `NativeConstruct`만 사용하면 UI는 이미 소멸된 옛날 캐릭터의 컴포넌트 델리게이트에 머물게 되어 **체력바가 더 이상 갱신되지 않는 먹통 현상**이 발생합니다.
+     - 언리얼 엔진에서 컨트롤러가 새로운 캐릭터 육체를 장악할 때마다 무조건 호출되는 공식 생명주기 함수인 `OnPossess(APawn* InPawn)`에서 `PlayerHUDWidget->BindStatComponent(...)`를 재호출함으로써 부활 시마다 최신 캐릭터로 즉시 교체 연결됩니다.
+  3. **`BindStatComponent` 내부의 3중 방어 기제**:
+     - `RemoveDynamic`: 혹시 남아있는 이전 캐릭터의 전선을 깔끔하게 끊어 유령 브로드캐스트 수신 차단.
+     - `AddUniqueDynamic`: 중복 바인딩으로 인해 콜백 함수가 한 번에 여러 번 불리는 현상 차단.
+     - `TWeakObjectPtr`: 캐릭터 소멸 시 일반 Raw 포인터의 허위 주소(Dangling) 참조 위험을 원천 차단하고 안전하게 유효성(`IsValid()`) 감지.
+
+---
+
+### 💬 Q3. 델리게이트를 연결하자마자 왜 컴포넌트의 Getter를 1회 직접 호출하나요?
+* **핵심 답변**:
+  1. **델리게이트의 성격**: 델리게이트(이벤트)는 "체력이 깎였다!", "스태미나를 썼다!"처럼 **상태가 '변화하는 순간'에만 울리는 벨**입니다.
+  2. **최초 연결 시점의 맹점**: UI가 처음 켜졌거나 새 캐릭터에 연결된 순간에는 아무런 피해도 입지 않은 평화로운 상태(변화 없음)이므로, 델리게이트 방송이 전혀 오지 않아 체력바가 **0%인 빈 깡통 상태**로 남게 됩니다.
+  3. **해결 (스냅샷 즉시 읽기)**: 따라서 전선을 꽂자마자(바인딩 직후), Getter(`GetCurrentHP()`, `GetMaxHP()`)로 **현재 상태의 스냅샷을 1회 즉시 읽어서 게이지를 꽉 채워주고(Initial Refresh)**, 그 이후부터 실시간 변화를 델리게이트로 수신하도록 설계했습니다.
+  4. **보완 안전망 (`BroadcastAllStats`)**: 컴포넌트의 `BeginPlay`에서도 `BroadcastAllStats()`를 호출해 두는데, 이는 위젯 바인딩이 폰의 `BeginPlay`보다 늦게 일어나는 예외적 상황에서도 `LoadCharacterStat`으로 읽어온 250/50/60 수치가 HUD에 최종 반영되도록 돕는 상호 보완 안전망 역할을 합니다.
+
+---
+
+### 💬 Q4. 스탯 데이터 로딩에서 왜 `GetAllRows` 대신 `FindRow`와 정적 키를 썼나요?
+* **핵심 답변**:
+  1. **`GetAllRows`의 한계**: `GetAllRows`는 테이블의 행들을 순서 없는 TArray로 긁어오므로 "어느 행이 HP인지, FP인지" 행 이름(Key)을 직접 핀포인트로 특정할 수 없어 순회 비용이 들고 기획 변경에 취약합니다.
+  2. **`FindRow`의 핀포인트 조회**: CSV의 고유 행 이름(Key: `"HP"`, `"FP"`)을 인덱스로 넘겨 $O(1)$에 준하는 해시 조회를 수행하므로 코드가 간결하고 빠릅니다.
+  3. **정적 키(`inline static const FName`)의 역할**: `TEXT("HP")` 같은 문자열 리터럴을 함수마다 직접 하드코딩하면 휴먼 에러(철자 오타)가 발생하기 쉬우므로, `HpKey`, `FpKey` 등의 static 상수로 묶어 코드 작성 시 심볼 오타를 방지했습니다. *(주의: FName 키가 실제 CSV 에셋의 행 이름과 일치하는지는 컴파일 타임이 아닌 런타임 검사 영역이므로, `FindRow` 반환 포인터에 대한 Nullptr 검사와 방어 로그가 필수적입니다)*
+
+---
+
+### 💬 Q5. 스탯창(`StatusWindowWidget`)은 왜 `BindWidgetOptional`과 인터페이스 단일 창구를 썼나요?
+* **핵심 답변**:
+  1. **`BindWidgetOptional` (점진적 UI 디자인 환경 지원)**:
+     - `BindWidget`을 쓰면 C++에 선언된 20여 개의 텍스트 블록이 WBP 에셋에 단 하나라도 누락되었을 때 WBP 컴파일 에러가 발생하여 에셋 저장이 차단됩니다.
+     - `BindWidgetOptional`을 통해 WBP 디자이너가 원하는 항목(예: HP, 레벨)부터 하나씩 배치하며 점진적으로 UI를 완성할 수 있게 배려했습니다.
+     - 런타임 Null 포인터 접근을 방지하기 위해 `auto SetNumberText`와 같은 람다 헬퍼를 도입하여 위젯이 바인딩된 경우에만 안전하게 텍스트를 대입합니다.
+  2. **인터페이스 단일 창구 (Single Point of Query)**:
+     - `ICharacterStatInterface`가 컴포넌트(`GetCharacterStatComponent`)뿐만 아니라 세이브 데이터(`GetSaveData`)까지 한곳에서 제공하므로, 위젯은 `PlayerState` 구체 클래스를 몰라도 인터페이스 하나만으로 영속 스탯과 전투 스탯을 일괄 조회(`RefreshStatus`)할 수 있습니다.
+  3. **현재 상태와 과제**: 현재 C++ 토글 로직과 단일 창구 인터페이스는 구축되었으나, `WBP_StatusWindow` 에셋 생성 및 GameMode의 컨트롤러 BP 연결이 다음 단계로 남아 있습니다.
+
+---
+
+### 💬 Q6. 소울라이크 특유의 스태미나 자연 회복 지연은 어떻게 구현했나요?
+* **핵심 답변**:
+  1. **타임스탬프(`GetTimeSeconds`) 방식**:
+     - 구르기나 공격으로 스태미나를 소모하는 순간, `GetWorld()->GetTimeSeconds()`로 마지막 소모 시각(`LastStaminaUseTime`)을 찍어둡니다.
+  2. **지연 시간 검사 (`StaminaRegenDelay`)**:
+     - `TickComponent`에서 매 프레임 `RegenerateStamina(DeltaTime)`를 호출하여, `CurrentTime - LastStaminaUseTime < 1.0f` 동안은 회복을 일시 중단(숨고르기 딜레이)합니다.
+  3. **프레임 독립적 회복 (`DeltaTime`)**:
+     - 지연 시간이 지나면 `StaminaRegenRate * DeltaTime` (초당 30)만큼 매 프레임 부드럽게 누적 회복하며, 최대치(`MaxStamina`) 도달 시 `Clamp` 처리합니다.
+
+---
+
+### 💬 Q7. 언리얼 엔진의 스폰/빙의 라이프사이클 순서와 HUD 바인딩 타이밍은?
+* **핵심 답변**:
+  * **전형적인 엔진 스폰 및 초기화 순서**:
+    1. `AZTSGameMode::PostLogin` (또는 게임 시작)
+    2. `AWarriorController::BeginPlay()`: HUD 위젯 생성(`CreateWidget`) 및 뷰포트 등록(`AddToViewport`).
+    3. `AWarriorController::OnPossess(APawn* InPawn)`: 컨트롤러가 월드의 폰을 장악.
+    4. `AWarrior::BeginPlay()`: 폰 본체의 초기화.
+    5. `UCharacterStatComponent::BeginPlay()`: 폰의 부품인 컴포넌트 초기화 (`LoadCharacterStat` 및 `BroadcastAllStats`).
+  * **설계 시사점**:
+    - 위젯 생성 시점에는 아직 폰 빙의가 일어나지 않았거나 컴포넌트가 로드되지 않았을 수 있습니다.
+    - 따라서 `PlayerHUDWidget::NativeConstruct` 한곳에만 바인딩을 맡기면 안 되며, `OnPossess` 시점에 `BindStatComponent`로 확실하게 컴포넌트를 주입해 주는 구조가 필수적입니다.
+
+---
+
+### 💬 Q8. 왜 일반 C++ 델리게이트가 아닌 'Dynamic Multicast Delegate'를 사용했나요?
+* **핵심 답변**:
+  1. **언리얼 리플렉션 및 UFUNCTION 지원**:
+     - `DECLARE_DYNAMIC_MULTICAST_DELEGATE`는 엔진의 UObject 리플렉션 시스템과 연동되므로, 바인딩 대상 함수가 반드시 `UFUNCTION()`이어야 합니다. 이를 통해 런타임에 안전하게 함수 포인터를 찾고 실행합니다.
+  2. **중복 방지 (`AddUniqueDynamic`) 및 안전한 해제 (`RemoveDynamic`)**:
+     - 일반 멀티캐스트는 중복 바인딩 검사가 까다롭지만, Dynamic 델리게이트는 `AddUniqueDynamic`을 제공하여 실수로 동일 함수가 2번 연결되는 사고를 원천 방지합니다.
+  3. **블루프린트 확장성**:
+     - `BlueprintAssignable` 지정자를 통해 C++뿐만 아니라 블루프린트 에디터의 이벤트 그래프에서도 드래그 앤 드롭으로 이벤트를 수신할 수 있어 기획/아트 팀과의 협업에 매우 유리합니다.
+
+---
+
+### 💬 Q9. `UINTERFACE`의 U/I 클래스 쌍 구조와 `Cast<ICharacterStatInterface>`의 원리는?
+* **핵심 답변**:
+  1. **U/I 클래스 쌍의 분리 이유**:
+     - 언리얼 엔진은 C++의 다중 가상 상속을 허용하지 않으므로, UObject 시스템 메타데이터를 위한 `UCharacterStatInterface (UInterface)`와 실제 C++ 순수 가상 함수를 정의하는 `ICharacterStatInterface`의 쌍으로 선언됩니다.
+  2. **`Cast<IInterface>`의 작동 및 Null 안전성**:
+     - 언리얼의 `Cast<ICharacterStatInterface>(Pawn)`는 런타임 타입 정보(RTTI/UClass)를 검사하여, 해당 폰이 인터페이스를 상속받았는지 확인합니다. 상속받지 않은 액터라면 예외 없이 즉시 `nullptr`를 안전하게 반환합니다.
+  3. **C++ 전용 vs 블루프린트 구현 차이**:
+     - 순수 C++ 인터페이스는 가상 함수(`virtual ... = 0`)로 깔끔하게 작성 가능하지만, 블루프린트에서도 인터페이스를 구현하게 하려면 `UFUNCTION(BlueprintNativeEvent)`으로 선언하고 C++에서는 `_Implementation` 접미사 함수를 구현해야 합니다.
+
+---
+
+### 💬 Q10. `BindWidget` vs `BindWidgetOptional`의 설계적 차이는?
+* **핵심 답변**:
+  | 구분 | `meta = (BindWidget)` | `meta = (BindWidgetOptional)` |
+  | :--- | :--- | :--- |
+  | **컴파일 검증** | WBP 컴파일/저장 시 위젯 이름이 없으면 **컴파일 에러 발생** | 위젯이 없어도 에러 없이 **정상 컴파일 및 저장 허용** |
+  | **런타임 포인터** | 정상 컴파일된 에셋이라면 런타임에 100% 유효 포인터 보장 | WBP에 배치되지 않았으면 런타임에 **`nullptr`** 상태 |
+  | **프로젝트 적용처** | `ProgressBar_HP/FP/Stamina` (필수 전투 HUD) | `StatusWindowWidget`의 20여 개 텍스트 블록 (점진적 디자인) |
+  | **C++ 방어 코드** | 널 체크가 필수는 아니나 안전을 위해 권장 | **널 체크 절대 필수** (람다 헬퍼 `if (Widget) Widget->SetText(...)` 필수) |
+
+---
+
+### 💬 Q11. 언리얼 스마트 포인터 3총사 (`TObjectPtr`, `TWeakObjectPtr`, Raw Pointer)의 용도와 차이는?
+* **핵심 답변**:
+  1. **`TObjectPtr<T>` (강한 참조 / 소유)**:
+     - 언리얼 5에서 기본 권장되는 UObject 포인터로, `UPROPERTY()`와 함께 사용되어 엔진의 가비지 컬렉터(GC)에게 "이 객체는 내가 쓰고 있으니 메모리에서 지우지 마라"고 알립니다.
+     - 적용처: 컨트롤러가 소유하는 위젯 인스턴스 (`PlayerHUDWidget`, `StatusWindowWidget`).
+  2. **`TWeakObjectPtr<T>` (약한 참조 / 비소유 관찰자)**:
+     - 객체의 수명(GC)에 일절 관여하지 않으면서, 대상 객체가 다른 곳에서 파괴(`DestroyActor`)되었을 때 이를 스스로 감지하여 포인터를 자동으로 `nullptr`처럼 무효화(`IsValid() == false`)합니다.
+     - 적용처: `PlayerHUDWidget`이 바라보는 `CurrentStatComponent`. (캐릭터가 죽어서 컴포넌트가 파괴되었을 때 댕글링 포인터 크래시 방지).
+  3. **Raw Pointer (`T*`)의 위험성**:
+     - GC가 메모리를 해제해도 주소값을 그대로 쥐고 있어(Dangling Pointer), 잘못 접근하면 프로그램이 즉시 강제 종료됩니다. 액터/컴포넌트의 장기 보관용으로는 절대 지양해야 합니다.
+
+---
+
+### 💬 Q12. `CreateDefaultSubobject`와 `FClassFinder`는 왜 '생성자'에서만 써야 할까요?
+* **핵심 답변**:
+  1. **CDO(Class Default Object) 구축 타이밍**:
+     - 언리얼 엔진은 엔진 초기화 시점에 클래스마다 하나의 원형 붕어빵인 CDO를 메모리에 굽습니다.
+     - `CreateDefaultSubobject`는 액터의 기본 컴포넌트 계층 구조를 CDO에 영구 각인시키는 함수이므로 오직 C++ 생성자에서만 동작합니다. (런타임에 부품을 붙일 때는 `NewObject<T>()` + `RegisterComponent()` 사용).
+  2. **`FClassFinder`와 `_C` 접미사**:
+     - 생성자 헬퍼(`ConstructorHelpers::FClassFinder`) 역시 CDO 생성 시점에 에셋을 정적으로 참조하기 위한 도구입니다.
+     - 위젯 블루프린트(`WBP`)나 액터 블루프린트(`BP`)는 에셋 자체를 가리키는 것이 아니라 엔진이 생성한 UClass 바이트코드를 읽어야 하므로, 경로 끝에 반드시 `_C` (UBlueprintGeneratedClass) 접미사를 붙여야 합니다.
+
+---
+
+### 💬 Q13. 영속 데이터(PlayerState/SaveGame)와 휘발 데이터(Component)는 왜 분리해야 할까요?
+* **핵심 답변**:
+  1. **소울라이크의 '죽음과 부활' 사이클**:
+     - 플레이어가 죽으면 월드에 서 있던 `AWarrior` 육체와 그 부품인 `CharacterStatComponent`는 완전히 소멸(Destroy)되고 가비지 컬렉션됩니다.
+     - 하지만 플레이어의 레벨, 보유 소울, 강화 수치, 인벤토리는 부활 후에도 그대로 보존되어야 합니다.
+  2. **책임과 수명의 분리**:
+     - **`AWarriorPlayerState` & `UWarriorPlayerSaveGame`**: 폰이 파괴되거나 레벨이 바뀌어도 게임 세션 동안 살아남아 디스크에 저장/로드되는 **영속 데이터(Persistent Data)** 담당.
+     - **`CharacterStatComponent`**: 현재 프레임의 전투 상황(실시간 HP 깎임, 스태미나 소모/회복)을 연산하고 화면에 뿌려주는 **휘발성 전투 엔진(Volatile Engine)** 담당.
+     - 부활 시 `PlayerState`의 영속 데이터를 읽어와 새로 스폰된 폰의 `CharacterStatComponent`를 초기화(`UpdateCharacterStat`)하는 명확한 파이프라인이 성립됩니다.
+
+---
+
+### 💬 Q14. 언리얼 입력 모드 3종 비교표 (`GameOnly`, `UIOnly`, `GameAndUI`)
+* **핵심 답변**:
+  | 입력 모드 | 게임 월드 입력 (이동/시점) | UI 위젯 입력 (클릭/포커스) | 마우스 커서 표시 | 적용 사례 |
+  | :--- | :---: | :---: | :---: | :--- |
+  | **`FInputModeGameOnly`** | **활성 (100%)** | 비활성 | 숨김 (`bShowMouseCursor = false`) | 일반 필드 탐험, 실시간 전투 조작 |
+  | **`FInputModeUIOnly`** | 완전 차단 | **활성 (100%)** | 표시 (`bShowMouseCursor = true`) | 메인 타이틀 메뉴, 팝업 확인창 (게임 정지) |
+  | **`FInputModeGameAndUI`** | **활성 (배경 동작)** | **활성 (우선권)** | **표시 (`bShowMouseCursor = true`)** | **소울라이크 실시간 스탯창/인벤토리 창** |
+
+> 💡 **소울라이크 철학**: 다크 소울이나 엘든 링은 인벤토리나 스탯창을 열어도 게임이 일시정지되지 않고 뒤에서 몬스터가 다가옵니다. 따라서 `FInputModeGameAndUI`를 적용하여 마우스로 UI를 누르면서도 WASD로 도망칠 수 있는 긴장감을 유지하도록 구현했습니다.
+
+---
+
+### 📝 [실수에서 배운 실무 지혜 (Troubleshooting Log)]
+
+실제 프로젝트를 빌드하고 교차 검증하는 과정에서 겪었던 시행착오와 그로부터 얻은 교훈입니다:
+
+1. **복사-붙여넣기 변수 미수정 버그 (`CurrentHP = Clamp(CurrentFP...)`)**:
+   - **현상**: FP를 갱신하는 로직에서 HP 변수에 FP 값을 대입하여 체력이 엉뚱하게 튀는 버그 발생.
+   - **교훈**: 유사한 로직(HP, FP, Stamina)을 반복 복사할 때 변수명 누락이 가장 흔한 휴먼 에러입니다. 향후 공통 헬퍼 함수나 구조체 맵으로 중복 코드를 리팩토링해야 하는 명확한 이유를 체감함.
+2. **경계값 부등호 버그 (`<= Amount` vs `< Amount`)**:
+   - **현상**: 스태미나가 정확히 25 남았을 때 25짜리 구르기를 시도했는데 발동되지 않아, Max 100 기준 4번 굴러야 할 것이 3번만 구르고 멈춤.
+   - **교훈**: 잔여량이 요구량보다 '작을 때' 실패(`Current < Amount`)해야 하는데, '작거나 같을 때' 실패(`Current <= Amount`)로 잘못 작성한 경계값 오류. 게임 밸런스 공식에서 등호(`=`)의 포함 여부는 전투 감각을 완전히 바꿉니다.
+3. **빈 문자열 `FClassFinder`와 `EditDefaultsOnly`의 함정 (6-1 현상)**:
+   - **현상**: C++에서 위젯 클래스를 `EditDefaultsOnly`로 열어두었으나, `GameMode`가 C++ 컨트롤러 클래스를 직접 지정하고 있어 에디터에서 값을 넣어줄 통로가 없었음. 게다가 생성자 헬퍼에 빈 경로(`TEXT("")`)를 넣어 로드 실패 경고가 발생함.
+   - **교훈**: C++과 블루프린트를 결합할 때는 "GameMode가 바라보는 컨트롤러가 BP 파생 클래스인지", "CDO 에셋 탐색 경로가 유효한지"의 데이터 흐름 파이프라인을 항상 먼저 점검해야 함.
+4. **로그 포맷 및 괄호 불일치 (`{StatComponent]`)**:
+   - **현상**: 닫는 괄호 종류가 달라 로그 가독성을 해치고 사소한 컴파일/서식 경고 유발.
+   - **교훈**: 프로젝트 전반의 로그 카테고리와 접두사 규칙은 매크로나 상수로 통일하여 관리하는 것이 유지보수에 유리함.
 
 

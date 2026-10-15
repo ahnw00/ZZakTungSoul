@@ -2,19 +2,17 @@
 
 
 #include "UI/StatusWindowWidget.h"
-#include <Components/TextBlock.h>
-#include <Interface/CharacterStatInterface.h>
-#include <Character/CharacterStatComponent.h>
-#include <SaveData/WarriorSaveData.h>
-
-
+#include "Components/TextBlock.h"
+#include "Interface/CharacterStatInterface.h"
+#include "Character/CharacterStatComponent.h"
+#include "SaveData/WarriorSaveData.h"
 
 
 void UStatusWindowWidget::NativeConstruct()
 {
-	Super::NativeConstruct();
+	Super::NativeConstruct(); // OnPossess는 Controller에만 있는 함수.
 
-	// 최신 스탯으로 새로 고침.
+	// 창을 열 때 최신 스탯으로 새로 고침.
 	RefreshStatus();
 }
 

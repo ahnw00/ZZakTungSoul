@@ -65,13 +65,13 @@ AWarriorController::AWarriorController()
 		PlayerHUDWidgetClass = PlayerHUDClassRef.Class;
 	}
 	// [스탯창] Todo: 경로.
-	//static ConstructorHelpers::FClassFinder<UStatusWindowWidget> StatusWindowClassRef(
-	//	TEXT("") // 
-	//);
-	//if (StatusWindowClassRef.Succeeded())
-	//{
-	//	StatusWindowWidgetClass = StatusWindowClassRef.Class;
-	//}
+	static ConstructorHelpers::FClassFinder<UStatusWindowWidget> StatusWindowClassRef(
+		TEXT("/Game/UI/WBP_StatusWindow.WBP_StatusWindow_C") 
+	);
+	if (StatusWindowClassRef.Succeeded())
+	{
+		StatusWindowWidgetClass = StatusWindowClassRef.Class;
+	}
 }
 
 void AWarriorController::BeginPlay()
@@ -357,6 +357,8 @@ void AWarriorController::OnPossess(APawn* InPawn)
 
 void AWarriorController::ToggleStatusWindow()
 {
+	// 입력 모드 3종
+	// FInputModeGameOnly, FInputModeUIOnly, FInputModeGameAndUI(디아블로)
 	// 화면 열려 있으면 닫기.
 	if (StatusWindowWidget && StatusWindowWidget->IsInViewport())
 	{

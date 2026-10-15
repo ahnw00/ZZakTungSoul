@@ -56,14 +56,11 @@ void UCharacterStatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-
-
 	// 게임 시작 시 테이블로부터 기본 스탯 로드.
 	LoadCharacterStat();
 
 	// 게임 시작 시 현재 HP, FP, Stamina 스탯을 UI에 방송.
 	BroadcastAllStats();
-	
 }
 
 float UCharacterStatComponent::GetStatInitialValue(const FName& StatName) const
@@ -74,7 +71,9 @@ float UCharacterStatComponent::GetStatInitialValue(const FName& StatName) const
 	}
 
 	static const FString ContextString(TEXT("GetStatInitialValue"));
-	if (const FStatDefine* Row = StatDefineTable->FindRow<FStatDefine>(StatName, ContextString))
+	// GetAllRows는 모든 행을 순서 없는 배열로 한꺼번에 긁어온다.
+	// FindRow는 행 순서와 무관하게 데이터를 이름으로 정확히 조회할 수 있다.
+	if (const FStatDefine* Row = StatDefineTable->FindRow<FStatDefine>(StatName, ContextString)) 
 	{
 		return static_cast<float>(Row->InitialValue);
 	}
@@ -129,7 +128,6 @@ void UCharacterStatComponent::TickComponent(float DeltaTime, ELevelTick TickType
 }
 
 // [스탯 제어 함수]
-	// 형식
 	// 범위 제한.
 	// 이벤트 구독(Bind)하고 있는 UI에게 방송.
 void UCharacterStatComponent::SetCurrentHP(float NewHP)

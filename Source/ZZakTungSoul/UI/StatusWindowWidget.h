@@ -26,7 +26,8 @@ protected:
 	virtual void NativeConstruct() override;
 
 protected:
-	UPROPERTY(meta = (BindWidgetOptional))
+	// BindWidgetOptional -> C++ 변수와 이름이 일치하는 위젯이 있으면 연결하고 없으면 nullptr로 반환.
+	UPROPERTY(meta = (BindWidgetOptional)) 
 	TObjectPtr<UTextBlock> TextBlock_Level;
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> TextBlock_Souls;

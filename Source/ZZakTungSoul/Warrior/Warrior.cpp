@@ -113,12 +113,6 @@ void AWarrior::Tick(float DeltaTime)
 		MoveState = EMoveState::Walk;
 	}
 
-	// 구를때 제자리에서 구르는 몽타주라서 직접 이동해주기
-	if (ActionState == EActionState::Roll)
-	{
-		AddActorWorldOffset(GetActorForwardVector() * 400.f * DeltaTime, true);
-	}
-
 	// 락온 상태
 	if (bLockOn)
 	{
@@ -256,8 +250,8 @@ void AWarrior::UpdateLook(float DeltaTime)
 
 void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (Montage == AnimInstance->GetBlockMontage())
-		return;
+	//if (Montage == AnimInstance->GetBlockMontage())
+	//	return;
 
 	if (bIsAttacking)
 	{
@@ -304,6 +298,8 @@ void AWarrior::SprintStart()
 {
 	if (bIsSprint)
 		return;
+	if (OverlayState == EOverlayState::Block)
+		return;
 
 	bIsSprint = true;
 	// 임시로 값 직접 넣어준거(달리는 속도 600)
@@ -312,6 +308,9 @@ void AWarrior::SprintStart()
 
 void AWarrior::SprintEnd()
 {
+	if (!bIsSprint)
+		return;
+
 	bIsSprint = false;
 	// 다시 원래 걷는 속도로
 	GetCharacterMovement()->MaxWalkSpeed = 400.f;
@@ -319,14 +318,17 @@ void AWarrior::SprintEnd()
 
 void AWarrior::BlockStart()
 {
+	// 다른 액션을 하고 있으면 무시
 	if (ActionState != EActionState::None)
 		return;
 	if (OverlayState != EOverlayState::None)
 		return;
+	if (bIsSprint)
+		SprintEnd();
 
 	//OverlayState = EOverlayState::Block;
 	SetOverlayState(EOverlayState::Block);
-	AnimInstance->PlayBlockMontage();
+	//AnimInstance->PlayBlockMontage();
 }
 
 void AWarrior::BlockEnd()
@@ -336,7 +338,7 @@ void AWarrior::BlockEnd()
 
 	//OverlayState = EOverlayState::None;
 	SetOverlayState(EOverlayState::None);
-	AnimInstance->StopBlockMontage();
+	//AnimInstance->StopBlockMontage();
 }
 
 void AWarrior::Attack()
@@ -369,13 +371,13 @@ void AWarrior::Dodge(FVector ControlDir)
 	{
 		//ActionState = EActionState::BackStep;
 		SetActionState(EActionState::BackStep);
-		AnimInstance->PlayBackStepMontage();
-		LaunchCharacter(-GetActorForwardVector() * 2400.f, true, false);
+		AnimInstance->PlayActionMontage();
+		//LaunchCharacter(-GetActorForwardVector() * 2400.f, true, false);
 		return;
 	}
 
 	SetActionState(EActionState::Roll);
-	AnimInstance->PlayRollMontage();
+	AnimInstance->PlayActionMontage();
 
 	// 구를때는 이동 방향으로 굴러야해
 	// 회전 안잡아주면 카메라가 바라보는 방향으로만 구르게 돼(특히 락온 상태에서)

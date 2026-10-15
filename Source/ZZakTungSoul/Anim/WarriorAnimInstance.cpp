@@ -9,7 +9,21 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 {
 	CurrentPawnSpeed = 0.f;
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> RollMontageRef(
+		TEXT("/Game/RetargetAnimations/Warrior_Dodge_Montage.Warrior_Dodge_Montage")
+	);
+	if (RollMontageRef.Succeeded())
+	{
+		RollMontage = RollMontageRef.Object;
+	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> BackStepMontageRef(
+		TEXT("/Game/RetargetAnimations/Warrior_BackStep_Montage.Warrior_BackStep_Montage")
+	);
+	if (BackStepMontageRef.Succeeded())
+	{
+		BackStepMontage = BackStepMontageRef.Object;
+	}
 }
 
 void UWarriorAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -68,8 +82,41 @@ void UWarriorAnimInstance::AnimNotify_ComboCheck()
 	}
 }
 
-void UWarriorAnimInstance::PlayMontage(UAnimMontage* Montage)
+void UWarriorAnimInstance::PlayMontage(const EActionState CurrentActionState)
 {
+}
+
+void UWarriorAnimInstance::PlayActionMontage()
+{
+	auto Pawn = TryGetPawnOwner();
+	if (!Pawn)
+		return;
+
+	AWarrior* Warrior = Cast<AWarrior>(Pawn);
+	if (!Warrior)
+		return;
+
+	EActionState CurState = Warrior->GetActionState();
+
+	switch (CurState)
+	{
+	case EActionState::None:
+		break;
+	case EActionState::Roll:
+		Montage_Play(RollMontage);
+		break;
+	case EActionState::BackStep:
+		Montage_Play(BackStepMontage);
+		break;
+	case EActionState::Attack:
+		Montage_Play(AttackMontage);
+		break;
+	case EActionState::Hit:
+		//Montage_Play();
+		break;
+	default:
+		break;
+	}
 }
 
 void UWarriorAnimInstance::PlayRollMontage()
@@ -84,16 +131,9 @@ void UWarriorAnimInstance::PlayAttackMontage()
 {
 }
 
-void UWarriorAnimInstance::PlayBlockMontage()
-{
-}
-
 void UWarriorAnimInstance::StopMontage(UAnimMontage* Montage, float BlendOutTime)
 {
-}
-
-void UWarriorAnimInstance::StopBlockMontage()
-{
+	Montage_Stop(BlendOutTime, Montage);
 }
 
 void UWarriorAnimInstance::StopAttackMontage()

@@ -26,8 +26,6 @@ private:
 	UAnimMontage* BackStepMontage;
 	UPROPERTY()
 	UAnimMontage* AttackMontage;
-	UPROPERTY()
-	UAnimMontage* BlockMontage;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
@@ -47,17 +45,15 @@ public:
 	UFUNCTION()
 	void AnimNotify_ComboCheck();
 
-	void PlayMontage(UAnimMontage* Montage);
+	void PlayMontage(const EActionState CurrentActionState);
+	void PlayActionMontage();
+
 	void PlayRollMontage();
 	void PlayBackStepMontage();
 	void PlayAttackMontage();
-	void PlayBlockMontage();
 
 	void StopMontage(UAnimMontage* Montage, float BlendOutTime);
-	void StopBlockMontage();
 	void StopAttackMontage();
-
-	UAnimMontage* GetBlockMontage() { return BlockMontage; }
 
 	//void PlayMontage(UAnimMontage* AnimMontage);
 	//void StopMontage(UAnimMontage* AnimMontage);

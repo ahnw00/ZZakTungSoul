@@ -68,7 +68,7 @@ protected:
 	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Data", meta = (AllowPrivateAccess = "true"))
 	//class UDataTable* CharacterDataTable; // 블루프린트에서 데이터 테이블을 직접 참조
 	//struct FCharacterStatData* CharacterStats; // 데이터 테이블에서 단일 행을 참조해 캐릭터 스탯으로 사용
-	void UpdateCharacterStats(int32 CharacterLevel);
+	void UpdateCharacterStats();
 
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	TObjectPtr<UCharacterStatComponent> CharacterStatComponent;

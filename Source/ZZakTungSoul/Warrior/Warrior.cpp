@@ -12,12 +12,12 @@
 
 //DataTable
 //#include "Data/CharacterStatData.h"
+#include <Warrior/WarriorPlayerState.h>
 #include <Character/CharacterStatComponent.h>
 
 #include "Anim/WarriorAnimInstance.h"
 #include "Enemy/WarriorAIController.h"
 #include "Engine/OverlapResult.h"
-#include <Warrior/WarriorPlayerState.h>
 
 AWarrior::AWarrior()
 {
@@ -84,7 +84,7 @@ void AWarrior::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UpdateCharacterStats(1);
+	UpdateCharacterStats();
 }
 
 void AWarrior::PostInitializeComponents()
@@ -271,7 +271,7 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 	SetActionState(EActionState::None);
 }
 
-void AWarrior::UpdateCharacterStats(int32 CharacterLevel)
+void AWarrior::UpdateCharacterStats()
 {
 	//if (CharacterDataTable == nullptr)
 	//	return;
@@ -295,6 +295,11 @@ void AWarrior::UpdateCharacterStats(int32 CharacterLevel)
 	GetCharacterMovement()->MaxAcceleration = 600.f;
 	GetCharacterMovement()->MaxWalkSpeed = 400.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 600.f;
+
+	const FWarriorSaveData* SaveData = GetSaveData();
+	if (!SaveData || !CharacterStatComponent) { return; }
+
+	CharacterStatComponent->UpdateCharacterStat(SaveData->Attributes);
 }
 
 void AWarrior::SprintStart()

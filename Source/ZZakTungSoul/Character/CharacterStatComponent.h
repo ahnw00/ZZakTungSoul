@@ -161,6 +161,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<UDataTable> StatDefineTable;
 
+	UPROPERTY()
+	TObjectPtr<UDataTable> StatGrowthTable;
+
 	// [CSV 탐색용 정적키]
 	inline static const FName HpKey = TEXT("HP");
 	inline static const FName FpKey = TEXT("FP");

@@ -3,17 +3,18 @@
 
 #include "Character/CharacterStatComponent.h"
 
-#include "SaveData/WarriorSaveData.h"
-#include "Data/StatDefine.h"
+#include <Data/StatDefine.h>
+#include <Data/StatGrowth.h>
+#include <SaveData/WarriorSaveData.h>
 
 
 // Sets default values for this component's properties
 UCharacterStatComponent::UCharacterStatComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
+	// 스탯 정의 데이터 테이블 불러오기
+	// 스탯 정의에는 초기값 및 min, max 값 있음
 	static ConstructorHelpers::FObjectFinder<UDataTable> StatDefineTableAsset(
 		TEXT("/Game/Blueprints/Data/DT_StatDefine.DT_StatDefine")
 	);
@@ -21,11 +22,25 @@ UCharacterStatComponent::UCharacterStatComponent()
 	{
 		StatDefineTable = StatDefineTableAsset.Object;
 	}
+
+	// 스탯 성장 데이터 테이블 불러오기
+	// 스탯 성장에는 레벨 별 증가치가 있음
+	static ConstructorHelpers::FObjectFinder<UDataTable> StatGrowthTableAsset(
+		TEXT("/Game/Blueprints/Data/DT_StatGrowth.DT_StatGrowth")
+	);
+	if (StatGrowthTableAsset.Succeeded())
+	{
+		StatGrowthTable = StatGrowthTableAsset.Object;
+	}
 }
 
 void UCharacterStatComponent::UpdateCharacterStat(const FWarriorAttributeData& Attributes)
 {
 	LoadCharacterStat();
+
+	// Todo: 초기값에서 InSaveData의 Attribute 값과
+	// 스탯 성장의 레벨 별 증가치를 계산해서 각 변수에 넣어주기
+	// ex) MaxHp += InSaveData.Vigor * 10.f;
 
 	if (CurrentHP <= 0.f)
 	{
@@ -93,7 +108,7 @@ void UCharacterStatComponent::LoadCharacterStat()
 {
 	if (!StatDefineTable)
 	{
-		UE_LOG(LogTemp, Error, TEXT("{StatComponent] 유효하지 않은 CSV 파일."));
+		UE_LOG(LogTemp, Error, TEXT("[StatComponent] 유효하지 않은 CSV 파일."));
 		return;
 	}
 

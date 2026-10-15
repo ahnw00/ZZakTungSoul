@@ -157,37 +157,23 @@ void UCharacterStatComponent::BroadcastAllStats()
 // [스탯 소모 함수]
 void UCharacterStatComponent::ApplyDamage(float InDamage)
 {
-	if (InDamage <= 0.f)
-	{
-		return;
-	}
+	if (InDamage <= 0.f) { return; }
 	SetCurrentHP(CurrentHP - InDamage);
 }
 bool UCharacterStatComponent::UseFP(float Amount)
 {
-	if (Amount <= 0.f)
-	{
-		return false;
-	}
-
-	if (CurrentFP < Amount)
-	{
-		return false;
-	}
+	if (Amount <= 0.f) { return false; }
+	if (CurrentFP < Amount) { return false; }
+	
 	SetCurrentFP(CurrentFP - Amount);
+	
 	return true;
 }
 bool UCharacterStatComponent::UseStamina(float Amount)
 {
-	if (Amount <= 0.f)
-	{
-		return false;
-	}
+	if (Amount <= 0.f) { return false; }
+	if (CurrentStamina < Amount) { return false; }
 
-	if (CurrentStamina < Amount)
-	{
-		return false;
-	}
 	SetCurrentStamina(CurrentStamina - Amount);
 	
 	if (UWorld* World = GetWorld())
@@ -233,22 +219,14 @@ bool UCharacterStatComponent::UseStamina(float Amount)
 void UCharacterStatComponent::RegenerateStamina(float DeltaTime)
 {
 	// 이미 스테미너가 꽉 차 있다면 회복할 필요 없음.
-	if (CurrentStamina >= MaxStamina)
-	{
-		return;
-	}
-
+	if (CurrentStamina >= MaxStamina) { return; }
 	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
+	if (!World) { return; }
+
 	// 마지막 스테미너 쓴 시간으로부터 딜레이(1초) 안 지났으면 대기.
 	float CurrentTime = World->GetTimeSeconds();
-	if (CurrentTime - LastStaminaUseTime < StaminaRegenDelay)
-	{
-		return;
-	}
+	if (CurrentTime - LastStaminaUseTime < StaminaRegenDelay) { return; }
+
 	// 딜레이가 지나면 초당 회복량만큼 부드럽게 회복.
 	SetCurrentStamina(CurrentStamina + StaminaRegenRate * DeltaTime);
 }

@@ -28,4 +28,8 @@ protected:
 	// 공격 상태 진입 범위
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float Attackrange = 200.0f;
+
+	// 플레이어와 유지할 최소 거리
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float MinMaintainDistance = 150.0f;
 };

@@ -23,12 +23,12 @@ EBTNodeResult::Type UBTTask_FindStrafeLocation::ExecuteTask(UBehaviorTreeCompone
 	}
 
 	// StrafeLocation 값 초기화
-	BlackboardComp->ClearValue(BlackboardComp->GetKeyID(BBBKEY_STRAFELOCATION));
+	BlackboardComp->ClearValue(BlackboardComp->GetKeyID(BBKEY_STRAFELOCATION));
 
 	// AIController가 조종하는 폰 가져오기
 	APawn* ControllingPawn = OwnerComp.GetAIOwner()->GetPawn();
 
-	AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(BBBKEY_TARGETACTOR));
+	AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(BBKEY_TARGETACTOR));
 
 	// 조종하는 Pawn이나 TargetActor가 존재하지 않거나 파괴 중이면 값 초기화 후 건너뛰기
 	if (!IsValid(ControllingPawn) || !IsValid(TargetActor))
@@ -61,7 +61,7 @@ EBTNodeResult::Type UBTTask_FindStrafeLocation::ExecuteTask(UBehaviorTreeCompone
 
 	// 전방 벡터 기준 오른쪽 방향 벡터
 	FVector RightDirection = FVector::CrossProduct(FVector::UpVector, ForwardDirection);
-	ForwardDirection.Normalize();
+	RightDirection.Normalize();
 
 	// 가중치로 방향 선택
 	FVector MoveDirection;
@@ -101,9 +101,16 @@ EBTNodeResult::Type UBTTask_FindStrafeLocation::ExecuteTask(UBehaviorTreeCompone
 	const FVector DesiredLocation = ControllingPawnLocation + MoveDirection * RandomDistance;
 
 	// NavMesh에 위치 보정
+	FNavLocation NavLocation;
+	if (!NavSystem->ProjectPointToNavigation(DesiredLocation, NavLocation))
+	{
+		return EBTNodeResult::Failed;
+	}
 
+	// Blackboard에 위치 저장
+	BlackboardComp->SetValueAsVector(BBKEY_STRAFELOCATION, NavLocation.Location);
 
-	return EBTNodeResult::Type();
+	return EBTNodeResult::Succeeded;
 }
 
 EStrafeDirection UBTTask_FindStrafeLocation::SelectStrafeDirection()
@@ -117,7 +124,7 @@ EStrafeDirection UBTTask_FindStrafeLocation::SelectStrafeDirection()
 	};
 
 	// 전체 가중치 합산
-	const int64 TotalWeight = static_cast<int64>(Weights[0] + Weights[1] + Weights[2] + Weights[3]);
+	const int64 TotalWeight = static_cast<int64>(Weights[0]) + Weights[1] + Weights[2] + Weights[3];
 
 	// 유효한 가중치가 없으면 기본값 반환
 	if (TotalWeight <= 0)

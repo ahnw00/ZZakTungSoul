@@ -1,18 +1,19 @@
 #pragma once
 
 // Object
-#define BBBKEY_TARGETACTOR TEXT("TargetActor")
+#define BBKEY_TARGETACTOR TEXT("TargetActor")
 
 // Bool
-#define BBBKEY_HASLINEOFSIGHT TEXT("HasLineOfSight")
-#define BBBKEY_ISINATTACKRANGE TEXT("IsInAttackRange")
-#define BBBKEY_ISINCOMBATRANGE TEXT("IsInCombatRange")
+#define BBKEY_HASLINEOFSIGHT TEXT("HasLineOfSight")
+#define BBKEY_ISINATTACKRANGE TEXT("IsInAttackRange")
+#define BBKEY_ISINCOMBATRANGE TEXT("IsInCombatRange")
+#define BBKEY_ISCLOSETOTARGET TEXT("IsCloseToTarget")
 
 // Float
-#define BBBKEY_TARGETDISTANCE TEXT("TargetDistance")
+#define BBKEY_TARGETDISTANCE TEXT("TargetDistance")
 
 // Vector
-#define BBBKEY_LASTKNOWNLOCATION TEXT("LastKnownLocation")
-#define BBBKEY_PATROLLOCATION TEXT("PatrolLocation")
-#define BBBKEY_HOMELOCATION TEXT("HomeLocation")
-#define BBBKEY_STRAFELOCATION TEXT("StrafeLocation")
+#define BBKEY_LASTKNOWNLOCATION TEXT("LastKnownLocation")
+#define BBKEY_PATROLLOCATION TEXT("PatrolLocation")
+#define BBKEY_HOMELOCATION TEXT("HomeLocation")
+#define BBKEY_STRAFELOCATION TEXT("StrafeLocation")

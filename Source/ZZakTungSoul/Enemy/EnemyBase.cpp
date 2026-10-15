@@ -60,8 +60,11 @@ void AEnemyBase::UpdateMovementSpeed()
 		break;
 
 	case EEnemyState::Attack:
+		Movement->MaxWalkSpeed = 0.0f;
 		break;
+
 	case EEnemyState::Hit:
+		Movement->MaxWalkSpeed = 0.0f;
 		break;
 
 	case EEnemyState::Dead:

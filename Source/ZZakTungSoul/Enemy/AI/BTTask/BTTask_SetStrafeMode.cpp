@@ -39,7 +39,7 @@ EBTNodeResult::Type UBTTask_SetStrafeMode::ExecuteTask(UBehaviorTreeComponent& O
 		}
 
 		// 블랙보드에 저장된 캐릭터 가져오기
-		APawn* TargetActor = Cast<APawn>(BlackboardComp->GetValueAsObject(BBBKEY_TARGETACTOR));
+		APawn* TargetActor = Cast<APawn>(BlackboardComp->GetValueAsObject(BBKEY_TARGETACTOR));
 		if (!IsValid(TargetActor))
 		{
 			return EBTNodeResult::Failed;

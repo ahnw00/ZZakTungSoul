@@ -71,7 +71,7 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 	}
 
 	const UEnemyAIData* AIData = Enemy->GetEnemyAIData();
-	if (nullptr == AIData)
+	if (nullptr == AIData || nullptr == AIData->MainBT)
 	{
 		return;
 	}
@@ -83,11 +83,16 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 		return;
 	}
 
-	// Blackboard 상태 설정
-	if (UBlackboardComponent* BlackboardComponent = GetBlackboardComponent())
+	// Blackboard 컴포넌트 가져오기
+	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
+
+	// 사용할 블랙보드 지정
+	if (UseBlackboard(BlackboardAsset, BlackboardComponent))
 	{
-		BlackboardComponent->ClearValue(BBBKEY_TARGETACTOR);
-		BlackboardComponent->SetValueAsBool(BBBKEY_HASLINEOFSIGHT, false);
+		// Blackboard 상태 설정
+		BlackboardComponent->ClearValue(BBKEY_TARGETACTOR);
+		BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
+		BlackboardComponent->SetValueAsVector(BBKEY_HOMELOCATION, Enemy->GetActorLocation());
 	}
 
 	// Behavior Tree 실행
@@ -117,14 +122,14 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
 	if (Stimulus.WasSuccessfullySensed())
 	{
 		// 플레이어 감지 성공
-		BlackboardComponent->SetValueAsObject(BBBKEY_TARGETACTOR, Actor);
-		BlackboardComponent->SetValueAsBool(BBBKEY_HASLINEOFSIGHT, true);
+		BlackboardComponent->SetValueAsObject(BBKEY_TARGETACTOR, Actor);
+		BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, true);
 	}
 	else
 	{
 		// 마지막 감지 위치 저장
-		BlackboardComponent->SetValueAsVector(BBBKEY_LASTKNOWNLOCATION, Stimulus.StimulusLocation);
-		BlackboardComponent->SetValueAsBool(BBBKEY_HASLINEOFSIGHT, false);
+		BlackboardComponent->SetValueAsVector(BBKEY_LASTKNOWNLOCATION, Stimulus.StimulusLocation);
+		BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
 
 		//BlackboardComponent->ClearValue(BBBKEY_TARGETACTOR);
 	}

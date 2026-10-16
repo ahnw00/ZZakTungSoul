@@ -6,6 +6,10 @@
 #include "GameFramework/PlayerController.h"
 #include "WarriorController.generated.h"
 
+// [전방 선언].
+class UPlayerHUDWidget;
+class UStatusWindowWidget;
+
 /**
  * 
  */
@@ -78,8 +82,37 @@ private:
 
 	void ActionPressed();
 	void ActionReleased();
+	
 
 	// 세이브/로드 함수
 	void Save();
 	void Load();
+
+
+
+
+
+
+
+	// [UI]
+public:
+	// [스탯 창 토글 함수].
+	UFUNCTION(BlueprintCallable, Category = "UI|Status")
+	void ToggleStatusWindow();
+
+protected:
+	virtual void OnPossess(APawn* InPawn) override;
+
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UPlayerHUDWidget> PlayerHUDWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UPlayerHUDWidget> PlayerHUDWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UStatusWindowWidget> StatusWindowWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UStatusWindowWidget> StatusWindowWidget;
+
 };

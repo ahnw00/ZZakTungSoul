@@ -5,13 +5,19 @@
 #include "CoreMinimal.h"
 #include "Character/CharacterBase.h"
 #include "Data/StateEnum.h"
+#include "Interface/CharacterStatInterface.h"
 #include "Warrior.generated.h"
+
+// [전방 선언].
+class UCharacterStatComponent;
 
 /**
  * 
  */
 UCLASS()
-class ZZAKTUNGSOUL_API AWarrior : public ACharacterBase
+class ZZAKTUNGSOUL_API AWarrior 
+	: public ACharacterBase,
+	public ICharacterStatInterface
 {
 	GENERATED_BODY()
 	
@@ -59,12 +65,16 @@ private:
 	void OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 protected:
-	UPROPERTY(VisibleAnywhere, Category = "Stat")
-	TObjectPtr<class UCharacterStatComponent> CharacterStatComponent;
-
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Data", meta = (AllowPrivateAccess = "true"))
+	//class UDataTable* CharacterDataTable; // 블루프린트에서 데이터 테이블을 직접 참조
+	//struct FCharacterStatData* CharacterStats; // 데이터 테이블에서 단일 행을 참조해 캐릭터 스탯으로 사용
 	void UpdateCharacterStats();
 
+	UPROPERTY(VisibleAnywhere, Category = "Stat")
+	TObjectPtr<UCharacterStatComponent> CharacterStatComponent;
+
 public:
+
 	void SprintStart();
 	void SprintEnd();
 	FORCEINLINE bool IsSprint() const { return bIsSprint; }
@@ -86,6 +96,7 @@ public:
 	FORCEINLINE bool IsLockOn() const { return bLockOn; }
 
 	// Getter/Setter
+	
 	void SetLockOnTarget(ACharacter* Target);
 	void ResetLockOnTarget();
 	FORCEINLINE ACharacter* GetLockOnTarget() { return LockOnTarget; }
@@ -106,4 +117,12 @@ public:
 	FORCEINLINE void ResetCombo() { AttackCombo = 0; }
 
 	//FORCEINLINE UArrowComponent GetLockOnPoint() { return LockOnPoint; }
+
+
+
+	// [캐릭터 스탯].
+	virtual UCharacterStatComponent* GetCharacterStatComponent() const override { return CharacterStatComponent; }
+	// [세이브 데이터].
+	virtual const struct FWarriorSaveData* GetSaveData() const override;
+	
 };

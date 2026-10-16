@@ -68,8 +68,9 @@ AWarrior::AWarrior()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	bUseControllerRotationYaw = false;
 
-	// Character Stat
-	CharacterStatComponent = CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStat"));
+	// [스탯 컴포넌트].
+	CharacterStatComponent = CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStatComponent"));
+	
 
 	// Player가 소유하지 않으면 AI가 소유해
 	AIControllerClass = AWarriorAIController::StaticClass();
@@ -281,17 +282,16 @@ void AWarrior::UpdateCharacterStats()
 	//	GetCharacterMovement()->BrakingDecelerationWalking = CharacterStats->BrakingDecelerationWalking;
 	//}
 
-	AWarriorPlayerState* PS = GetPlayerState<AWarriorPlayerState>();
-	
-	if (!PS)
-		return;
-
-	CharacterStatComponent->UpdateCharacterStat(PS->GetSaveData().Attributes);
 
 	// 임시로 직접 값 넣어준거
 	GetCharacterMovement()->MaxAcceleration = 600.f;
 	GetCharacterMovement()->MaxWalkSpeed = 400.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 600.f;
+
+	const FWarriorSaveData* SaveData = GetSaveData();
+	if (!SaveData || !CharacterStatComponent) { return; }
+
+	CharacterStatComponent->UpdateCharacterStat(SaveData->Attributes);
 }
 
 void AWarrior::SprintStart()
@@ -366,6 +366,12 @@ void AWarrior::Dodge(FVector ControlDir)
 	//UE_LOG(LogTemp, Warning, TEXT("MoveState : %d"), (int)GetMoveState());
 	if (ActionState != EActionState::None)
 		return;
+
+	// [스테미너 소모]
+	if (CharacterStatComponent && !CharacterStatComponent->UseStamina(25.f))
+	{
+		return;
+	}
 
 	if (MoveState == EMoveState::Idle)
 	{
@@ -532,4 +538,13 @@ void AWarrior::SetOverlayState(EOverlayState NewState)
 		return;
 
 	OverlayState = NewState;
+}
+
+const FWarriorSaveData* AWarrior::GetSaveData() const
+{
+	if (AWarriorPlayerState* WarriorPlayerState = GetPlayerState<AWarriorPlayerState>())
+	{
+		return &WarriorPlayerState->GetSaveData();
+	}
+	return nullptr;
 }

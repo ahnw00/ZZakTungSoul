@@ -15,6 +15,13 @@
 
 #include <GamePlay/ZTSGameMode.h>
 
+#include <Blueprint/UserWidget.h>
+
+// [UI]
+#include <UI/PlayerHUDWidget.h>
+#include <Interface/CharacterStatInterface.h>
+#include <UI/StatusWindowWidget.h>
+
 AWarriorController::AWarriorController()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -43,6 +50,28 @@ AWarriorController::AWarriorController()
 	if (ia_save.Succeeded()) IA_Save = ia_save.Object;
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_load(TEXT("/Game/Input/IA_Load.IA_Load"));
 	if (ia_load.Succeeded()) IA_Load = ia_load.Object;
+
+
+
+
+
+	// [UI]
+	// [플레이어 HUD]
+	static ConstructorHelpers::FClassFinder<UPlayerHUDWidget> PlayerHUDClassRef(
+		TEXT("/Game/UI/WBP_PlayerHUD.WBP_PlayerHUD_C")
+	);
+	if (PlayerHUDClassRef.Succeeded())
+	{
+		PlayerHUDWidgetClass = PlayerHUDClassRef.Class;
+	}
+	// [스탯창] Todo: 경로.
+	static ConstructorHelpers::FClassFinder<UStatusWindowWidget> StatusWindowClassRef(
+		TEXT("/Game/UI/WBP_StatusWindow.WBP_StatusWindow_C") 
+	);
+	if (StatusWindowClassRef.Succeeded())
+	{
+		StatusWindowWidgetClass = StatusWindowClassRef.Class;
+	}
 }
 
 void AWarriorController::BeginPlay()
@@ -62,6 +91,21 @@ void AWarriorController::BeginPlay()
 		PlayerCameraManager->ViewPitchMax = 45.f;
 	}
 	else UE_LOG(LogTemp, Log, TEXT("No PlayerCameraManager"));
+
+
+
+
+
+
+	// [HUD 위젯]
+	if (PlayerHUDWidgetClass)
+	{
+		PlayerHUDWidget = CreateWidget<UPlayerHUDWidget>(this, PlayerHUDWidgetClass);
+		if (PlayerHUDWidget)
+		{
+			PlayerHUDWidget->AddToViewport();
+		}
+	}
 }
 
 void AWarriorController::Tick(float DeltaTime)
@@ -101,6 +145,9 @@ void AWarriorController::SetupInputComponent()
 	// 세이브/로드 바인드
 	EnhancedInput->BindAction(IA_Save, ETriggerEvent::Completed, this, &AWarriorController::Save);
 	EnhancedInput->BindAction(IA_Load, ETriggerEvent::Completed, this, &AWarriorController::Load);
+
+	// [UI]
+	InputComponent->BindKey(EKeys::C, IE_Pressed, this, &AWarriorController::ToggleStatusWindow);
 }
 
 void AWarriorController::Move(const FInputActionValue& InputValue)
@@ -287,4 +334,57 @@ void AWarriorController::Load()
 	{
 		GameMode->LoadGame();
 	}
+}
+
+
+
+
+// [UI].
+// 사망, 리스폰 상황 때문에 미리 만들었음.
+void AWarriorController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	// 빙의한 새 캐릭터가 스탯 인터페이스 보유 시 HUD에 컴포넌트 전달.
+	if (ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(InPawn))
+	{
+		if (PlayerHUDWidget)
+		{
+			PlayerHUDWidget->BindStatComponent(StatOwner->GetCharacterStatComponent());
+		}
+	}
+}
+
+void AWarriorController::ToggleStatusWindow()
+{
+	// 입력 모드 3종
+	// FInputModeGameOnly, FInputModeUIOnly, FInputModeGameAndUI(디아블로)
+	// 화면 열려 있으면 닫기.
+	if (StatusWindowWidget && StatusWindowWidget->IsInViewport())
+	{
+		StatusWindowWidget->RemoveFromParent();
+
+		// 마우스 숨기고 조작 모드로 복구.
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly());
+		return;
+	}
+
+	// 인스턴스 없으면 생성.
+	if (!StatusWindowWidget && StatusWindowWidgetClass)
+	{
+		StatusWindowWidget = CreateWidget<UStatusWindowWidget>(this, StatusWindowWidgetClass);
+	}
+
+	// 화면에 열기.
+	if (StatusWindowWidget)
+	{
+		StatusWindowWidget->RefreshStatus();
+		StatusWindowWidget->AddToViewport(10);
+
+		bShowMouseCursor = true;
+		SetInputMode(FInputModeGameAndUI());
+	}
+
+
 }

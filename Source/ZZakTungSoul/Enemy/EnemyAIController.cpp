@@ -59,6 +59,47 @@ AEnemyAIController::AEnemyAIController()
 	EnemyPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AEnemyAIController::OnTargetPerceptionUpdated);
 }
 
+void AEnemyAIController::UpdateAIFocus(EEnemyState PreviousState, EEnemyState NewState)
+{
+	switch (NewState)
+	{
+	case EEnemyState::Idle:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Patrol:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Chase:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Strafe:
+		ToggleFocus();
+		break;
+
+	case EEnemyState::Attack:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Search:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Hit:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Dead:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	default:
+		break;
+	}
+}
+
 void AEnemyAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
@@ -97,6 +138,27 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 
 	// Behavior Tree 실행
 	RunBehaviorTree(BehaviorTreeAsset);
+}
+
+void AEnemyAIController::ToggleFocus()
+{
+	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
+
+	if (nullptr == BlackboardComp)
+	{
+		ClearFocus(EAIFocusPriority::Gameplay);
+		return;
+	}
+
+	AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(BBKEY_TARGETACTOR));
+	if (IsValid(TargetActor))
+	{
+		SetFocus(TargetActor);
+	}
+	else
+	{
+		ClearFocus(EAIFocusPriority::Gameplay);
+	}
 }
 
 void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)

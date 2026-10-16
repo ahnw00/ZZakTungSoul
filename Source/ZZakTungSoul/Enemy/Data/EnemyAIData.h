@@ -44,4 +44,8 @@ public:
 	// Strafe Speed
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Strafe")
 	float StrafeMovementSpeed;
+
+	// Search Speed
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Search")
+	float SearchMovementSpeed;
 };

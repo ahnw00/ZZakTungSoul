@@ -14,12 +14,21 @@ public class ZZakTungSoul : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
+			
+			"UMG",
+
 			"AIModule",
 			"NavigationSystem",
 			"GameplayTasks"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(
+			new string[] 
+		{
+			"Slate",
+			"SlateCore"
+		}
+		);
 
 		PublicIncludePaths.AddRange(new string[] {
 			"ZZakTungSoul"

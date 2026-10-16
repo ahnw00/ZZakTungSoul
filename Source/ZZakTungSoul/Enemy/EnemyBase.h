@@ -27,6 +27,9 @@ protected:
 	// 상태에 따라 이동속도 변경 함수
 	void UpdateMovementSpeed();
 
+	// 상태에 따라 회전 상태 변경 함수
+	void UpdateRotationMode();
+
 public:
 	// Getter / Setter
 	// 현재 적 상태 반환
@@ -36,7 +39,7 @@ public:
 	bool IsDead() const { return CurrentState == EEnemyState::Dead; }
 
 	// Strafe 상태 여부
-	bool IsStrafeMode() const { return bIsStrafeMode; }
+	bool IsStrafeMode() const { return CurrentState == EEnemyState::Strafe; }
 
 	// 적 애셋 데이터 반환
 	const UEnemyAIData* GetEnemyAIData() const { return EnemyAIData; }

@@ -12,6 +12,7 @@ enum class EEnemyState : uint8
 	Chase,		// 추격
 	Strafe,		// 간보기
 	Attack,		// 공격
+	Search,		// 수색
 	Hit,		// 피격
 	Dead		// 사망
 };

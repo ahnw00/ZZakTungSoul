@@ -63,6 +63,10 @@ void AEnemyBase::UpdateMovementSpeed()
 		Movement->MaxWalkSpeed = 0.0f;
 		break;
 
+	case EEnemyState::Search:
+		Movement->MaxWalkSpeed = EnemyAIData->SearchMovementSpeed;
+		break;
+
 	case EEnemyState::Hit:
 		Movement->MaxWalkSpeed = 0.0f;
 		break;
@@ -74,6 +78,18 @@ void AEnemyBase::UpdateMovementSpeed()
 	default:
 		break;
 	}
+}
+
+void AEnemyBase::UpdateRotationMode()
+{
+	// Strafe상태 인지 확인
+	const bool bFaceToTarget = CurrentState == EEnemyState::Strafe;
+
+	// 회전 방향 설정
+	bUseControllerRotationYaw = bFaceToTarget;
+
+	// 이동 방향으로 자동 회전 설정
+	GetCharacterMovement()->bOrientRotationToMovement = !bFaceToTarget;
 }
 
 void AEnemyBase::SetEnemyState(EEnemyState NewState)
@@ -89,11 +105,23 @@ void AEnemyBase::SetEnemyState(EEnemyState NewState)
 		return;
 	}
 
+	// 이전 상태 저장
+	const EEnemyState PreviousState = CurrentState;
+
 	// 현재 상태 변경
 	CurrentState = NewState;
 
 	// 변경된 상태에 따라 이동속도 갱신
 	UpdateMovementSpeed();
+
+	// 변경된 상태에 따라 회전 상태 갱신
+	UpdateRotationMode();
+
+	// AIController에 상태 변경 갱신 호출
+	if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
+	{
+		AIController->UpdateAIFocus(PreviousState, NewState);
+	}
 }
 
 void AEnemyBase::SetStrafeMode(bool bEnable)

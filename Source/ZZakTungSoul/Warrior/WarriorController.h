@@ -9,6 +9,7 @@
 // [전방 선언].
 class UPlayerHUDWidget;
 class UStatusWindowWidget;
+class UMenuWidget;
 
 /**
  * 
@@ -115,4 +116,8 @@ private:
 	UPROPERTY()
 	TObjectPtr<UStatusWindowWidget> StatusWindowWidget;
 
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UMenuWidget> MenuWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UMenuWidget> MenuWidget;
 };

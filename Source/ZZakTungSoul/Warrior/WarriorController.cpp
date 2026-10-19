@@ -21,6 +21,7 @@
 #include <UI/PlayerHUDWidget.h>
 #include <Interface/CharacterStatInterface.h>
 #include <UI/StatusWindowWidget.h>
+#include <UI/MenuWidget.h>
 
 AWarriorController::AWarriorController()
 {
@@ -72,6 +73,14 @@ AWarriorController::AWarriorController()
 	{
 		StatusWindowWidgetClass = StatusWindowClassRef.Class;
 	}
+
+	static ConstructorHelpers::FClassFinder<UMenuWidget> MenuWidgetClassRef(
+		TEXT("/Game/Blueprints/UI/WBP_Menu.WBP_Menu_C")
+	);
+	if (MenuWidgetClassRef.Succeeded())
+	{
+		MenuWidgetClass = MenuWidgetClassRef.Class;
+	}
 }
 
 void AWarriorController::BeginPlay()
@@ -104,6 +113,14 @@ void AWarriorController::BeginPlay()
 		if (PlayerHUDWidget)
 		{
 			PlayerHUDWidget->AddToViewport();
+		}
+	}
+	if (MenuWidgetClass)
+	{
+		MenuWidget = CreateWidget<UMenuWidget>(this, MenuWidgetClass);
+		if (MenuWidget)
+		{
+			MenuWidget->AddToViewport();
 		}
 	}
 }

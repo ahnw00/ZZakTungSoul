@@ -124,7 +124,12 @@ EStrafeDirection UBTTask_FindStrafeLocation::SelectStrafeDirection()
 	};
 
 	// 전체 가중치 합산
-	const int64 TotalWeight = static_cast<int64>(Weights[0]) + Weights[1] + Weights[2] + Weights[3];
+	//const int64 TotalWeight = static_cast<int64>(Weights[0]) + Weights[1] + Weights[2] + Weights[3];
+	int64 TotalWeight = 0;
+	for (int32 Weight : Weights)
+	{
+		TotalWeight += Weight;
+	}
 
 	// 유효한 가중치가 없으면 기본값 반환
 	if (TotalWeight <= 0)

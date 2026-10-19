@@ -22,6 +22,9 @@ public:
 	FORCEINLINE const FWarriorSaveData& GetSaveData() const { return SaveData; }
 	FORCEINLINE void LoadSaveDataFrom(const FWarriorSaveData& NewSaveData) { SaveData = NewSaveData; }
 
+	UFUNCTION(BlueprintCallable, Category = "PlayerState|Stat")
+	bool UpgradeStat(const FName& StatName, int32 RequiredSouls);
+
 private:
 	// 실제 게임 플레이 중 값을 변화하게할 대상
 	UPROPERTY()

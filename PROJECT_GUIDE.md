@@ -1,9 +1,31 @@
 # 🎮 ZZakTungSoul (짝퉁 소울) 프로젝트 분석 및 개발 가이드북
 
-> **작성일**: 2026-10-12  
+> **작성일**: 2026-10-12 (최종 갱신: 2026-10-19)  
 > **프로젝트**: ZZakTungSoul (Unreal Engine 5)  
-> **작성자**: Antigravity & Bae  
-> **브랜치**: `Bae`
+> **작성자**: Antigravity & Bae (2026-10-19 사실 확인·정정: Claude 코드 리뷰어)  
+> **브랜치**: `Bae` (`main`과 같은 커밋 `2fabce4`에서 갱신)
+
+---
+
+## 0. 현재 구현 상태 요약 (2026-10-19) — 이 문서를 읽는 AI와 팀원은 먼저 읽을 것
+
+> ⚠️ **읽는 규칙**: 아래 12장의 Q&A와 5~11장의 서술은 **"왜 이렇게 설계했는가"를 설명하는 학습 노트**입니다. 어떤 기능이 *실제로 구현되어 있는지*는 이 표를 기준으로 판단하세요. 코드가 바뀌면 이 표를 먼저 갱신하고, 문서에 새 사실을 쓰기 전에 **반드시 소스에서 확인**하세요(코드 조각을 문서에 복사하지 말고 파일 링크로 대체). 코드 리뷰의 근거와 열린 이슈는 루트의 `Review(Claude).md`에 있습니다.
+
+| 영역 | 상태 | 비고 |
+|---|---|---|
+| 스탯 컴포넌트 (HP/FP/Stamina, 델리게이트, 스태미나 회복, `UseFP`/`UseStamina`) | ✅ 구현 | `Character/CharacterStatComponent.*`. 초기값은 `DT_StatDefine`의 `InitialValue`를 `LoadCharacterStat()`이 읽어 적용 |
+| `ICharacterStatInterface` + HUD 바인딩 (`OnPossess` + `NativeConstruct`) | ✅ 구현 | Pawn이 교체되어도 견디는 **구조**. 실제 사망/리스폰 흐름은 아래 "미구현" 참고 |
+| 스탯창 (`C` 키, `WBP_StatusWindow`) | ✅ 구현 (1차) | 열 때만 갱신되고, HP/FP/Stamina는 **최대값만** 표시, 주 스탯은 `SaveData->Attributes` 원본값(현재 기본값 0) 출력 |
+| 세이브/로드 (슬롯, PlayerState) | ✅ 구현 | `AZTSGameMode`, `AWarriorPlayerState`, `UWarriorPlayerSaveGame` |
+| 구르기 스태미나 소모 | ✅ 구현 | 비용 25가 `Warrior.cpp`에 하드코딩 |
+| 적 AI 골격 (`AEnemyBase`, `AEnemyAIController`, BT Task/Service, `EnemyAIData`) | ✅ 구현 (진행 중) | Perception, 상태(`EEnemyState`), 순찰/추격/Strafe. 전투(공격/피격)는 미완 |
+| 주 스탯(Attributes) → 최종 스탯 계산 | ⚠️ 부분 | `UpdateCharacterStat(Attributes)`는 `Attributes`를 **사용하지 않음**(Todo). `StatGrowthTable`은 로드만 하고 어디서도 사용하지 않음 |
+| 이동 속도 데이터 단일 출처 | ⚠️ 부분 | 값이 4곳에 따로 있음: `StatDefine.csv`(300), `Warrior.cpp`(400/600 하드코딩), 컴포넌트 `MaxWalkSpeed`(읽기만 함), `EnemyAIData`(적) |
+| 공격 애니메이션 | ⚠️ 확인 필요 | `Warrior::Attack()`이 부르는 `PlayAttackMontage()`가 현재 빈 함수. ABP가 `ActionState`로 재생하는 구조인지 PIE로 확인 필요 |
+| 피격/데미지 경로 | ❌ 미구현 | `ApplyDamage`, `UseFP`를 호출하는 곳이 프로젝트에 없음 → HP 바가 움직이지 않음 |
+| 사망/리스폰 | ❌ 미구현 | `OnDeath` 없음, 적의 `Dead` 상태에 진입하는 코드 없음 |
+| 적의 스탯/체력 | ❌ 미구현 | `AEnemyBase`는 스탯 컴포넌트와 인터페이스가 없음 |
+| 레벨업/소울 소모 | ❌ 미구현 | `LevelRequiredSouls`는 데이터만 있음 |
 
 ---
 
@@ -35,12 +57,14 @@ flowchart TD
 
     subgraph Mind ["2. 두뇌 (입력 및 판단)"]
         PC["AWarriorController\n(향상된 입력 처리: 이동, 시점, 탭 회피/홀드 달리기)"]
-        AI["AWarriorAIController\n(비헤이비어 트리 기반 적 순찰/추적)"]
+        AI["AWarriorAIController\n(레거시: AWarrior를 AI가 조종할 때 사용)"]
+        EAI["AEnemyAIController\n(Perception + EnemyAIData의 Behavior Tree 실행)"]
     end
 
     subgraph Body ["3. 육체 (월드 내 액터)"]
         Pawn["AWarrior (BP_Warrior)\n(물리 이동, 락온 조준, 공격 콤보, 방어)"]
         StatComp["UCharacterStatComponent\n(HP, FP, Stamina, 공격력, 방어력 부품)"]
+        Enemy["AEnemyBase\n(적 상태 EEnemyState, 이동 속도, Strafe 모드. 스탯 컴포넌트 없음)"]
     end
 
     subgraph Expression ["4. 근육/동작 (애니메이션)"]
@@ -56,6 +80,7 @@ flowchart TD
     GameMode -->|스폰| Pawn
     PC -->|명령 전달| Pawn
     AI -->|명령 전달| Pawn
+    EAI -->|명령 전달| Enemy
     Pawn -->|부품 장착| StatComp
     Pawn -->|상태 전달| Anim
     PC -->|저장/로드 요청| GameMode
@@ -116,12 +141,20 @@ flowchart TD
 
 ### 🌿 줄기 5: 스스로 생각하는 적 인공지능 (AI & Behavior Tree)
 * **주요 파일**: 
-  * `Source/ZZakTungSoul/Enemy/WarriorAIController.h`, `.cpp`
-  * `Content/BehaviorTree/BT_WarriorAI.uasset`, `BB_WarriorAI.uasset`
+  * `Source/ZZakTungSoul/Enemy/EnemyBase.h`, `.cpp` — 적 캐릭터 (`ACharacterBase` 상속)
+  * `Source/ZZakTungSoul/Enemy/EnemyAIController.h`, `.cpp` — Perception(시야)과 Behavior Tree 실행
+  * `Source/ZZakTungSoul/Enemy/EnemyStates.h` — `EEnemyState` (Idle, Patrol, Chase, Strafe, Attack, Hit, Dead)
+  * `Source/ZZakTungSoul/Enemy/Data/EnemyAIData.h`, `.cpp` — 적별 Behavior Tree와 이동 속도를 담는 DataAsset
+  * `Source/ZZakTungSoul/Enemy/AI/BTTask/` — `BTTask_SetEnemyState`, `BTTask_SetStrafeMode`, `BTTask_FindStrafeLocation`
+  * `Source/ZZakTungSoul/Enemy/AI/BTService/BTService_UpdateCombatInfo.h`, `.cpp` — 거리/범위 플래그를 블랙보드에 갱신
+  * `Source/ZZakTungSoul/Enemy/AI/EnemyAIBlackboardKey.h` — 블랙보드 키 이름 매크로
+  * `Content/BehaviorTree/` (`BT_EnemyBase`, `BB_EnemyBase`, `Combat/BT_NormalCombat`), `Content/Blueprints/Enemy/` (`BP_TestEnemyBase`, `Data/DA_MeleeEnemy`)
+  * (레거시) `Source/ZZakTungSoul/Enemy/WarriorAIController.h`, `.cpp` — `AWarrior`가 AI에게 조종될 때 쓰는 컨트롤러
 * **역할 및 동작**:
-  * `AWarrior`는 `AutoPossessAI = PlacedInWorldOrSpawned`로 설정되어 플레이어가 조종하지 않으면 자동으로 AI 컨트롤러가 장악.
-  * 블랙보드 키: `Target` (감지한 플레이어), `PatrolPos` (순찰 지점).
-  * 비헤이비어 트리로 적의 정찰 및 추적 로직 구동.
+  * `AEnemyBase`는 `AutoPossessAI = PlacedInWorldOrSpawned`로 `AEnemyAIController`가 자동 빙의한다. 컨트롤러는 `OnPossess`에서 `EnemyAIData->MainBT`를 읽어 Behavior Tree를 실행한다.
+  * 블랙보드 키: `TargetActor`, `HasLineOfSight`, `IsInAttackRange`, `IsInCombatRange`, `IsCloseToTarget`, `TargetDistance`, `LastKnownLocation`, `PatrolLocation`, `HomeLocation`, `StrafeLocation`.
+  * 이동 속도는 `EEnemyState`가 바뀔 때마다 `EnemyAIData`의 값으로 갱신된다.
+  * **알려진 한계**: 적에게 스탯 컴포넌트/체력이 없고, `Hit`/`Dead` 상태로 들어가는 코드와 공격 구현이 아직 없다. `AWarrior`를 AI가 조종하는 경로(`WarriorAIController`)와 `AEnemyBase` 경로가 공존하므로 어느 쪽이 정식인지 정리가 필요하다.
 
 ### 🌿 줄기 6: 상태와 스탯의 설계도 (Data & Stat Architecture)
 * **주요 파일**: 
@@ -130,6 +163,9 @@ flowchart TD
   * `Source/ZZakTungSoul/Data/StatGrowth.h`
   * `Source/ZZakTungSoul/Data/LevelRequiredSouls.h`
   * `Source/ZZakTungSoul/Character/CharacterStatComponent.h`, `.cpp`
+  * `Source/ZZakTungSoul/Interface/CharacterStatInterface.h`, `.cpp` — 컴포넌트와 세이브 데이터를 한 창구로 제공
+  * `Source/ZZakTungSoul/SaveData/WarriorSaveData.h` — `FWarriorSaveData`, `FWarriorAttributeData`
+  * `Source/ZZakTungSoul/UI/PlayerHUDWidget.h`, `.cpp` / `StatusWindowWidget.h`, `.cpp` — HUD 게이지와 스탯창 (`Content/UI/WBP_PlayerHUD`, `WBP_StatusWindow`)
 
 ---
 
@@ -140,8 +176,10 @@ flowchart TD
 | 파일명 | 역할 및 내용 | 언리얼 에셋 |
 | :--- | :--- | :--- |
 | `StatDefine.csv` | 주 스탯(Vigor, Strength 등) 및 파생 스탯(HP, FP, 공격력 등) 정의 | `DT_StatDefine` |
-| `StatGrowth.csv` | 소프트캡(Soft Cap) 구간별 스탯 성장폭 (1~20레벨: 10, 21~40레벨: 7) | `DT_StatGrowth` |
+| `StatGrowth.csv` | 소프트캡(Soft Cap) 구간별 스탯 성장폭 (1~20레벨: 10, 21~40레벨: 7). **임시 값이며, 코드가 이 테이블을 아직 읽지 않는다** (`StatGrowthTable`은 로드만 됨) | `DT_StatGrowth` |
 | `LevelRequiredSouls.csv` | 레벨업에 필요한 소울량 (Lv1: 300, Lv2: 400 ... Lv10: 1200) | `DT_LevelRequiredSouls` |
+
+> ⚠️ **CSV와 DataTable 에셋의 동기화 규칙이 정해져 있지 않다.** `DT_StatDefine.uasset`은 10-14에, `DT_LevelRequiredSouls.uasset`은 10-13에 수정되었지만 해당 CSV는 그 이후 바뀌지 않았다. CSV를 수정한 뒤에는 에디터에서 에셋을 **Reimport**해야 반영된다. "CSV가 원본인지, 에셋이 원본인지"를 팀이 정해서 이 자리에 적을 것.
 
 ### 💡 실무 개발 팁: "엑셀 사전 계산(Lookup Table)" vs "C++ 런타임 연산"
 * **엑셀/CSV에 둘 것 (정적 기준표)**:
@@ -160,6 +198,8 @@ flowchart TD
 * 그러나 **적(Enemy) AI는 `PlayerState`를 갖지 않으므로**, 적 캐릭터의 체력을 관리하기 위해서도 `CharacterStatComponent`에 실시간 `CurrentHP`, `CurrentFP`가 반드시 필요함.
 
 ### 개선 완료 (반영 내역):
+> ⚠️ **2026-10-19 정정**: 아래 코드 조각은 *당시* 헤더의 모습입니다. 현재 헤더의 `100.f`는 로딩 전 임시 기본값일 뿐이고, 게임이 시작되면 `LoadCharacterStat()`이 `DT_StatDefine`의 `InitialValue`(HP 250, FP 50, Stamina 60 등)로 덮어씁니다. 코드가 바뀌면 이 조각은 바로 낡으므로 최신 내용은 파일을 직접 보세요.
+
 [`Source/ZZakTungSoul/Character/CharacterStatComponent.h`](Source/ZZakTungSoul/Character/CharacterStatComponent.h)에 다음 항목 적용 완료:
 ```cpp
 // 능력치로부터 계산되는 최대치 (가데이터 100.f 세팅)
@@ -344,7 +384,7 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 * **[완료] 1단계: `CharacterStatComponent` 설계 및 구현**
 * **[완료] 2단계: `AWarrior` 캐릭터에 스탯 컴포넌트 부착 및 구르기 스태미너 소모 연동**
-* **[완료] 4단계: `ICharacterStatInterface` 도입 및 주입식 HUD 바인딩 (사망/리스폰 대응 완료)**
+* **[완료] 4단계: `ICharacterStatInterface` 도입 및 주입식 HUD 바인딩 (Pawn이 교체되어도 견디는 구조까지 완료. 실제 사망/리스폰 흐름은 미구현)**
 
 ---
 
@@ -353,7 +393,7 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
    * `FOnStateChangedDelegate` ➔ `FOnStatChangedDelegate`로 변경하여 상태 머신(`State`)과 능력치(`Stat`) 어휘 명확히 분리 완료.
 2. **[완료] HUD 생명주기 및 안전한 바인딩 구조 개선**:
    * `ICharacterStatInterface`를 생성하여 `AWarrior`에 상속하고, 위젯의 구체 클래스 의존성을 완전 분리.
-   * `AWarriorController::OnPossess`에서 빙의 시점마다 `PlayerHUDWidget->BindStatComponent(...)`로 주입 (사망/리스폰 시 Pawn 재생성 완벽 대응).
+   * `AWarriorController::OnPossess`에서 빙의 시점마다 `PlayerHUDWidget->BindStatComponent(...)`로 주입 (Pawn이 재생성되어도 새 컴포넌트로 다시 연결되는 구조. 사망/리스폰 자체는 아직 구현 전이라 실제 검증은 그때 필요).
    * `PlayerHUDWidget::UpdateProgressBar` 공통 헬퍼 함수로 프로그레스 바 연산 일원화.
    * 위젯 제거 시 `NativeDestruct`에서 안전하게 델리게이트 해제.
 3. **[진행 예정] 주석 및 코딩 컨벤션 정돈**:
@@ -425,9 +465,9 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
   1. **초기화 순서의 불확실성 극복 (이중 안전망)**:
      - 엔진 실행 환경(PIE, 독립형 빌드, 레벨 로딩 속도)에 따라 위젯이 먼저 생성될 수도 있고, 폰 빙의가 먼저 일어날 수도 있습니다.
      - `NativeConstruct`는 위젯 생성 시 소유 폰을 찾아 즉시 바인딩을 시도하고, `OnPossess`는 컨트롤러가 폰을 빙의하는 순간마다 위젯에 컴포넌트를 주입하므로 어느 쪽이 먼저 실행되어도 초기 바인딩 누락이 발생하지 않습니다.
-  2. **사망 및 리스폰(Pawn 재생성) 시 댕글링 방지와 UI 미갱신 해결**:
+  2. **Pawn이 교체될 때(사망/리스폰 등)의 댕글링 방지와 UI 미갱신 해결** *(※ 이 프로젝트에는 사망/리스폰 흐름이 아직 구현되어 있지 않다. 아래는 그 상황이 생겼을 때를 대비해 갖춘 구조이며, 실제 동작은 구현 후 검증이 필요하다)*:
      - 위젯의 `NativeConstruct`는 게임 시작 시 위젯이 생성될 때 단 1번만 실행됩니다.
-     - 소울라이크 게임에서 플레이어가 사망하여 액터가 파괴되고 새 캐릭터로 부활했을 때, 1회성 `NativeConstruct`만 사용하면 UI는 이미 소멸된 옛날 캐릭터의 컴포넌트 델리게이트에 머물게 되어 **체력바가 더 이상 갱신되지 않는 먹통 현상**이 발생합니다.
+     - 소울라이크 게임에서 플레이어가 사망하여 액터가 파괴되고 새 캐릭터로 부활한다면, 1회성 `NativeConstruct`만 사용했을 때 UI는 이미 소멸된 옛날 캐릭터의 컴포넌트 델리게이트에 머물게 되어 **체력바가 더 이상 갱신되지 않는 먹통 현상**이 생깁니다. (소멸한 컴포넌트가 방송하지 않으므로 증상은 크래시가 아니라 갱신 정지이며, 크래시는 일반 포인터를 보관해 역참조할 때 생깁니다.)
      - 언리얼 엔진에서 컨트롤러가 새로운 캐릭터 육체를 장악할 때마다 무조건 호출되는 공식 생명주기 함수인 `OnPossess(APawn* InPawn)`에서 `PlayerHUDWidget->BindStatComponent(...)`를 재호출함으로써 부활 시마다 최신 캐릭터로 즉시 교체 연결됩니다.
   3. **`BindStatComponent` 내부의 3중 방어 기제**:
      - `RemoveDynamic`: 혹시 남아있는 이전 캐릭터의 전선을 깔끔하게 끊어 유령 브로드캐스트 수신 차단.
@@ -478,7 +518,7 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 ### 💬 Q7. 언리얼 엔진의 스폰/빙의 라이프사이클 순서와 HUD 바인딩 타이밍은?
 * **핵심 답변**:
-  * **전형적인 엔진 스폰 및 초기화 순서**:
+  * **전형적인 엔진 스폰 및 초기화 순서** *(일반적인 흐름을 정리한 것이며, 이 프로젝트에서 로그로 실측하지는 않았다. 환경에 따라 순서가 바뀔 수 있어서 Q2처럼 `NativeConstruct`와 `OnPossess`를 병행하는 것이다. 확정하려면 각 지점에 `UE_LOG`를 넣어 실행 순서를 확인할 것)*:
     1. `AZTSGameMode::PostLogin` (또는 게임 시작)
     2. `AWarriorController::BeginPlay()`: HUD 위젯 생성(`CreateWidget`) 및 뷰포트 등록(`AddToViewport`).
     3. `AWarriorController::OnPossess(APawn* InPawn)`: 컨트롤러가 월드의 폰을 장악.
@@ -555,7 +595,7 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
   2. **책임과 수명의 분리**:
      - **`AWarriorPlayerState` & `UWarriorPlayerSaveGame`**: 폰이 파괴되거나 레벨이 바뀌어도 게임 세션 동안 살아남아 디스크에 저장/로드되는 **영속 데이터(Persistent Data)** 담당.
      - **`CharacterStatComponent`**: 현재 프레임의 전투 상황(실시간 HP 깎임, 스태미나 소모/회복)을 연산하고 화면에 뿌려주는 **휘발성 전투 엔진(Volatile Engine)** 담당.
-     - 부활 시 `PlayerState`의 영속 데이터를 읽어와 새로 스폰된 폰의 `CharacterStatComponent`를 초기화(`UpdateCharacterStat`)하는 명확한 파이프라인이 성립됩니다.
+     - 부활 시 `PlayerState`의 영속 데이터를 읽어와 새로 스폰된 폰의 `CharacterStatComponent`를 초기화(`UpdateCharacterStat`)하는 흐름을 **의도한 설계**입니다. *(현재 구현: `AWarrior::BeginPlay` → `UpdateCharacterStats()`가 시작 시 한 번 `UpdateCharacterStat(SaveData->Attributes)`를 호출한다. 사망/리스폰 처리와 `Attributes`를 이용한 성장 계산은 아직 구현 전이다.)*
 
 ---
 
@@ -592,9 +632,57 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
      - UI나 다른 클래스가 독자적으로 기본값 상수를 하드코딩해서 갖고 있으면, 기획자가 CSV를 수정했을 때 화면에 반영되지 않는 데이터 불일치가 발생합니다. 반드시 데이터테이블을 단일 진실의 원천으로 삼아야 합니다.
   2. **세이브 데이터(`Attributes`)와 태생 기본값의 분리**:
      - 세이브 데이터의 `Attributes`는 "레벨업 시 플레이어가 순수하게 투자한 추가 포인트(기본값 0)"를 의미합니다.
-     - 최종 스탯 = `CSV 태생 기본값(10) + 플레이어 투자 포인트(Attributes)`. 이 구조를 통해 향후 직업(출신)별 기본 스탯 분리와 스탯 재분배(초기화) 기능이 완벽하게 지원됩니다.
+     - 최종 스탯 = `CSV 태생 기본값(10) + 플레이어 투자 포인트(Attributes)`로 가져가는 것이 **설계 방향**이며, 이렇게 하면 향후 직업(출신)별 기본 스탯 분리와 스탯 재분배(초기화)가 쉬워집니다.
+     - ⚠️ **현재 코드에는 아직 반영되지 않았다**: `StatusWindowWidget`은 `SaveData->Attributes`를 그대로 출력하므로 기본값 0이 화면에도 0으로 보이고, `LoadCharacterStat()`은 `Attributes`를 사용하지 않는다. 표시값을 `10 + Attributes`로 할지, 이 설명을 바꿀지 결정이 필요하다.
   3. **팀 협업 시 작업 영역 존중**:
      - 스탯 담당자(Ahn)가 작업 중인 컴포넌트 성장 공식(`UpdateCharacterStat`)과 우리 UI 영역의 결합을 분리하여, UI는 스탯창 베이스 위젯의 출력 및 토글을 안정화하고 스탯 세부 연산은 담당자의 작업 완료 후 병합하기로 조율했습니다.
+
+---
+
+### 💬 Q17. 소울라이크의 탭(Tap) 회피 vs 홀드(Hold) 달리기 입력 분기 원리는?
+* **핵심 답변**:
+  1. **한 버튼 다중 기능의 딜레마**:
+     - 스페이스바(패드 B버튼) 하나에 회피와 달리기가 함께 묶여 있으므로, 버튼을 누르는 순간(Pressed) 즉시 회피를 발동시키면 플레이어가 달리기를 아예 시작할 수 없습니다.
+  2. **시간차 판정 알고리즘**:
+     - 누르는 순간(`ActionPressed`): 누른 시각(`PressStarted`)만 기록하고 대기.
+     - 누르고 있는 중(`Tick`): 누른 시간이 0.2초 이상 유지되면 비로소 달리기(`SprintStart`) 시작.
+     - 손을 뗄 때(`ActionReleased`): 0.2초 미만에 손을 뗐다면 "달릴 의도 없이 톡 뗀 것"으로 판정하여 회피(`Dodge`) 발동. 0.2초 이상 달리고 있었다면 달리기 종료(`SprintEnd`).
+  3. **`GetTimeSeconds()` 타임스탬프 기법**:
+     - 별도의 타이머 핸들이나 매 프레임 변수 누적(`HoldTime += DeltaTime`) 없이, `현재 시각 - 누른 시각`의 1회 뺄셈으로 경과 시간을 오차 없이 가볍게 연산합니다.
+
+---
+
+### 💬 Q18. 왜 틱 연산에서 속도/회복량에 반드시 `* DeltaTime`을 곱해야 할까요?
+* **핵심 답변**:
+  1. **프레임 레이트에 따른 시간 왜곡 방지 (프레임 독립성)**:
+     - `Tick`은 화면이 한 번 렌더링될 때마다(매 프레임) 실행됩니다.
+     - 만약 `DeltaTime` 없이 `CurrentStamina += 30.f`로 더하면, 30 FPS 컴퓨터는 1초에 900이 차오르고, 240 FPS 게이밍 컴퓨터는 1초에 7,200이 차오르는 치명적인 하드웨어 차별 버그가 발생합니다.
+  2. **`DeltaTime`의 보정 원리**:
+     - `DeltaTime`은 "직전 프레임부터 이번 프레임까지 걸린 찰나의 시간(초)"입니다.
+     - `초당 회복량(30) * DeltaTime`을 곱해주면, 1초 동안 지나간 모든 `DeltaTime`의 합은 어떤 컴퓨터든 정확히 `1.0초`가 되므로, 모든 기기에서 1초에 공평하게 30씩 정확히 회복됩니다.
+
+---
+
+### 💬 Q19. `FindRow<T>`의 템플릿 문법과 정적 키(`inline static const FName`)의 효과는?
+* **핵심 답변**:
+  1. **범용 컨테이너 `UDataTable`과 템플릿 매핑**:
+     - `UDataTable`은 아이템, 몬스터, 스탯 등 모든 데이터를 담는 범용 클래스이므로 행(Row)의 구체적인 구조체 타입을 엔진이 컴파일 시점에 알지 못합니다.
+     - `FindRow<FStatDefine>`처럼 템플릿을 명시해주어야 엔진이 해당 구조체로 타입 캐스팅된 `const FStatDefine*` 포인터를 돌려주며, 멤버 변수 접근이 가능해집니다.
+  2. **정적 키(`HpKey = TEXT("HP")`)의 효과와 한계** *(2026-10-19 정정: 이전 서술은 "오타를 컴파일 타임에 잡는다"고 되어 있었으나 틀렸다)*:
+     - `TEXT("HP")` 같은 문자열 리터럴을 호출마다 직접 쓰면 곳곳에서 `"Hp"`, `"hp"` 같은 오타가 생기기 쉽습니다.
+     - 키를 `HpKey` 상수 한 곳에 모아 두면, 사용하는 쪽에서 상수 *이름*을 잘못 쓴 경우(`HpKye` 등)는 컴파일 오류로 잡히고, 키 이름이 바뀌어도 선언 한 줄만 고치면 됩니다.
+     - 단, 상수의 *값*(`TEXT("Hp")`)이 CSV의 행 이름과 다른 경우는 컴파일러가 알 수 없습니다. 이때는 런타임에 `FindRow`가 `nullptr`을 돌려주고 값이 0이 되므로, null 검사와 경고 로그(`GetStatInitialValue`의 `UE_LOG`)가 필요합니다. (Q4 3번의 주의와 같은 내용)
+
+---
+
+### 💬 Q20. 소울라이크의 죽음과 부활에서 왜 `CharacterStatComponent`와 `PlayerState`의 수명이 다를까요?
+* **핵심 답변**:
+  1. **휘발성 육체 (`AWarrior` + `CharacterStatComponent`)**:
+     - *(전제: 이 프로젝트에는 사망/리스폰이 아직 구현되어 있지 않다. 아래는 구현했을 때의 설계 의도이다.)* 캐릭터 액터와 스탯 컴포넌트는 월드에 배치된 육체 부품이므로, 보스에게 맞아 사망하여 액터가 파괴되면 컴포넌트도 함께 사라집니다(GC 대상).
+     - 따라서 레벨이나 소울을 컴포넌트에 직접 저장하면 캐릭터 사망 시 모든 데이터가 증발합니다.
+  2. **영속 기억 (`AWarriorPlayerState` + `WarriorSaveData`)**:
+     - `APlayerState`는 액터가 죽어도 컨트롤러 및 플레이어 세션과 함께 월드에 끝까지 살아남는 영속 객체입니다.
+     - 캐릭터가 화톳불에서 부활하여 새 육체(`AWarrior`)와 새 컴포넌트가 스폰되면, 살아남아 있던 `PlayerState`의 금고에서 데이터를 꺼내 `UpdateCharacterStat(SaveData->Attributes)`로 재주입하는 방식으로 영속적 성장 파이프라인을 구성하려는 것이 설계 방향입니다. (현재는 `Attributes`를 계산에 쓰지 않고 사망/리스폰도 구현 전이므로 이 파이프라인은 아직 완성된 것이 아니다.)
 
 ---
 
@@ -608,7 +696,7 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 2. **경계값 부등호 버그 (`<= Amount` vs `< Amount`)**:
    - **현상**: 스태미나가 정확히 25 남았을 때 25짜리 구르기를 시도했는데 발동되지 않아, Max 100 기준 4번 굴러야 할 것이 3번만 구르고 멈춤.
    - **교훈**: 잔여량이 요구량보다 '작을 때' 실패(`Current < Amount`)해야 하는데, '작거나 같을 때' 실패(`Current <= Amount`)로 잘못 작성한 경계값 오류. 게임 밸런스 공식에서 등호(`=`)의 포함 여부는 전투 감각을 완전히 바꿉니다.
-3. **빈 문자열 `FClassFinder`와 `EditDefaultsOnly`의 함정 (6-1 현상)**:
+3. **빈 문자열 `FClassFinder`와 `EditDefaultsOnly`의 함정 (스탯창 클래스가 연결되지 않아 C키가 아무 일도 하지 않던 문제)**:
    - **현상**: C++에서 위젯 클래스를 `EditDefaultsOnly`로 열어두었으나, `GameMode`가 C++ 컨트롤러 클래스를 직접 지정하고 있어 에디터에서 값을 넣어줄 통로가 없었음. 게다가 생성자 헬퍼에 빈 경로(`TEXT("")`)를 넣어 로드 실패 경고가 발생함.
    - **교훈**: C++과 블루프린트를 결합할 때는 "GameMode가 바라보는 컨트롤러가 BP 파생 클래스인지", "CDO 에셋 탐색 경로가 유효한지"의 데이터 흐름 파이프라인을 항상 먼저 점검해야 함.
 4. **로그 포맷 및 괄호 불일치 (`{StatComponent]`)**:
@@ -620,5 +708,40 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 6. **Git 브랜치 병합 시 충돌 표식 없는 소실 위험 (Silent Deletion)**:
    - **현상**: `origin/main` 병합 시 생성자의 `PrimaryComponentTick.bCanEverTick = true;`가 충돌 표시 없이 자동 삭제될 뻔함.
    - **교훈**: Git은 한쪽에서 삭제하고 다른 쪽에서 수정하지 않은 줄을 충돌 없이 조용히 삭제합니다. 빌드는 성공하지만 런타임에 틱과 스태미나 회복이 멈추므로, 병합 전후 핵심 로직의 유실 여부를 반드시 소스 수준에서 교차 점검해야 합니다.
+7. **충돌 표시가 없는데도 중복 코드가 얹히는 경우 (`Warrior.cpp`)**:
+   - **현상**: 같은 기능을 양쪽이 각자 구현했을 때(컴포넌트 생성, PlayerState 연결), Git은 두 쪽이 같은 일을 한다는 것을 몰라서 **충돌 없이 둘 다 합칩니다.** 결과적으로 컴포넌트가 이름만 다르게 2번 생성되고, `PlayerState`가 없을 때 return하는 순서가 이동 설정보다 앞서며, 일부만 지우면 PlayerState가 null일 때 크래시하는 코드가 남았습니다.
+   - **교훈**: 병합을 실행하기 **전에** `git merge-tree --write-tree <내 브랜치> origin/main`으로 시험 병합을 해서(작업 트리를 바꾸지 않음) 충돌 구간 밖의 변화까지 미리 읽어 보세요. 충돌 파일은 구간만 고르지 말고, 한쪽의 내용이 다른 쪽을 포함하는지 확인한 뒤 **파일 전체**를 선택하는 편이 안전합니다.
+8. **병합 취소(Abort)가 거부되는 경우**:
+   - **현상**: 파일이 스테이지된 버전과 그 뒤의 수정 두 가지를 동시에 가진 상태(`MM`)에서는 Abort가 "not uptodate" 오류로 거부됩니다.
+   - **교훈**: 해당 파일의 수정을 먼저 Discard 한 뒤 Abort 합니다. 병합 전에는 항상 모든 작업을 커밋해 두어야 되돌리기가 쉽습니다.
+
+---
+
+## 13. 알려진 이슈와 다음 작업 (2026-10-19 코드 리뷰 기준)
+
+> 근거와 상세 위치(파일, 행 번호)는 루트의 `Review(Claude).md` 마지막 섹션에 있습니다. 여기서는 **다음에 이 문서를 고치거나 기능을 추가할 때 알아야 할 사실**만 요약합니다.
+
+| 우선순위 | 이슈 | 위치/설명 |
+|---|---|---|
+| 높음 (확인 필요) | 공격 후 `ActionState`가 `Attack`에 고착될 수 있음 | `Warrior::Attack()`이 부르는 `PlayAttackMontage()`는 빈 함수이고 `AttackMontage`는 로드되지 않는다. ABP가 `ActionState`로 공격을 재생하며 `ActionEnd` 노티파이를 쏘는지 PIE에서 확인 |
+| 높음 | 락온 중 크래시 가능 | `Warrior.cpp`의 락온 후보 탐색 두 곳에서 `GetController()`를 null 검사 없이 사용. `LockOnTarget`도 일반 포인터라 대상이 파괴되면 dangling |
+| 중간 | 전투 루프 없음 | `ApplyDamage`/`UseFP` 호출처가 없고 적에게 스탯 컴포넌트와 인터페이스가 없다. 피격/사망/리스폰 설계 필요. 컴포넌트를 `ACharacterBase`로 옮기는 안과 함께 결정 |
+| 중간 | 이동 속도 출처 4곳 | `StatDefine.csv`, `Warrior.cpp` 하드코딩, 컴포넌트 `MaxWalkSpeed`(미사용), `EnemyAIData` |
+| 중간 | 적 데이터 안전성 | `EnemyAIData`의 속도 `float`에 기본값이 없고, `EnemyBase::UpdateMovementSpeed`는 데이터가 없으면 로그 없이 return |
+| 중간 | AI 경로 2개 | `AWarriorAIController`(레거시)와 `AEnemyAIController` 중 정식 경로를 정하고 정리 |
+| 중간 | 성장 시스템 미구현 | `UpdateCharacterStat`이 `Attributes`를 쓰지 않고 `StatGrowthTable`은 로드만 함. Attribute 기본값(0)과 표시값(10 + 값?)의 의미 확정 필요 |
+| 중간 | CSV ↔ DataTable 동기화 규칙 없음 | Reimport 절차와 "어느 쪽이 원본인가"를 팀이 정할 것 |
+| 중간 | 저장소 크기 | `Content/Frank_Slash_Pack`이 약 957MB, Git LFS 미사용. 팀 합의 후 LFS 도입 또는 에셋 범위 축소 검토, 에셋 라이선스와 저장소 공개 범위 확인 |
+| 낮음 | include 스타일 혼재 | 프로젝트 헤더는 따옴표(`"Warrior/Warrior.h"`)로 통일하기로 하고 `Enemy`, `Warrior`, `Character` 폴더의 각괄호 include를 정리 |
+| 낮음 | 정리 대상 | `Source/ZZakTungSoul/Test/DA_Test`, 구르기 비용 25 하드코딩, `Attackrange` 철자, 빈 함수 5개(`WarriorAnimInstance`) |
+
+### 이 문서를 갱신하는 AI(Antigravity)를 위한 체크리스트
+1. **"구현 완료"를 쓰기 전에 소스에서 확인한다.** 예: 어떤 함수를 "사용한다"고 쓰려면 호출하는 곳이 실제로 있는지 검색한다(`ApplyDamage`는 호출처가 없다).
+2. **설계 의도와 구현 상태를 구분해서 쓴다.** "완벽하게 지원", "원천 차단", "완성" 같은 단정 표현은 피하고, 아직 구현 전이면 `(설계 방향)` 또는 `(미구현)`을 붙인다.
+3. **새 사실을 쓰면 0장의 상태 표도 같이 고친다.** 문서 앞부분과 뒷부분이 서로 다른 말을 하지 않게 한다.
+4. **코드 조각을 문서에 복사하지 않는다.** 코드가 바뀌면 문서가 곧바로 틀려진다(5장의 `100.f` 조각이 그 예). 파일 링크와 한 줄 설명을 쓴다.
+5. **`Review(Claude).md`의 체크 표시(`[x]`)는 리뷰어만 고친다.** 이 문서에서 리뷰 항목을 번호로 인용하지 않는다(번호가 바뀌면 깨진다). 필요하면 내용을 풀어서 쓴다.
+6. **Q&A에는 실제로 검증한 것만 사실로 쓴다.** 엔진의 일반 동작을 설명할 때도 이 프로젝트에서 확인했는지 여부를 밝힌다(예: Q7의 실행 순서).
+7. 코드는 개발자(Bae)가 직접 작성하고, AI는 설명과 문서 관리를 맡는다(8장의 협업 규칙).
 
 

@@ -5,7 +5,33 @@
 
 ---
 
-## 0. 병합 전 필수 확인 사항 (2026-10-14)
+## 열린 항목 한눈에 (2026-10-19 기준, 맨 위에서 이것만 보면 된다)
+
+> 이 아래의 번호 섹션(0~9)은 **시간순 기록**이다. 현재 무엇이 남았는지는 이 표를 기준으로 하고, 항목 번호로 해당 섹션의 상세 근거를 찾는다. 항목이 해결되면 이 표에서 지우고 해당 섹션에 `[x]`를 단다(체크 표시는 리뷰어가 코드를 확인한 뒤에만 한다).
+> 기준 코드: `main` = `Bae` = `origin/Bae` = `2fabce4` (Bae PR #2와 Kang 병합 포함). 빌드/실행은 리뷰어가 하지 않았다.
+
+| 우선순위 | 항목 | 내용 | 상세 |
+|---|---|---|---|
+| 높음 | 11-1, 11-2, 11-3 | `CalculateGrowthValue`가 항상 0 반환, null 검사 대상 오류(크래시 가능), `reinterpret_cast` | 섹션 11 |
+| 높음 (확인 필요) | 9-1 | 공격 후 `ActionState`가 `Attack`에 고착될 수 있음 (`PlayAttackMontage()`가 빈 함수) | 섹션 9 |
+| 높음 | 9-2, 9-3 | 락온의 `GetController()` null 역참조(`Warrior.cpp`), `LockOnTarget` 일반 포인터 | 섹션 9 |
+| 중간 | 9-4, 3-2, 4-5 | 전투 루프 없음(`ApplyDamage` 호출처 없음), 적에게 스탯 컴포넌트/인터페이스 없음, 컴포넌트를 `ACharacterBase`로 이동 | 섹션 9, 3 |
+| 중간 | 9-5, 9-6, 9-7 | 이동 속도 출처 4곳, `EnemyAIData` 속도 기본값 없음, AI 경로 2개(`WarriorAIController`/`EnemyAIController`) | 섹션 9 |
+| 중간 | M-1, 7-8, 7-6, 7-7, 9-16 | Attribute 기본값 0의 의미와 표시값, `UpdateCharacterStat` 책임/이중 호출, `StatGrowthTable` 미사용 | 섹션 0, 7, 9 |
+| 중간 | 9-15, 9-17 | CSV ↔ DataTable 에셋 동기화 규칙, 저장소 크기(`Frank_Slash_Pack` 약 957MB, LFS 없음) | 섹션 9 (팀 합의 필요) |
+| 중간 | 2-4, 4-7, 5-4 | 구르기 비용 25 하드코딩, 스탯창이 최대값만 표시/열 때만 갱신 | 섹션 2, 4, 5 |
+| 낮음 | K-2, K-3, K-4, K-6, K-7, K-9 | 적 AI 정리 항목(비트필드 초기화, `GetPlayerPawn(0)`, 조용한 실패 경로, `Dead` 복구, `bIsCombat`, 테스트 자산) | 섹션 4, 9 |
+| 낮음 | 2-8, 3-3, 9-12 | 프로젝트 헤더 include 스타일 혼재(각괄호/따옴표) | 섹션 2, 3, 9 |
+| 낮음 | 1-6, 2-9~2-11, 이름·표기, 9-8~9-11, 9-13, 9-14 | 주석 처리된 코드, 변수명/표기 통일, 낡은 주석, 들여쓰기, `DA_Test` | 섹션 1, 2, 9 |
+
+**2026-10-19에 정리된 것**
+- 가이드 정정: G-10(Q19 오류), G-11(사망/리스폰 과장), G-12(Q2↔Q7), G-13(Q16), G-14(적 AI 반영), G-15(5장 코드 조각), G-17(번호 참조), G-18(병합 교훈)을 `PROJECT_GUIDE.md`에 반영했다. G-16(문서 분리)은 맨 위에 "현재 구현 상태 요약" 표와 맨 끝에 "알려진 이슈/체크리스트"를 추가해 부분 해결했다. 구체적인 변경은 섹션 10 참고.
+- 이 문서: R-1(이 표 추가), R-2(존재하지 않는 파일 참조 정리), R-3(Kang 항목 상태 표시)을 처리했다.
+- 문서 3개(`PROJECT_GUIDE.md`, `Review(Claude).md`, `리뷰 참고용.txt`)는 Bae PR #2를 통해 이미 `main`에 포함되어 있다.
+
+---
+
+## 0. 병합 전 필수 확인 사항 (2026-10-14) — 2026-10-15에 병합 완료, 참고용 기록
 
 `Bae`를 `main`(`b42a975`)에 병합하는 담당자는 아래 항목을 **병합 전에 반드시 확인**한다. 시험 병합(`git merge-tree`) 결과 `CharacterStatComponent.cpp`, `Warrior.cpp`에서 충돌한다. 상세 근거는 섹션 4의 3)과 섹션 5의 2) 참고.
 
@@ -301,15 +327,15 @@
   - main의 `UpdateCharacterStat`은 `Max*`만 갱신하고 **`Current*`는 갱신하지 않으며 방송도 하지 않는다**. 그대로 합치면 최대치만 250이고 현재값은 0이라 HUD가 빈 채로 시작한다. `Current* = Max*`와 `BroadcastAllStats()`를 함수 끝에 둔다 (로드 시 저장된 현재값 복원은 별도 과제).
   - `AWarrior::BeginPlay`에서 `GetPlayerState<AWarriorPlayerState>()`가 없으면 조용히 return하므로 **AI가 조종하는 `AWarrior`는 모든 스탯이 0**이다. Max 0이면 `Get*Ratio`가 0을 돌려준다. 플레이어가 아닐 때는 기본값 로드로 fallback한다.
   - `PlayerState`가 `BeginPlay` 시점에 항상 유효한지 보장되지 않는다(리스폰/로드). `PossessedBy`/`OnRep_PlayerState` 이후 호출이 안전하다.
-  - Attribute 기본값이 0으로 바뀐 의미는 `Claude.md`의 "레벨의 기준" 쟁점과 직접 연결된다. 0이 "초기값 10에서 올린 포인트 수"라면 `StatGrowth`의 MinLevel/MaxLevel도 0부터 세는 증가 포인트 기준이어야 하고, 스탯창에는 `10 + 값`을 표시해야 한다. 현재 `StatusWindowWidget`은 값을 그대로 표시하므로 Vigor가 0으로 보인다.
-- [ ] **4-10. main의 `// Todo` (성장 계산)는 구조 확정 후에 구현.** 예시로 적힌 `MaxHp += Vigor * 10.f`는 고정 곱셈이라 소프트캡 모델과 맞지 않는다. 구간 누적 합산이어야 하며 공식은 `Claude.md` 3-2 표를 기준으로 한다.
+  - Attribute 기본값이 0으로 바뀐 의미는 별도 CSV 확장 계획 메모(저장소에는 없음)의 "레벨의 기준" 쟁점과 직접 연결된다. 0이 "초기값 10에서 올린 포인트 수"라면 `StatGrowth`의 MinLevel/MaxLevel도 0부터 세는 증가 포인트 기준이어야 하고, 스탯창에는 `10 + 값`을 표시해야 한다. 현재 `StatusWindowWidget`은 값을 그대로 표시하므로 Vigor가 0으로 보인다.
+- [ ] **4-10. main의 `// Todo` (성장 계산)는 구조 확정 후에 구현.** 예시로 적힌 `MaxHp += Vigor * 10.f`는 고정 곱셈이라 소프트캡 모델과 맞지 않는다. 구간 누적 합산이어야 하며 공식은 별도 CSV 확장 계획 메모(저장소에는 없음)의 성장 표를 기준으로 한다.
 - main에서 구조체의 `ZZAKTUNGSOUL_API`를 제거한 것은 같은 모듈 안에서는 문제가 없으나 다른 모듈에서 쓰면 링크 오류가 난다. 의도라면 이유를 남길 것.
 
 ### 4) `origin/Kang` 적 AI 리뷰
 
 **총평**: `EnemyBase` → `EnemyAIController` → BT Task의 책임 분리가 명확하고 `EnemyAIData`(DataAsset)로 BT와 이동 속도를 데이터화한 점, 블랙보드 키를 `EnemyAIBlackboardKey.h`로 모은 점이 좋다. 아래는 위험도 순이다.
 
-- [ ] **K-1. `EnemyBase::UpdateMovementSpeed`가 `EnemyAIData`를 null 검사 없이 역참조한다.** (`EnemyBase.cpp`)
+- [x] **K-1. `EnemyBase::UpdateMovementSpeed`가 `EnemyAIData`를 null 검사 없이 역참조한다.** (`EnemyBase.cpp`) (2026-10-19 확인: `EnemyBase.cpp:39`에 `if (!Movement || !EnemyAIData) return;` 추가됨. 다만 로그가 없어 원인 추적이 어렵다. 9-6 참고)
   `EnemyAIData`는 `EditDefaultsOnly`라 BP에서 지정하지 않으면 `nullptr`이다. `Patrol`/`Chase`/`Strafe` 분기에서 즉시 크래시한다. 초기 상태가 `Idle`이라 `BeginPlay`는 통과하지만 BT가 상태를 바꾸는 순간 크래시한다. 함수 앞에서 null 검사 + `UE_LOG`.
 - [ ] **K-2. `bIsCombat`, `bIsStrafeMode` 비트필드가 초기화되지 않는다.** `uint32 bIsCombat : 1;`처럼 선언만 되어 있다. 명시적으로 `= false`를 주거나 `bool`로 선언한다. `BTTask_SetStrafeMode.h`는 `= true`로 초기화하고 있어 일관성도 없다.
 - [ ] **K-3. 타겟 판별이 `GetPlayerPawn(0)` 비교이다.** (`OnTargetPerceptionUpdated`) 플레이어 폰이 교체되면 비교 대상이 바뀐다. 태그나 팀(`IGenericTeamAgentInterface`)이 확장에 안전하다. `DetectionByAffiliation`을 적/우호/중립 모두 `true`로 둔 의도도 주석으로 남긴다.
@@ -317,12 +343,12 @@
 - [ ] **K-5. `BlackboardAsset`이 사용되지 않는 것으로 보인다.** `FObjectFinder`로 로드하지만 `RunBehaviorTree`는 BT가 가진 블랙보드를 쓴다. 안 쓰면 삭제.
 - [ ] **K-6. `SetEnemyState`에서 `Dead`는 되돌릴 수 없다.** 리스폰/풀링이 필요하면 초기화 경로가 필요하다. `Attack`/`Hit` 분기는 속도를 바꾸지 않는다(의도인지 확인).
 - [ ] **K-7. `bIsCombat`이 Strafe와 같은 값으로 묶여 있다.** 전투 중이지만 Strafe가 아닌 상태(공격 중 등)를 표현할 수 없다. `EEnemyState::Attack`과의 관계를 정리할 것.
-- [ ] **K-8. `BTTask_SetStrafeMode`가 해제 때도 `TargetActor`가 없으면 `Failed`를 반환한다.** Perception이 타겟을 `ClearValue`한 직후에 해제 Task가 실패해서 `bIsStrafeMode`가 `true`로 남을 수 있다. 해제 경로는 타겟 검사 없이 처리한다.
+- [x] **K-8. `BTTask_SetStrafeMode`가 해제 때도 `TargetActor`가 없으면 `Failed`를 반환한다.** (2026-10-19 확인: `BTTask_SetStrafeMode.cpp:52-57`의 해제 경로는 타겟 검사 없이 처리됨) Perception이 타겟을 `ClearValue`한 직후에 해제 Task가 실패해서 `bIsStrafeMode`가 `true`로 남을 수 있다. 해제 경로는 타겟 검사 없이 처리한다.
 - [ ] **K-9. 테스트 자산 정리.** `Source/Test/DA_Test`, `TestKangMap`, `BP_TestEnemyBase`는 병합 전에 정리 여부를 정한다.
 - `Build.cs`는 Bae가 `UMG`/`Slate`/`SlateCore`를, Kang이 `NavigationSystem`/`GameplayTasks`를 추가해 같은 `PublicDependencyModuleNames` 블록을 둘 다 바꿨다. 병합 시 수동으로 합쳐야 한다.
 - Stat 연결: `EnemyBase`가 `ACharacterBase`를 상속하므로 컴포넌트를 `CharacterBase`로 올리면(3-2) 적도 같은 HP/데미지 경로를 쓸 수 있다.
 
-### 5) CSV 확장 계획(`Claude.md`)과 코드의 접점
+### 5) CSV 확장 계획(별도 메모, 저장소에는 없음)과 코드의 접점
 
 - 코드는 `StatDefine`을 `FName` 행 키로 읽는 구조(`FindRow`)를 갖췄으므로 `StatDefine.csv`는 그대로 확장해도 된다.
 - `StatGrowth.csv` 설계 전에 **Attributes가 "값(10~)"인지 "증가 포인트(0~)"인지**를 확정해야 한다 (4-9). 이 결정이 `MinLevel`/`MaxLevel`의 의미, 스탯창 표시, 세이브 호환성을 모두 정한다.
@@ -581,3 +607,148 @@
 1. **`Bae → main` PR**: 올리기 전에 문서 3개(`PROJECT_GUIDE.md`, `Review(Claude).md`, `리뷰 참고용.txt`)를 `main`에 포함할지 ahn과 먼저 정한다. 현재는 `Bae`에서 추적 중이므로 PR을 올리면 그대로 포함된다. 합칠 때는 **Create a merge commit**을 쓴다(squash 금지).
 2. ahn과 정할 것: Attribute 기본값 0의 의미(M-1), `UpdateCharacterStat`과 성장 계산의 책임(7-6), `ZZAKTUNGSOUL_API` 제거 의도.
 3. 이후 개선 과제(리뷰 앞 섹션): 컴포넌트와 인터페이스를 `ACharacterBase`로 이동(3-2), 구르기 비용 25 데이터화(2-4), 스탯창 갱신/현재값 표시(4-7), 피격 경로와 `OnDeath`(4-5), `Kang` 브랜치의 `Build.cs` 합치기와 K-1, K-8.
+
+---
+
+## 9. 프로젝트 전체 + 문서 점검 (2026-10-19)
+
+**기준 상태**: `main`, `Bae`, `origin/Bae`가 모두 `2fabce4`(Bae PR #2 + Kang 병합 포함)로 같다. `origin/Kang`은 `main`을 받아 1커밋 앞선다(`0308a1e`). 로컬에 미커밋 변경은 `PROJECT_GUIDE.md`(Q17~Q20 추가)뿐이다.
+**점검 범위**: 병합으로 새로 들어온 코드(적 AI 전체, `Warrior.cpp`/`WarriorAnimInstance` 변경, `Build.cs`), 데이터 파일과 저장소 구성, `PROJECT_GUIDE.md` 전체, 이 문서 자체.
+빌드와 실행은 하지 않았다. 아래 "확인 필요"는 코드만으로 단정할 수 없는 항목이다.
+
+### 1) 코드
+
+| # | 우선순위 | 위치 | 내용 |
+|---|---|---|---|
+| 9-1 | 높음 (확인 필요) | `Warrior.cpp:358` → `WarriorAnimInstance.cpp:130-132` | `Attack()`은 `ActionState`를 `Attack`으로 바꾸고 `PlayAttackMontage()`를 부르는데, 이 함수는 **빈 함수**이다. `AttackMontage`는 생성자(`WarriorAnimInstance.cpp:12-26`)에서 로드되지 않고(`Roll`/`BackStep`만 로드), `StopAttackMontage()`(`:139`)와 `PlayRollMontage()`/`PlayBackStepMontage()`(`:122-128`), `PlayMontage()`(`:85`)도 빈 함수이다. `ActionState`를 되돌리는 경로는 `AnimNotify_ActionEnd`(`:60-69`)와 `OnActionMontageEnded`(`Warrior.cpp:252-263`)뿐이라, ABP가 공격 애니메이션을 따로 재생하며 `ActionEnd` 노티파이를 쏘지 않으면 `ActionState`가 `Attack`에 고착되고 `Move()`(`WarriorController.cpp:169`)와 `Dodge()`가 막힌다. Ahn이 작업 중인 구간일 수 있으니 PIE에서 공격 후 이동되는지 확인 |
+| 9-2 | 높음 | `Warrior.cpp:410`, `:449` | `Detected->GetController()->IsPlayerController()`가 null 검사 없이 역참조한다. 컨트롤러가 없는 `ACharacter`(`EnemyBase`가 빙의 전/사망 후 등)가 락온 후보에 잡히면 크래시. `GetController()`가 null인지 먼저 확인 |
+| 9-3 | 높음 (적 사망 구현 시) | `Warrior.h:47` | `LockOnTarget`이 `UPROPERTY`/`TWeakObjectPtr`이 아닌 일반 포인터라 대상이 파괴되면 dangling이 된다(`AnimInstance` `:62`도 동일). 락온 중인 적을 `Destroy`하면 `UpdateLockOnCamera`가 크래시한다. `TWeakObjectPtr`와 유효성 검사 필요 |
+| 9-4 | 중간 | `EnemyBase.h/.cpp`, 전체 | 적에게 **스탯 컴포넌트와 인터페이스가 없다.** `Hit`/`Dead` 상태(`EnemyStates.h:15-16`)는 있지만 진입하는 곳이 없고(`EEnemyState::Dead`는 `EnemyBase.cpp:70` switch에만 등장), 플레이어 쪽도 `ApplyDamage`/`UseFP`의 호출처가 프로젝트 전체에 없다. 그래서 HP 바는 움직일 수 없고 전투 루프가 비어 있다(4-5, 3-2의 연장) |
+| 9-5 | 중간 | `Warrior.cpp:288,306,316` 외 | **이동 속도의 출처가 4곳**이다. `StatDefine.csv`(MaxWalkSpeed 300), `Warrior.cpp`의 400/600 하드코딩, 컴포넌트 `MaxWalkSpeed`(`CharacterStatComponent.cpp:129`에서 읽기만 하고 `GetMaxWalkSpeed()`는 아무도 호출하지 않음), `EnemyAIData`의 속도. 가이드 Q16이 말하는 "데이터 단일 출처"가 이 값에는 적용되지 않는다 |
+| 9-6 | 중간 | `EnemyAIData.h:38,42,46` | `PatrolMovementSpeed` 등 `float` 멤버에 기본값이 없다. DataAsset에서 값을 안 채우면 0이라 적이 움직이지 못한다. `EnemyBase.cpp:39`는 `EnemyAIData`가 null이면 **로그 없이** return한다(K-1은 크래시는 막았으나 원인 추적은 어렵다) |
+| 9-7 | 중간 | `Warrior.cpp:76` ↔ `EnemyBase.cpp:22` | **AI 적 경로가 두 개**이다. `AWarrior`는 여전히 `AWarriorAIController`를 쓰고(`Warrior.cpp:76-77`), 새 적은 `AEnemyBase` + `AEnemyAIController`이다. 어느 쪽이 정식인지 정하고 레거시는 정리 |
+| 9-8 | 낮음 | `EnemyBase.h:62,66` | `bIsCombat`, `bIsStrafeMode` 비트필드가 초기화되지 않았고(K-2), `bIsCombat`은 어디서도 쓰이지 않는다 |
+| 9-9 | 낮음 | `EnemyAIController.cpp:68-77,81` | 실패 경로가 로그 없이 return(K-4). `:74`에서 `MainBT`가 null이 아님을 확인한 뒤 `:81`에서 다시 검사해 **도달할 수 없는 검사**이다. `:110`은 `GetPlayerPawn(0)` 비교(K-3) |
+| 9-10 | 낮음 | `BTService_UpdateCombatInfo.h:30`, `.cpp:30`, `BTTask_FindStrafeLocation.cpp:29` | `Attackrange`는 `AttackRange`가 관례. `OwnerComp.GetAIOwner()->GetPawn()`에서 `GetAIOwner()` null 검사가 없다 |
+| 9-11 | 낮음 | `Warrior.cpp:361-362` | "애니메이션 애셋이 이상해서 위치를 직접 조정" 주석이 낡았다. 해당 `AddActorWorldOffset`(롤)과 `LaunchCharacter`(백스텝)가 제거됨 |
+| 9-12 | 낮음 | 전체 | 프로젝트 헤더 include 스타일: 각괄호 `<Enemy/…>` 11, `<Warrior/…>` 7, `<Character/…>` 3(따옴표는 각각 9, 9, 2). `Enemy` 폴더는 전부 각괄호이고 `UI`/`Anim`/`Interface`는 따옴표. 규칙을 문서에 한 줄 정하고 맞출 것(2-8, 3-3) |
+| 9-13 | 낮음 | `BTTask_SetEnemyState.cpp` | 들여쓰기가 4칸 공백이고 다른 파일은 탭이다 |
+| 9-14 | 낮음 | `Source/ZZakTungSoul/Test/DA_Test.*` | K-9. 테스트 에셋(`DA_Test`, `TestKangMap`, `BP_TestEnemyBase`)을 정리할지 정할 것 |
+
+**이전 항목 중 해소된 것**: K-1(`EnemyBase.cpp:39`에 null 검사), K-8(`BTTask_SetStrafeMode.cpp:52-57` 해제 경로에 타겟 검사 없음). 병합 후에도 `Build.cs`는 두 의존성 목록이 합쳐졌다(`AIModule`/`NavigationSystem`/`GameplayTasks`/`UMG`).
+**여전히 열린 이전 항목**: 2-4(구르기 비용 25.f, `Warrior.cpp:371`), 3-2(컴포넌트를 `CharacterBase`로), 4-7(스탯창이 최대값만 표시), 7-6/7-7(`UpdateCharacterStat` 책임, 이중 호출), M-1(Attribute 기본값).
+Attribute 표시값: `StatusWindowWidget.cpp:46-51`이 `SaveData->Attributes`를 그대로 출력하므로 기본값 0이 화면에도 0으로 보인다(가이드 Q16의 "최종 = 10 + Attributes"는 코드에 아직 없음).
+
+### 2) 데이터와 저장소
+
+- [ ] **9-15. CSV와 DataTable 에셋이 어긋날 수 있다.** `DT_StatDefine.uasset`은 10-14(`cc56451`)에 바뀌었는데 `StatDefine.csv`는 10-07 이후 변경이 없다. `DT_LevelRequiredSouls.uasset`(10-13)도 CSV는 그대로다. 가이드 Q16은 CSV를 단일 출처라고 쓰지만 CSV를 고쳐도 에셋에 반영되는 절차(재임포트)와 어느 쪽이 원본인지가 정해져 있지 않다.
+- [ ] **9-16. `StatGrowth.csv`는 임시 값(1~20레벨 10, 21~40레벨 7)이고 코드가 읽지 않는다.** `StatGrowthTable`은 생성자에서 로드만 되고(`CharacterStatComponent.cpp:28-34`) 사용하는 곳이 없다. 가이드 143행은 CSV의 내용만 설명하고 "아직 미사용"임을 적지 않았다.
+- [ ] **9-17. 저장소 크기.** Git 팩이 927MiB이고 `Content/Frank_Slash_Pack` 하나가 957MB이다. `.gitattributes`가 없어 Git LFS를 쓰지 않는다. 클론/푸시가 느려지고 GitHub의 파일당 100MB 제한에 걸릴 수 있다. 마켓플레이스 에셋은 라이선스상 공개 저장소 재배포가 제한되는 경우가 있으니 저장소 공개 범위도 확인할 것. LFS 도입은 이력 재작성이 필요할 수 있어 팀 합의가 먼저다.
+
+### 3) PROJECT_GUIDE.md
+
+| # | 종류 | 위치 | 내용 |
+|---|---|---|---|
+| G-10 | **오류** | `PROJECT_GUIDE.md:630-632` (Q19) | "정적 상수를 쓰면 오타 발생 시 컴파일 타임에 빌드 에러로 잡아준다"는 **틀렸다.** `HpKey = TEXT("Hp")`처럼 상수의 *값*을 잘못 쓰면 컴파일은 통과하고 런타임에 0과 경고가 나온다. 컴파일러가 잡는 것은 `HpKye`처럼 상수 *이름*을 잘못 쓴 경우뿐이다. 같은 문서 Q4(`:452`)의 주의 문구와도 모순된다. Q19 2번을 Q4와 같은 내용으로 고칠 것 |
+| G-11 | 과장 | `:346`, `:357`, Q2(`:428-431`), Q13(`:550-558`), Q20(`:636-643`) | "사망/리스폰 대응 완료", "영속적 성장 파이프라인이 완성"이라고 썼지만 **사망·리스폰 흐름은 구현되어 있지 않다**(`ApplyDamage` 호출처, `OnDeath`, 리스폰 로직 없음. 9-4). 구현된 것은 Pawn 교체에 견디는 HUD 바인딩 구조까지다. "설계상 대응 가능"으로 표현을 낮추고 미구현임을 적을 것 |
+| G-12 | 상충 | Q2(`:425-427`) ↔ Q7(`:479-489`) | Q2는 실행 순서가 환경에 따라 달라진다고 쓰고, Q7은 5단계 순서를 확정처럼 쓴다. 로그로 실측한 결과가 없다. "일반적 순서(로그로 검증 필요)"로 표기하거나 실측값을 붙일 것 |
+| G-13 | 코드와 불일치 | Q16 3번째 항목(`:593-595`) | "최종 스탯 = CSV 기본값(10) + Attributes … 완벽하게 지원"은 아직 코드에 없다(위 `StatusWindowWidget.cpp:46-51`, `LoadCharacterStat`은 `Attributes`를 쓰지 않음). 설계 방향이라고 표시 |
+| G-14 | 낡음 | `:38`, `:117-124`, `:26-63` | 아키텍처 그림과 줄기 5가 적 AI를 `AWarrior`+`WarriorAIController`로 설명한다. 이제 `EnemyBase`, `EnemyAIController`, BT Task/Service, `EnemyAIData`, `Interface/`, `UI/`가 있다. 주요 파일 목록도 갱신 필요 |
+| G-15 | 낡음 | `:155-184` (5장) | "개선 완료"의 코드 조각이 `MaxHP = 100.f` 등 가데이터 값을 보여 주는데, 실제 값은 `LoadCharacterStat`이 250/50/60으로 덮어쓴다. 코드를 복사하지 말고 파일 링크로 대체(G-5와 같은 이유) |
+| G-16 | 구조 | 전체(670행) | 아키텍처, 작업 일지, 학습 Q&A(20개), 실수 기록이 한 파일에 섞여 있다. 헤더 작성일은 10-12인데 내용은 10-19까지이고, 이 문서는 `main`에 올라가 있어서 틀린 내용(G-10~G-13)이 팀에 공유된다. 최소한 "현재 구현 상태" 요약 표를 맨 위에 두고, Q&A는 별도 문서로 분리하는 것을 권장 |
+| G-17 | 의존 | `:657` (Troubleshooting #3) | "6-1 현상"이 이 리뷰 문서의 번호를 가리킨다. 문서끼리 번호로 참조하면 한쪽이 정리될 때 깨진다. 설명을 풀어 쓸 것 |
+| G-18 | 보강 | `:666-668` (Troubleshooting #6) | 병합 교훈이 `bCanEverTick` 삭제만 다룬다. 실제로 더 위험했던 것은 **충돌 표시 없이 `Warrior.cpp`에 중복 코드가 얹힌 것**이었다. 병합 직전 `git merge-tree`로 시험 병합해서 충돌 밖의 변화를 미리 보는 방법을 추가하면 가치가 크다(이 문서의 섹션 8 참고) |
+
+잘 된 점: Q4의 FName 키 주의 문구, Q10 표, Q14 표, Q18은 정확하다. Q17은 코드(`ActionPressed`/`Tick`/`ActionReleased`)와 일치한다.
+
+### 4) 이 문서(Review(Claude).md)
+
+- [x] **R-1. 길이와 중복.** (2026-10-19 처리: 맨 위에 "열린 항목 한눈에" 표를 추가하고 섹션 0을 참고용 기록으로 표시함. 섹션 4·5·7의 중복 서술은 기록으로 남김) 583줄이고 섹션 4·5·7이 같은 충돌 내용을 세 번 다룬다. 섹션 0(병합 전 필수 확인)은 병합이 끝나서 더는 해당 없다. **현재 열린 항목만 모은 한 장짜리 목록**을 맨 위에 두고, 나머지는 기록으로 취급하는 구조가 좋다.
+- [x] **R-2. 존재하지 않는 참조 파일.** 섹션 4의 3)·5)가 저장소에 없는 별도 메모를 가리키던 부분을 "별도 CSV 확장 계획 메모(저장소에는 없음)"로 고쳤다. (2026-10-19)
+- [x] **R-3. Kang 항목 상태 불일치.** (2026-10-19 처리: K-1, K-8에 `[x]` 표시) 섹션 4의 K-1, K-8은 이미 해결되었고(위 1)절) K-2/3/4/9는 현재 코드에서도 유효하다. 해결된 항목에 표시를 달 것.
+
+### 5) 지금 우선순위 제안
+
+1. 9-1 확인(PIE에서 공격 후 이동/구르기). 9-2의 null 검사는 한 줄이라 바로 처리 가능.
+2. 가이드 G-10(오류)과 G-11(과장)을 `main`에 올라가기 전에 정정. 이 변경은 아직 미커밋인 Q17~Q20 안에 있다.
+3. 9-4(적/플레이어의 피격 경로와 `OnDeath`)를 설계하면서 3-2(컴포넌트를 `CharacterBase`로)를 같이 정한다. 9-3, 9-5, 9-6은 그 설계에 포함시키면 된다.
+4. 9-15(CSV와 에셋의 원본 규칙)와 9-17(저장소 크기)은 팀 합의 사항이라 ahn, koo와 정할 것.
+
+---
+
+## 10. 문서 갱신 기록 (2026-10-19, 사용자 요청으로 Claude가 문서만 수정함)
+
+코드는 수정하지 않았다. `PROJECT_GUIDE.md`의 사실 오류와 과장을 섹션 9의 G-10~G-18 지적에 맞춰 고쳤다. 이후 가이드를 읽거나 고치는 AI/팀원이 **무엇이 왜 바뀌었는지** 알 수 있도록 정리한다. (행 번호는 편집으로 계속 바뀌므로 절 이름으로 적는다.)
+
+| 지적 | 가이드의 변경 위치 | 변경 내용 |
+|---|---|---|
+| G-10 오류 | 12장 Q19 2번 | "정적 키가 오타를 컴파일 타임에 잡는다"를 삭제하고 효과와 한계로 다시 씀. 상수 *이름* 오타만 컴파일 오류이고 *값* 오타는 런타임 `nullptr`/0이라는 점을 명시(Q4 3번과 일치) |
+| G-11 과장 | 10장 4단계/1번 항목, Q2 2번, Q13 2번, Q20 1·2번 | "사망/리스폰 대응 완료·완성"을 "Pawn이 교체되어도 견디는 구조까지 완료, 사망/리스폰은 미구현"으로 수정. Q2의 "크래시"는 "갱신 정지"로 정정 |
+| G-12 상충 | 12장 Q7 | 실행 순서가 일반적인 흐름이며 이 프로젝트에서 로그로 실측하지 않았다고 명시 |
+| G-13 설계와 코드 | 12장 Q16 2번 | "최종 = 10 + Attributes"는 설계 방향이고 현재 코드에는 반영되지 않았다고 명시(스탯창은 원본값 출력, `LoadCharacterStat`은 `Attributes` 미사용) |
+| G-14 낡음 | 2장 다이어그램, 3장 줄기 5·6, 4장 표 | `AEnemyBase`/`AEnemyAIController`를 다이어그램에 추가하고 줄기 5를 적 AI 구성(파일, 블랙보드 키, 상태, 한계)으로 다시 씀. 줄기 6에 `Interface/`, `SaveData/`, `UI/` 추가. `StatGrowth.csv`가 코드에서 미사용임과 CSV↔에셋 동기화 규칙 부재를 4장에 명시 |
+| G-15 코드 조각 | 5장 | `100.f` 조각이 당시 모습이며 현재는 `LoadCharacterStat`이 덮어쓴다는 정정 문구 추가 |
+| G-16 구조 | 0장(신규), 13장(신규), 머리말 | 맨 앞에 "현재 구현 상태 요약" 표(구현/부분/미구현)와 읽는 규칙을 추가하고, 맨 끝에 "알려진 이슈"와 갱신 AI용 체크리스트를 추가. 작성일을 최종 갱신 2026-10-19로 표기. Q&A를 별도 문서로 분리하는 일은 하지 않았다(남은 일) |
+| G-17 번호 참조 | 12장 문제 해결 기록 3번 | "6-1 현상"이라는 리뷰 번호 인용을 설명 문장으로 바꿈 |
+| G-18 보강 | 문제 해결 기록 7, 8번(신규) | 충돌 표시 없는 중복 코드 사례와 `git merge-tree` 시험 병합 방법, Abort 거부(`MM` 상태) 사례를 추가 |
+
+**아직 하지 않은 것**: 가이드의 5~11장은 작업 일지 성격의 낡은 서술(초기 구현 기록)이 남아 있다. 일부는 위 정정 문구로 덮었고, 전체 재구성은 이후 작업으로 남긴다. 12장의 나머지 Q&A(Q1, Q3~Q6, Q8~Q15, Q17, Q18)는 코드와 대조해 큰 오류가 없음을 확인했다.
+
+---
+
+## 11. `CalculateGrowthValue` 리뷰 (2026-10-19, 방금 작성된 미커밋 코드)
+
+대상: `Source/ZZakTungSoul/Character/CharacterStatComponent.cpp:64-92`, 선언 `CharacterStatComponent.h:33`. 코드는 수정하지 않았다. 빌드/실행은 하지 않았고 CSV(`Content/Data/StatGrowth.csv`)와 손으로 대조해서 확인했다.
+
+### 1) 먼저 고쳐야 할 것 (동작 오류)
+
+- [ ] **11-1. 항상 0을 반환한다.** `cpp:91`이 `return 0.0f;`이다. 계산한 `TotalBonus`(`:71`, `:84`)를 버린다. `return TotalBonus;`여야 한다. 이 상태로는 `UpdateCharacterStat`에 연결해도 성장 효과가 전혀 없고, 컴파일 경고도 없어서 눈에 띄지 않는다.
+- [ ] **11-2. null 검사 대상이 틀렸다.** `cpp:66`은 `!StatDefineTable`을 검사하지만 `:73`에서 쓰는 것은 `StatGrowthTable`이다. 에셋 경로가 틀리거나(`DT_StatGrowth`는 `Content/Blueprints/Data`에서 `Content/Data`로 옮겨진 미커밋 변경이 있다) 로드에 실패하면 `StatGrowthTable`만 null이고 `StatDefineTable`은 멀쩡해서 검사를 통과한 뒤 **null 역참조로 크래시**한다. `!StatGrowthTable`로 고칠 것.
+- [ ] **11-3. `reinterpret_cast<const FStatGrowth*>(It.Value)` (`cpp:75`).** 행 타입이 `FStatGrowth`인지 확인하지 않고 바이트 포인터를 그대로 해석한다. 에셋의 Row Structure가 다른 구조체로 잘못 지정되어도 경고 없이 쓰레기 값을 읽는다. `ForeachRow<FStatGrowth>` 또는 `GetAllRows<FStatGrowth>`는 타입을 검사하고 불일치 시 로그를 남긴다. `if (const ... = reinterpret_cast...)`의 null 검사도 `GetRowMap()` 값이 null일 일이 없어서 사실상 의미가 없다.
+
+### 2) 효율성 판단
+
+- 매 호출마다 전체 행을 훑는다(O(행 수)). 지금은 14행, 호출은 스탯 갱신 시 8번 안팎이라 **성능 문제가 아니다.** 프레임마다 부르는 함수도 아니다. 캐시(`TMap<키, TArray<행>>`)는 지금 필요 없다. 테이블이 수백 행이 되거나 매 프레임 호출하게 되면 그때 `BeginPlay`에서 한 번 만들 것.
+- 계산 로직 자체(구간별 `Min(Added, Max) - Min + 1`)는 맞다. CSV로 확인: 추가 포인트 25이면 1~20구간 20×10=200, 21~40구간 5×7=35, 합 235.
+
+### 3) 번잡한 부분 (가독성)
+
+- [ ] **11-4. 들여쓰기가 5단계다.** `for` > `if(캐스트)` > `if(ID/Target)` > `if(MinLevel)` > `if(Effective)`. 조건을 거꾸로 써서 `return`(람다) 또는 `continue`로 일찍 빠지면 한 단계로 줄어든다.
+- [ ] **11-5. 중복 조건.** `AddedPoints >= MinLevel`(`:79`)이면 `EffectivePoints > 0`(`:82`)이고 그 반대도 성립한다(`Max >= Min`일 때). 둘 중 하나만 있으면 된다. `FMath::Max(0, ...)`로 한 줄에 합치는 방법도 있다.
+- [ ] **11-6. 자료형이 섞여 있다.** `AddedPoints`는 `float`인데 비교 대상 `MinLevel`/`MaxLevel`/`Value`는 `int32`이고, 호출 쪽 `FWarriorAttributeData`의 값도 `int32`다(`WarriorSaveData.h:14-29`). 레벨은 정수이므로 `int32`로 받으면 `EffectivePoints`도 `int32`가 되어 `static_cast<float>(...)`(`:84`, 이미 `float`이라 불필요)도 사라진다. 헤더 선언(`h:33`)도 같이 바꿔야 한다.
+- [ ] **11-7. 일치하는 행이 없을 때 조용히 0을 준다.** `GetStatInitialValue`는 못 찾으면 경고 로그를 남기는데(`cpp:55-60`) 이 함수는 아니다. `StatID` 값의 오타는 컴파일러가 못 잡는다(가이드 G-10과 같은 이유). 일치하는 행이 하나도 없으면 `UE_LOG(Warning)`을 남기는 편이 좋다. 단 `Strength/AttackPower`처럼 값이 0인 임시 행(`StatGrowth.csv:14-15`)은 일치 행이 있으므로 경고 대상이 아니다.
+- [ ] **11-8. 사소한 것.** 위 함수와 사이에 빈 줄이 없고(`cpp:63-64`), 아래 `// 증가값.` 주석(`:93`)이 이 함수가 아니라 `UpdateCharacterStat` 것인지 헷갈린다. 헤더와 cpp의 매개변수 이름이 다르다(`StatID`/`InStatID`). 이 파일은 `GetStatInitialValue`도 같은 방식이라 일관성은 있으니 우선순위는 낮다.
+
+### 4) 제안 형태 (참고용, 적용은 작성자가 판단)
+
+```cpp
+float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const FName& InTarget, int32 AddedPoints) const
+{
+	if (!StatGrowthTable || AddedPoints <= 0)
+	{
+		return 0.f;
+	}
+
+	static const FString ContextString(TEXT("CalculateGrowthValue"));
+	int32 TotalBonus = 0;
+
+	StatGrowthTable->ForeachRow<FStatGrowth>(ContextString,
+		[&](const FName& /*RowName*/, const FStatGrowth& Row)
+		{
+			if (Row.StatID != InStatID || Row.Target != InTarget)
+			{
+				return;
+			}
+			// 이 구간에 속하는 포인트 수 (구간 밖이면 0).
+			const int32 Points = FMath::Max(0, FMath::Min(AddedPoints, Row.MaxLevel) - Row.MinLevel + 1);
+			TotalBonus += Points * Row.Value;
+		});
+
+	return static_cast<float>(TotalBonus);
+}
+```
+
+### 5) 연결 시 주의
+
+- `UpdateCharacterStat`의 Todo(`cpp:98-100`)와 아직 연결되지 않았다. 연결할 때 `LoadCharacterStat()`이 `CurrentHP = MaxHP`로 되돌리는 동작(`cpp:153`)과 맞물리므로 (이미 열린 항목 7-6, 7-7) 증가값을 더한 뒤에 현재값을 어떻게 다룰지 같이 정할 것.
+- 9-16(`StatGrowthTable` 미사용)은 이 함수가 연결되면 해소된다. 현재는 호출처가 없다.

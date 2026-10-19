@@ -7,3 +7,10 @@ AWarriorPlayerState::AWarriorPlayerState()
 {
 
 }
+
+bool AWarriorPlayerState::UpgradeStat(const FName& StatName, int32 RequiredSouls)
+{
+
+
+	return false;
+}

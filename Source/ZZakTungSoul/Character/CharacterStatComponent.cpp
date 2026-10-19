@@ -196,7 +196,7 @@ void UCharacterStatComponent::TickComponent(float DeltaTime, ELevelTick TickType
 
 int32 UCharacterStatComponent::GetRequiredSouls(int32 Level) const
 {
-	if (LevelRequiredSoulsTable || Level <= 0)
+	if (!LevelRequiredSoulsTable || Level <= 0)
 	{
 		return 0;
 	}

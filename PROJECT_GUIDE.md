@@ -19,13 +19,13 @@
 | 세이브/로드 (슬롯, PlayerState) | ✅ 구현 | `AZTSGameMode`, `AWarriorPlayerState`, `UWarriorPlayerSaveGame` |
 | 구르기 스태미나 소모 | ✅ 구현 | 비용 25가 `Warrior.cpp`에 하드코딩 |
 | 적 AI 골격 (`AEnemyBase`, `AEnemyAIController`, BT Task/Service, `EnemyAIData`) | ✅ 구현 (진행 중) | Perception, 상태(`EEnemyState`), 순찰/추격/Strafe. 전투(공격/피격)는 미완 |
-| 주 스탯(Attributes) → 최종 스탯 계산 | ⚠️ 부분 | `UpdateCharacterStat(Attributes)`는 `Attributes`를 **사용하지 않음**(Todo). `StatGrowthTable`은 로드만 하고 어디서도 사용하지 않음 |
+| 주 스탯(Attributes) → 최종 스탯 계산 | ⚠️ 부분 (2026-10-19 갱신) | 컴포넌트의 `UpdateCharacterStat(Attributes)`가 `초기값 + 추가 포인트`로 주 스탯을 만들고, `CalculateGrowthValue`가 `StatGrowthTable`로 최대 HP/FP/Stamina와 방어력 등에 성장치를 더한다. `GetRequiredSouls`의 포인터 가드(`!LevelRequiredSoulsTable`) 수정 완료. **남은 것**: 성장 적용 후 현재값 처리(현재 HP가 최대값보다 낮게 시작할 수 있음), 스탯창이 계산값 대신 원본 `Attributes`(0)를 표시, `UpgradeStat`(PlayerState)은 빈 함수 |
 | 이동 속도 데이터 단일 출처 | ⚠️ 부분 | 값이 4곳에 따로 있음: `StatDefine.csv`(300), `Warrior.cpp`(400/600 하드코딩), 컴포넌트 `MaxWalkSpeed`(읽기만 함), `EnemyAIData`(적) |
 | 공격 애니메이션 | ⚠️ 확인 필요 | `Warrior::Attack()`이 부르는 `PlayAttackMontage()`가 현재 빈 함수. ABP가 `ActionState`로 재생하는 구조인지 PIE로 확인 필요 |
 | 피격/데미지 경로 | ❌ 미구현 | `ApplyDamage`, `UseFP`를 호출하는 곳이 프로젝트에 없음 → HP 바가 움직이지 않음 |
 | 사망/리스폰 | ❌ 미구현 | `OnDeath` 없음, 적의 `Dead` 상태에 진입하는 코드 없음 |
 | 적의 스탯/체력 | ❌ 미구현 | `AEnemyBase`는 스탯 컴포넌트와 인터페이스가 없음 |
-| 레벨업/소울 소모 | ❌ 미구현 | `LevelRequiredSouls`는 데이터만 있음 |
+| 레벨업/소울 소모 | ⚠️ 부분 (2026-10-19 갱신) | 컴포넌트의 `GetRequiredSouls(Level)`로 레벨별 필요 소울 조회(`LevelRequiredSoulsTable`, 테이블 외 레벨 0 반환) 구현 완료. **남은 것**: `AWarriorPlayerState::UpgradeStat` 구현 및 소울 차감/레벨 증가 연동 |
 
 ---
 
@@ -176,10 +176,10 @@ flowchart TD
 | 파일명 | 역할 및 내용 | 언리얼 에셋 |
 | :--- | :--- | :--- |
 | `StatDefine.csv` | 주 스탯(Vigor, Strength 등) 및 파생 스탯(HP, FP, 공격력 등) 정의 | `DT_StatDefine` |
-| `StatGrowth.csv` | 소프트캡(Soft Cap) 구간별 스탯 성장폭 (1~20레벨: 10, 21~40레벨: 7). **임시 값이며, 코드가 이 테이블을 아직 읽지 않는다** (`StatGrowthTable`은 로드만 됨) | `DT_StatGrowth` |
+| `StatGrowth.csv` | 소프트캡(Soft Cap) 구간별 스탯 성장폭 (1~20레벨: 10, 21~40레벨: 7). **값은 아직 임시 값이다.** 코드는 `CalculateGrowthValue`에서 이 테이블을 읽어 `Attributes`(추가 포인트)에 대한 성장치를 구간별로 누적 계산한다 (예: 추가 25포인트 → 1~20구간 20×10 + 21~25구간 5×7 = 235) | `DT_StatGrowth` |
 | `LevelRequiredSouls.csv` | 레벨업에 필요한 소울량 (Lv1: 300, Lv2: 400 ... Lv10: 1200) | `DT_LevelRequiredSouls` |
 
-> ⚠️ **CSV와 DataTable 에셋의 동기화 규칙이 정해져 있지 않다.** `DT_StatDefine.uasset`은 10-14에, `DT_LevelRequiredSouls.uasset`은 10-13에 수정되었지만 해당 CSV는 그 이후 바뀌지 않았다. CSV를 수정한 뒤에는 에디터에서 에셋을 **Reimport**해야 반영된다. "CSV가 원본인지, 에셋이 원본인지"를 팀이 정해서 이 자리에 적을 것.
+> ⚠️ **CSV와 DataTable 에셋의 동기화 규칙이 정해져 있지 않다.** `DT_StatDefine.uasset`은 10-14에, `DT_LevelRequiredSouls.uasset`은 10-13에 수정되었지만 해당 CSV는 그 이후 바뀌지 않았다. CSV를 수정한 뒤에는 에디터에서 에셋을 **Reimport**해야 반영된다. "CSV가 원본인지, 에셋이 원본인지"를 팀이 정해서 이 자리에 적을 것. *(2026-10-19: DataTable 에셋 3개가 `Content/Blueprints/Data/`에서 CSV와 같은 `Content/Data/`로 이동했고, 컴포넌트의 로딩 경로도 `/Game/Data/...`로 바뀌었다. 같은 폴더에 두어 관리는 쉬워졌지만 원본 규칙은 아직 미정이다.)*
 
 ### 💡 실무 개발 팁: "엑셀 사전 계산(Lookup Table)" vs "C++ 런타임 연산"
 * **엑셀/CSV에 둘 것 (정적 기준표)**:
@@ -595,7 +595,7 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
   2. **책임과 수명의 분리**:
      - **`AWarriorPlayerState` & `UWarriorPlayerSaveGame`**: 폰이 파괴되거나 레벨이 바뀌어도 게임 세션 동안 살아남아 디스크에 저장/로드되는 **영속 데이터(Persistent Data)** 담당.
      - **`CharacterStatComponent`**: 현재 프레임의 전투 상황(실시간 HP 깎임, 스태미나 소모/회복)을 연산하고 화면에 뿌려주는 **휘발성 전투 엔진(Volatile Engine)** 담당.
-     - 부활 시 `PlayerState`의 영속 데이터를 읽어와 새로 스폰된 폰의 `CharacterStatComponent`를 초기화(`UpdateCharacterStat`)하는 흐름을 **의도한 설계**입니다. *(현재 구현: `AWarrior::BeginPlay` → `UpdateCharacterStats()`가 시작 시 한 번 `UpdateCharacterStat(SaveData->Attributes)`를 호출한다. 사망/리스폰 처리와 `Attributes`를 이용한 성장 계산은 아직 구현 전이다.)*
+     - 부활 시 `PlayerState`의 영속 데이터를 읽어와 새로 스폰된 폰의 `CharacterStatComponent`를 초기화(`UpdateCharacterStat`)하는 흐름을 **의도한 설계**입니다. *(현재 구현: `AWarrior::BeginPlay` → `UpdateCharacterStats()`가 시작 시 한 번 `UpdateCharacterStat(SaveData->Attributes)`를 호출한다. 사망/리스폰 처리는 아직 구현 전이다. `Attributes`를 이용한 성장 계산은 2026-10-19에 컴포넌트에 구현되었다.)*
 
 ---
 
@@ -633,7 +633,7 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
   2. **세이브 데이터(`Attributes`)와 태생 기본값의 분리**:
      - 세이브 데이터의 `Attributes`는 "레벨업 시 플레이어가 순수하게 투자한 추가 포인트(기본값 0)"를 의미합니다.
      - 최종 스탯 = `CSV 태생 기본값(10) + 플레이어 투자 포인트(Attributes)`로 가져가는 것이 **설계 방향**이며, 이렇게 하면 향후 직업(출신)별 기본 스탯 분리와 스탯 재분배(초기화)가 쉬워집니다.
-     - ⚠️ **현재 코드에는 아직 반영되지 않았다**: `StatusWindowWidget`은 `SaveData->Attributes`를 그대로 출력하므로 기본값 0이 화면에도 0으로 보이고, `LoadCharacterStat()`은 `Attributes`를 사용하지 않는다. 표시값을 `10 + Attributes`로 할지, 이 설명을 바꿀지 결정이 필요하다.
+     - **구현 상태 (2026-10-19 갱신)**: 컴포넌트는 이 방향대로 구현되었다. `UpdateCharacterStat`이 `StatDefine` 초기값(10) + `Attributes`(추가 포인트)로 `Vigor` 등을 만들고, 최대 HP/FP/Stamina에는 `StatGrowth` 성장치를 더한다. ⚠️ 다만 **`StatusWindowWidget`은 아직 계산값(`GetVigor()` 등)이 아니라 `SaveData->Attributes` 원본을 출력**하므로 기본값 0이 화면에도 0으로 보인다. 화면을 컴포넌트의 getter로 바꾸는 일이 남아 있다.
   3. **팀 협업 시 작업 영역 존중**:
      - 스탯 담당자(Ahn)가 작업 중인 컴포넌트 성장 공식(`UpdateCharacterStat`)과 우리 UI 영역의 결합을 분리하여, UI는 스탯창 베이스 위젯의 출력 및 토글을 안정화하고 스탯 세부 연산은 담당자의 작업 완료 후 병합하기로 조율했습니다.
 
@@ -680,9 +680,24 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
   1. **휘발성 육체 (`AWarrior` + `CharacterStatComponent`)**:
      - *(전제: 이 프로젝트에는 사망/리스폰이 아직 구현되어 있지 않다. 아래는 구현했을 때의 설계 의도이다.)* 캐릭터 액터와 스탯 컴포넌트는 월드에 배치된 육체 부품이므로, 보스에게 맞아 사망하여 액터가 파괴되면 컴포넌트도 함께 사라집니다(GC 대상).
      - 따라서 레벨이나 소울을 컴포넌트에 직접 저장하면 캐릭터 사망 시 모든 데이터가 증발합니다.
-  2. **영속 기억 (`AWarriorPlayerState` + `WarriorSaveData`)**:
-     - `APlayerState`는 액터가 죽어도 컨트롤러 및 플레이어 세션과 함께 월드에 끝까지 살아남는 영속 객체입니다.
-     - 캐릭터가 화톳불에서 부활하여 새 육체(`AWarrior`)와 새 컴포넌트가 스폰되면, 살아남아 있던 `PlayerState`의 금고에서 데이터를 꺼내 `UpdateCharacterStat(SaveData->Attributes)`로 재주입하는 방식으로 영속적 성장 파이프라인을 구성하려는 것이 설계 방향입니다. (현재는 `Attributes`를 계산에 쓰지 않고 사망/리스폰도 구현 전이므로 이 파이프라인은 아직 완성된 것이 아니다.)
+   2. **영속 기억 (`AWarriorPlayerState` + `WarriorSaveData`)**:
+      - `APlayerState`는 액터가 죽어도 컨트롤러 및 플레이어 세션과 함께 월드에 끝까지 살아남는 영속 객체입니다.
+      - 캐릭터가 화톳불에서 부활하여 새 육체(`AWarrior`)와 새 컴포넌트가 스폰되면, 살아남아 있던 `PlayerState`의 금고에서 데이터를 꺼내 `UpdateCharacterStat(SaveData->Attributes)`로 재주입하는 방식으로 영속적 성장 파이프라인을 구성하려는 것이 설계 방향입니다. (현재는 `Attributes`를 계산에 쓰지 않고 사망/리스폰도 구현 전이므로 이 파이프라인은 아직 완성된 것이 아니다.)
+
+---
+
+### 💬 Q21. 스탯 성장 엔진(`CalculateGrowthValue`, `UpdateCharacterStat`, `GetRequiredSouls`)의 설계 원리와 방어 코드
+* **핵심 답변**:
+  1. **`CalculateGrowthValue` (구간별 가중치 소프트캡 계산)**:
+     - `AddedPoints < GrowthRow->MinLevel` 가드: 플레이어가 투자한 포인트가 해당 구간의 최솟값에 도달하지 않았으면 계산을 건너뜁니다(`continue`).
+     - `EffectivePoints = FMath::Min(AddedPoints, GrowthRow->MaxLevel) - GrowthRow->MinLevel + 1`: 닫힌 구간 $[A, B]$의 정수 개수를 세는 $B - A + 1$ 수학 공식입니다. `FMath::Min`을 통해 상한 구간을 초과한 포인트는 잘라내어, 해당 소프트캡 구간 안의 유효 포인트만 정확히 추출해 가중치를 곱합니다.
+  2. **`UpdateCharacterStat` (기본값 리셋과 주/파생 스탯 합산)**:
+     - 첫 줄의 `LoadCharacterStat()` 호출: 레벨업 시마다 `MaxHP += ...`가 누적되어 스탯이 기하급수적으로 뻥튀기되는 버그를 방지하기 위해, 항상 기획 기본값(HP 250 등)으로 먼저 깨끗하게 리셋한 뒤 성장치를 1회 가산합니다.
+     - `GetStatInitialValue(기본값 10) + Attributes`: `FWarriorAttributeData`의 수치는 0부터 시작하는 순수 투자 포인트이므로, CSV의 태생 기본값과 합산해야 플레이어가 체감하는 최종 주 스탯이 완성됩니다.
+  3. **`GetRequiredSouls` (필요 소울 조회 및 방어적 Fallback)**:
+     - `!LevelRequiredSoulsTable || Level <= 0` 가드: 데이터 테이블 미로드 시 또는 비정상 레벨(0 이하) 입력 시 즉시 0을 반환합니다.
+     - `ContextString(TEXT("GetRequiredSouls"))`: 행 검색 실패 시 언리얼 엔진 로그에 호출 맥락을 남겨 디버깅을 돕습니다.
+     - `nullptr` 안전 처리: CSV에 없는 레벨(예: 11 이상)을 조회하여 `FindRow`가 `nullptr`을 반환하더라도 크래시 없이 맨 아래에서 `return 0;`으로 안전하게 폴백합니다.
 
 ---
 
@@ -714,6 +729,9 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 8. **병합 취소(Abort)가 거부되는 경우**:
    - **현상**: 파일이 스테이지된 버전과 그 뒤의 수정 두 가지를 동시에 가진 상태(`MM`)에서는 Abort가 "not uptodate" 오류로 거부됩니다.
    - **교훈**: 해당 파일의 수정을 먼저 Discard 한 뒤 Abort 합니다. 병합 전에는 항상 모든 작업을 커밋해 두어야 되돌리기가 쉽습니다.
+9. **데이터 테이블 포인터 유효성 검사 반전(`!` 누락)과 방어적 Fallback**:
+   - **현상**: `CharacterStatComponent.cpp`의 `GetRequiredSouls` 구현 시 `if (LevelRequiredSoulsTable || Level <= 0)`로 작성하여, 테이블이 정상 로드되어 있을 때 도리어 참이 되어 항상 0을 반환하고 테이블이 없을 때 `FindRow` null 역참조 위험에 노출되는 조건 반전 버그 발생.
+   - **교훈**: 포인터 널 검사 시 부정 연산자(`!`)의 누락 여부를 항상 점검해야 합니다. 또한 테이블에 존재하지 않는 행이 요청되었을 때 `FindRow`의 `nullptr` 반환을 안전하게 기본값(`0`)으로 흘려보내는 2중 안전장치(Safe Fallback)의 원리를 이해함.
 
 ---
 
@@ -729,7 +747,8 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 | 중간 | 이동 속도 출처 4곳 | `StatDefine.csv`, `Warrior.cpp` 하드코딩, 컴포넌트 `MaxWalkSpeed`(미사용), `EnemyAIData` |
 | 중간 | 적 데이터 안전성 | `EnemyAIData`의 속도 `float`에 기본값이 없고, `EnemyBase::UpdateMovementSpeed`는 데이터가 없으면 로그 없이 return |
 | 중간 | AI 경로 2개 | `AWarriorAIController`(레거시)와 `AEnemyAIController` 중 정식 경로를 정하고 정리 |
-| 중간 | 성장 시스템 미구현 | `UpdateCharacterStat`이 `Attributes`를 쓰지 않고 `StatGrowthTable`은 로드만 함. Attribute 기본값(0)과 표시값(10 + 값?)의 의미 확정 필요 |
+| 해결 (2026-10-19) | `GetRequiredSouls` 조건 반전 | `CharacterStatComponent.cpp`의 `GetRequiredSouls` 조건문(`!LevelRequiredSoulsTable || Level <= 0`) 수정 완료 |
+| 중간 | 성장 시스템 마무리 | 성장 계산 및 `GetRequiredSouls` 조회 구현 완료. 남은 것: 성장 적용 후 현재 HP/FP가 최대값보다 낮게 시작하는 문제, 스탯창이 계산값 대신 `Attributes` 원본(0)을 표시, `UpgradeStat`(PlayerState)이 빈 함수 |
 | 중간 | CSV ↔ DataTable 동기화 규칙 없음 | Reimport 절차와 "어느 쪽이 원본인가"를 팀이 정할 것 |
 | 중간 | 저장소 크기 | `Content/Frank_Slash_Pack`이 약 957MB, Git LFS 미사용. 팀 합의 후 LFS 도입 또는 에셋 범위 축소 검토, 에셋 라이선스와 저장소 공개 범위 확인 |
 | 낮음 | include 스타일 혼재 | 프로젝트 헤더는 따옴표(`"Warrior/Warrior.h"`)로 통일하기로 하고 `Enemy`, `Warrior`, `Character` 폴더의 각괄호 include를 정리 |

@@ -8,26 +8,28 @@
 ## 열린 항목 한눈에 (2026-10-19 기준, 맨 위에서 이것만 보면 된다)
 
 > 이 아래의 번호 섹션(0~9)은 **시간순 기록**이다. 현재 무엇이 남았는지는 이 표를 기준으로 하고, 항목 번호로 해당 섹션의 상세 근거를 찾는다. 항목이 해결되면 이 표에서 지우고 해당 섹션에 `[x]`를 단다(체크 표시는 리뷰어가 코드를 확인한 뒤에만 한다).
-> 기준 코드: `main` = `Bae` = `origin/Bae` = `2fabce4` (Bae PR #2와 Kang 병합 포함). 빌드/실행은 리뷰어가 하지 않았다.
+> 기준 코드: `main` = `Ahn` = `2fabce4`, `Bae` = `origin/Bae` = `9fc0efe`(오늘 "1019 Attribute 관련 코드 작성" 커밋 포함), `Kang` = `0308a1e`. 빌드/실행은 리뷰어가 하지 않았다.
 
 | 우선순위 | 항목 | 내용 | 상세 |
 |---|---|---|---|
-| 높음 | 11-1, 11-2, 11-3 | `CalculateGrowthValue`가 항상 0 반환, null 검사 대상 오류(크래시 가능), `reinterpret_cast` | 섹션 11 |
+| 높음 | 12-1 | `GetRequiredSouls`의 조건이 반전됨: 테이블이 있으면 항상 0을 반환하고, 테이블이 없으면 null 역참조 | 섹션 12 |
 | 높음 (확인 필요) | 9-1 | 공격 후 `ActionState`가 `Attack`에 고착될 수 있음 (`PlayAttackMontage()`가 빈 함수) | 섹션 9 |
 | 높음 | 9-2, 9-3 | 락온의 `GetController()` null 역참조(`Warrior.cpp`), `LockOnTarget` 일반 포인터 | 섹션 9 |
 | 중간 | 9-4, 3-2, 4-5 | 전투 루프 없음(`ApplyDamage` 호출처 없음), 적에게 스탯 컴포넌트/인터페이스 없음, 컴포넌트를 `ACharacterBase`로 이동 | 섹션 9, 3 |
 | 중간 | 9-5, 9-6, 9-7 | 이동 속도 출처 4곳, `EnemyAIData` 속도 기본값 없음, AI 경로 2개(`WarriorAIController`/`EnemyAIController`) | 섹션 9 |
-| 중간 | M-1, 7-8, 7-6, 7-7, 9-16 | Attribute 기본값 0의 의미와 표시값, `UpdateCharacterStat` 책임/이중 호출, `StatGrowthTable` 미사용 | 섹션 0, 7, 9 |
-| 중간 | 9-15, 9-17 | CSV ↔ DataTable 에셋 동기화 규칙, 저장소 크기(`Frank_Slash_Pack` 약 957MB, LFS 없음) | 섹션 9 (팀 합의 필요) |
+| 중간 | 12-2, 12-3, 12-4, 12-5, 7-6, 7-7 | 성장 적용 후 현재값이 최대값보다 낮게 시작, 존재하지 않는 레벨의 비용이 0, 스탯창이 `Attributes` 원본(0)을 표시, `UpgradeStat` 미구현과 구조, `UpdateCharacterStat` 책임/이중 호출 | 섹션 12, 7 |
+| 중간 | 9-15, 9-17 | CSV ↔ DataTable 에셋 동기화 규칙(에셋 3개는 10-19에 CSV와 같은 `Content/Data/`로 이동됨, 원본 규칙은 미정), 저장소 크기(`Frank_Slash_Pack` 약 957MB, LFS 없음) | 섹션 9, 12 (팀 합의 필요) |
 | 중간 | 2-4, 4-7, 5-4 | 구르기 비용 25 하드코딩, 스탯창이 최대값만 표시/열 때만 갱신 | 섹션 2, 4, 5 |
 | 낮음 | K-2, K-3, K-4, K-6, K-7, K-9 | 적 AI 정리 항목(비트필드 초기화, `GetPlayerPawn(0)`, 조용한 실패 경로, `Dead` 복구, `bIsCombat`, 테스트 자산) | 섹션 4, 9 |
 | 낮음 | 2-8, 3-3, 9-12 | 프로젝트 헤더 include 스타일 혼재(각괄호/따옴표) | 섹션 2, 3, 9 |
-| 낮음 | 1-6, 2-9~2-11, 이름·표기, 9-8~9-11, 9-13, 9-14 | 주석 처리된 코드, 변수명/표기 통일, 낡은 주석, 들여쓰기, `DA_Test` | 섹션 1, 2, 9 |
+| 낮음 | 12-8 | 쓸모없다고 정한 `TEAM_DEV_LOG.md`가 `Bae`에 커밋·푸시됨(삭제 필요) | 섹션 12 |
+| 낮음 | 1-6, 2-9~2-11, 11-7, 11-8, 12-6, 12-7, 이름·표기, 9-8~9-11, 9-13, 9-14 | 주석 처리된 코드, 변수명/표기 통일, 낡은 주석, 들여쓰기, `DA_Test` | 섹션 1, 2, 9 |
 
 **2026-10-19에 정리된 것**
 - 가이드 정정: G-10(Q19 오류), G-11(사망/리스폰 과장), G-12(Q2↔Q7), G-13(Q16), G-14(적 AI 반영), G-15(5장 코드 조각), G-17(번호 참조), G-18(병합 교훈)을 `PROJECT_GUIDE.md`에 반영했다. G-16(문서 분리)은 맨 위에 "현재 구현 상태 요약" 표와 맨 끝에 "알려진 이슈/체크리스트"를 추가해 부분 해결했다. 구체적인 변경은 섹션 10 참고.
 - 이 문서: R-1(이 표 추가), R-2(존재하지 않는 파일 참조 정리), R-3(Kang 항목 상태 표시)을 처리했다.
 - 문서 3개(`PROJECT_GUIDE.md`, `Review(Claude).md`, `리뷰 참고용.txt`)는 Bae PR #2를 통해 이미 `main`에 포함되어 있다.
+- 코드 반영 확인(커밋 `9fc0efe`): 11-1 ~ 11-6(`CalculateGrowthValue` 수정), 9-16(`StatGrowthTable`을 이제 읽음), M-1(`Attributes`는 추가 포인트, 최종 = 초기값 + 추가). 새로 발견한 문제는 섹션 12.
 
 ---
 
@@ -35,7 +37,7 @@
 
 `Bae`를 `main`(`b42a975`)에 병합하는 담당자는 아래 항목을 **병합 전에 반드시 확인**한다. 시험 병합(`git merge-tree`) 결과 `CharacterStatComponent.cpp`, `Warrior.cpp`에서 충돌한다. 상세 근거는 섹션 4의 3)과 섹션 5의 2) 참고.
 
-- [ ] **M-1. `FWarriorAttributeData` 기본값의 의미를 정한다.** `main`은 10 → 0으로 바꾸고 `ZZAKTUNGSOUL_API`를 제거했다.
+- [x] **M-1. `FWarriorAttributeData` 기본값의 의미를 정한다.** (2026-10-19 확인: `9fc0efe`에서 정해짐 — `Attributes`는 추가 포인트이고 최종 = `StatDefine` 초기값 + 추가. 스탯창 표시는 12-4) `main`은 10 → 0으로 바꾸고 `ZZAKTUNGSOUL_API`를 제거했다.
   0이 "초기값 10에서 올린 포인트 수"라면 `StatGrowth`의 MinLevel/MaxLevel도 0부터 세는 증가 포인트 기준이어야 하고, 스탯창은 `10 + 값`을 표시해야 한다.
   `StatusWindowWidget`은 값을 그대로 표시하므로 Vigor가 0으로 보인다. 기존 세이브 파일(값 10)과의 호환도 같이 정한다.
 - [ ] **M-2. `UpdateCharacterStat`의 책임 범위를 정한다.** `main` 버전은 `Max*`와 전투 스탯만 계산하고 `Current*`를 갱신하지 않으며 방송도 하지 않는다.
@@ -642,7 +644,7 @@ Attribute 표시값: `StatusWindowWidget.cpp:46-51`이 `SaveData->Attributes`를
 ### 2) 데이터와 저장소
 
 - [ ] **9-15. CSV와 DataTable 에셋이 어긋날 수 있다.** `DT_StatDefine.uasset`은 10-14(`cc56451`)에 바뀌었는데 `StatDefine.csv`는 10-07 이후 변경이 없다. `DT_LevelRequiredSouls.uasset`(10-13)도 CSV는 그대로다. 가이드 Q16은 CSV를 단일 출처라고 쓰지만 CSV를 고쳐도 에셋에 반영되는 절차(재임포트)와 어느 쪽이 원본인지가 정해져 있지 않다.
-- [ ] **9-16. `StatGrowth.csv`는 임시 값(1~20레벨 10, 21~40레벨 7)이고 코드가 읽지 않는다.** `StatGrowthTable`은 생성자에서 로드만 되고(`CharacterStatComponent.cpp:28-34`) 사용하는 곳이 없다. 가이드 143행은 CSV의 내용만 설명하고 "아직 미사용"임을 적지 않았다.
+- [x] **9-16. `StatGrowth.csv`는 임시 값(1~20레벨 10, 21~40레벨 7)이고 코드가 읽지 않는다.** (2026-10-19 확인: `9fc0efe`의 `CalculateGrowthValue`가 `StatGrowthTable`을 읽고 `UpdateCharacterStat`이 8곳에서 호출함. CSV 값은 여전히 임시 값) `StatGrowthTable`은 생성자에서 로드만 되고(`CharacterStatComponent.cpp:28-34`) 사용하는 곳이 없다. 가이드 143행은 CSV의 내용만 설명하고 "아직 미사용"임을 적지 않았다.
 - [ ] **9-17. 저장소 크기.** Git 팩이 927MiB이고 `Content/Frank_Slash_Pack` 하나가 957MB이다. `.gitattributes`가 없어 Git LFS를 쓰지 않는다. 클론/푸시가 느려지고 GitHub의 파일당 100MB 제한에 걸릴 수 있다. 마켓플레이스 에셋은 라이선스상 공개 저장소 재배포가 제한되는 경우가 있으니 저장소 공개 범위도 확인할 것. LFS 도입은 이력 재작성이 필요할 수 있어 팀 합의가 먼저다.
 
 ### 3) PROJECT_GUIDE.md
@@ -696,15 +698,15 @@ Attribute 표시값: `StatusWindowWidget.cpp:46-51`이 `SaveData->Attributes`를
 
 ---
 
-## 11. `CalculateGrowthValue` 리뷰 (2026-10-19, 방금 작성된 미커밋 코드)
+## 11. `CalculateGrowthValue` 리뷰 (2026-10-19, 작성 당시 미커밋 코드 — 커밋 `9fc0efe`에서 11-1 ~ 11-6이 수정된 것을 확인함, 현재 상태는 섹션 12)
 
 대상: `Source/ZZakTungSoul/Character/CharacterStatComponent.cpp:64-92`, 선언 `CharacterStatComponent.h:33`. 코드는 수정하지 않았다. 빌드/실행은 하지 않았고 CSV(`Content/Data/StatGrowth.csv`)와 손으로 대조해서 확인했다.
 
 ### 1) 먼저 고쳐야 할 것 (동작 오류)
 
-- [ ] **11-1. 항상 0을 반환한다.** `cpp:91`이 `return 0.0f;`이다. 계산한 `TotalBonus`(`:71`, `:84`)를 버린다. `return TotalBonus;`여야 한다. 이 상태로는 `UpdateCharacterStat`에 연결해도 성장 효과가 전혀 없고, 컴파일 경고도 없어서 눈에 띄지 않는다.
-- [ ] **11-2. null 검사 대상이 틀렸다.** `cpp:66`은 `!StatDefineTable`을 검사하지만 `:73`에서 쓰는 것은 `StatGrowthTable`이다. 에셋 경로가 틀리거나(`DT_StatGrowth`는 `Content/Blueprints/Data`에서 `Content/Data`로 옮겨진 미커밋 변경이 있다) 로드에 실패하면 `StatGrowthTable`만 null이고 `StatDefineTable`은 멀쩡해서 검사를 통과한 뒤 **null 역참조로 크래시**한다. `!StatGrowthTable`로 고칠 것.
-- [ ] **11-3. `reinterpret_cast<const FStatGrowth*>(It.Value)` (`cpp:75`).** 행 타입이 `FStatGrowth`인지 확인하지 않고 바이트 포인터를 그대로 해석한다. 에셋의 Row Structure가 다른 구조체로 잘못 지정되어도 경고 없이 쓰레기 값을 읽는다. `ForeachRow<FStatGrowth>` 또는 `GetAllRows<FStatGrowth>`는 타입을 검사하고 불일치 시 로그를 남긴다. `if (const ... = reinterpret_cast...)`의 null 검사도 `GetRowMap()` 값이 null일 일이 없어서 사실상 의미가 없다.
+- [x] **11-1. 항상 0을 반환한다.** (2026-10-19: `return static_cast<float>(TotalBonus)`로 수정됨, `CharacterStatComponent.cpp:90` 근처) `cpp:91`이 `return 0.0f;`이다. 계산한 `TotalBonus`(`:71`, `:84`)를 버린다. `return TotalBonus;`여야 한다. 이 상태로는 `UpdateCharacterStat`에 연결해도 성장 효과가 전혀 없고, 컴파일 경고도 없어서 눈에 띄지 않는다.
+- [x] **11-2. null 검사 대상이 틀렸다.** (2026-10-19: `!StatGrowthTable`로 수정됨) `cpp:66`은 `!StatDefineTable`을 검사하지만 `:73`에서 쓰는 것은 `StatGrowthTable`이다. 에셋 경로가 틀리거나(`DT_StatGrowth`는 `Content/Blueprints/Data`에서 `Content/Data`로 옮겨진 미커밋 변경이 있다) 로드에 실패하면 `StatGrowthTable`만 null이고 `StatDefineTable`은 멀쩡해서 검사를 통과한 뒤 **null 역참조로 크래시**한다. `!StatGrowthTable`로 고칠 것.
+- [x] **11-3. `reinterpret_cast<const FStatGrowth*>(It.Value)` (`cpp:75`).** (2026-10-19: `GetAllRows<FStatGrowth>`로 바뀜) 행 타입이 `FStatGrowth`인지 확인하지 않고 바이트 포인터를 그대로 해석한다. 에셋의 Row Structure가 다른 구조체로 잘못 지정되어도 경고 없이 쓰레기 값을 읽는다. `ForeachRow<FStatGrowth>` 또는 `GetAllRows<FStatGrowth>`는 타입을 검사하고 불일치 시 로그를 남긴다. `if (const ... = reinterpret_cast...)`의 null 검사도 `GetRowMap()` 값이 null일 일이 없어서 사실상 의미가 없다.
 
 ### 2) 효율성 판단
 
@@ -713,9 +715,9 @@ Attribute 표시값: `StatusWindowWidget.cpp:46-51`이 `SaveData->Attributes`를
 
 ### 3) 번잡한 부분 (가독성)
 
-- [ ] **11-4. 들여쓰기가 5단계다.** `for` > `if(캐스트)` > `if(ID/Target)` > `if(MinLevel)` > `if(Effective)`. 조건을 거꾸로 써서 `return`(람다) 또는 `continue`로 일찍 빠지면 한 단계로 줄어든다.
-- [ ] **11-5. 중복 조건.** `AddedPoints >= MinLevel`(`:79`)이면 `EffectivePoints > 0`(`:82`)이고 그 반대도 성립한다(`Max >= Min`일 때). 둘 중 하나만 있으면 된다. `FMath::Max(0, ...)`로 한 줄에 합치는 방법도 있다.
-- [ ] **11-6. 자료형이 섞여 있다.** `AddedPoints`는 `float`인데 비교 대상 `MinLevel`/`MaxLevel`/`Value`는 `int32`이고, 호출 쪽 `FWarriorAttributeData`의 값도 `int32`다(`WarriorSaveData.h:14-29`). 레벨은 정수이므로 `int32`로 받으면 `EffectivePoints`도 `int32`가 되어 `static_cast<float>(...)`(`:84`, 이미 `float`이라 불필요)도 사라진다. 헤더 선언(`h:33`)도 같이 바꿔야 한다.
+- [x] **11-4. 들여쓰기가 5단계다.** (2026-10-19: 조건을 `continue`로 일찍 빠지는 형태로 정리됨) `for` > `if(캐스트)` > `if(ID/Target)` > `if(MinLevel)` > `if(Effective)`. 조건을 거꾸로 써서 `return`(람다) 또는 `continue`로 일찍 빠지면 한 단계로 줄어든다.
+- [x] **11-5. 중복 조건.** (2026-10-19: `AddedPoints < MinLevel` 한 조건만 남음) `AddedPoints >= MinLevel`(`:79`)이면 `EffectivePoints > 0`(`:82`)이고 그 반대도 성립한다(`Max >= Min`일 때). 둘 중 하나만 있으면 된다. `FMath::Max(0, ...)`로 한 줄에 합치는 방법도 있다.
+- [x] **11-6. 자료형이 섞여 있다.** (2026-10-19: `AddedPoints`가 `int32`로 바뀌고 헤더도 맞춰짐) `AddedPoints`는 `float`인데 비교 대상 `MinLevel`/`MaxLevel`/`Value`는 `int32`이고, 호출 쪽 `FWarriorAttributeData`의 값도 `int32`다(`WarriorSaveData.h:14-29`). 레벨은 정수이므로 `int32`로 받으면 `EffectivePoints`도 `int32`가 되어 `static_cast<float>(...)`(`:84`, 이미 `float`이라 불필요)도 사라진다. 헤더 선언(`h:33`)도 같이 바꿔야 한다.
 - [ ] **11-7. 일치하는 행이 없을 때 조용히 0을 준다.** `GetStatInitialValue`는 못 찾으면 경고 로그를 남기는데(`cpp:55-60`) 이 함수는 아니다. `StatID` 값의 오타는 컴파일러가 못 잡는다(가이드 G-10과 같은 이유). 일치하는 행이 하나도 없으면 `UE_LOG(Warning)`을 남기는 편이 좋다. 단 `Strength/AttackPower`처럼 값이 0인 임시 행(`StatGrowth.csv:14-15`)은 일치 행이 있으므로 경고 대상이 아니다.
 - [ ] **11-8. 사소한 것.** 위 함수와 사이에 빈 줄이 없고(`cpp:63-64`), 아래 `// 증가값.` 주석(`:93`)이 이 함수가 아니라 `UpdateCharacterStat` 것인지 헷갈린다. 헤더와 cpp의 매개변수 이름이 다르다(`StatID`/`InStatID`). 이 파일은 `GetStatInitialValue`도 같은 방식이라 일관성은 있으니 우선순위는 낮다.
 
@@ -751,4 +753,65 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 ### 5) 연결 시 주의
 
 - `UpdateCharacterStat`의 Todo(`cpp:98-100`)와 아직 연결되지 않았다. 연결할 때 `LoadCharacterStat()`이 `CurrentHP = MaxHP`로 되돌리는 동작(`cpp:153`)과 맞물리므로 (이미 열린 항목 7-6, 7-7) 증가값을 더한 뒤에 현재값을 어떻게 다룰지 같이 정할 것.
-- 9-16(`StatGrowthTable` 미사용)은 이 함수가 연결되면 해소된다. 현재는 호출처가 없다.
+- 9-16(`StatGrowthTable` 미사용)은 이 함수가 연결되면 해소된다. 현재는 호출처가 없다. (2026-10-19 갱신: `9fc0efe`에서 `UpdateCharacterStat`에 연결되어 해소됨. 위 "연결 시 주의"의 현재값 문제는 12-2 참고)
+
+---
+
+## 12. 오늘 커밋 리뷰: Attribute 관련 코드 (2026-10-19, `Bae` `9fc0efe` "1019 Attribute 관련 코드 작성")
+
+**대상**: `CharacterStatComponent.h/.cpp`, `WarriorPlayerState.h/.cpp`, DataTable 에셋 3개의 이동(`Content/Blueprints/Data/` → `Content/Data/`). 다른 브랜치(`main`/`Ahn`/`Kang`)는 이 커밋 이후 변화가 없다.
+빌드와 실행은 하지 않았고 코드 읽기와 CSV 대조만 했다. 코드는 수정하지 않았다.
+
+**총평**: 성장 계산이 `UpdateCharacterStat`에 연결되어 **`Attributes`가 처음으로 실제 스탯에 반영**된다. 이전 리뷰에서 지적한 `CalculateGrowthValue`의 문제(11-1 ~ 11-6)는 모두 수정되었다. 다만 새로 추가한 `GetRequiredSouls`에 **조건이 반전된 버그**가 있고, 성장을 적용한 뒤 **현재값 복원**이 아직 없다.
+
+### 1) 동작 오류
+
+- [ ] **12-1. (높음) `GetRequiredSouls`의 조건이 반전되었다.** (`CharacterStatComponent.cpp:197-213`, 조건은 `:199`)
+  `if (LevelRequiredSoulsTable || Level <= 0) { return 0; }`로 되어 있다. `!LevelRequiredSoulsTable`이어야 한다.
+  - 테이블이 정상 로드된 경우: 조건이 항상 참이라 **언제나 0을 반환**한다(필요 소울이 늘 0).
+  - 테이블이 null인 경우(경로 오류, 에셋 이동 직후 등): 조건을 통과해 `:207`의 `LevelRequiredSoulsTable->FindRow(...)`에서 **null 역참조로 크래시**한다.
+  아직 호출처가 없어 지금은 드러나지 않지만, `UpgradeStat`을 연결하는 순간 소울 소모가 0이 된다.
+- [ ] **12-2. (중간) 성장 적용 후 현재값이 최대값보다 낮게 시작한다.** (`CharacterStatComponent.cpp:98-130`)
+  `UpdateCharacterStat`이 `:100`에서 `LoadCharacterStat()`을 호출하면 `Current* = Max*(초기값)`으로 되돌려진다. 그 뒤 `:110-120`에서 `Max*`에만 성장치를 더하고, `:121-127`의 복원 분기는 `Current`가 이미 초기 최대값이라 `Clamp`만 한다.
+  예: Vigor에 25포인트를 투자한 저장 데이터로 시작하면 `MaxHP`는 250 + 235 = 485이고 `CurrentHP`는 250이라 HUD가 52%로 시작한다. 지금은 `Attributes` 기본값이 0이라 보이지 않는다.
+  또 업그레이드할 때마다 이 함수를 다시 부르면 현재 HP가 초기 최대값으로 돌아간다. 계산(`Max*` 갱신)과 현재값 처리(비율 유지 또는 전부 회복)를 분리해서 정할 것(7-6과 같은 주제).
+- [ ] **12-3. (중간) 존재하지 않는 레벨의 비용이 0이다.** (`CharacterStatComponent.cpp:207-212`)
+  `LevelRequiredSouls.csv`는 `Level1`~`Level10`만 있는데 `StatGrowth.csv`의 성장 구간은 40까지다. 11레벨 이상이거나 행이 없으면 `0`을 반환하므로, 12-1을 고친 뒤에도 "비용 0 = 공짜 업그레이드"가 된다. "비용 없음/최대 레벨"을 구분할 수 있는 값(예: `-1`)이나 `bool` 반환으로 바꾸고, 행이 없을 때는 `UE_LOG(Warning)`을 남길 것(`GetStatInitialValue`처럼).
+- [ ] **12-4. (중간) 스탯창이 계산 결과를 쓰지 않는다.** (`StatusWindowWidget.cpp:46-51`)
+  주 스탯 6개를 여전히 `SaveData->Attributes`(추가 포인트, 기본값 0)로 출력한다. 이번에 만든 `GetVigor()` 등(`CharacterStatComponent.h:82-92` 근처)은 호출처가 없다. 이 getter는 `초기값 + 추가`(= 10)를 돌려주므로 스탯창이 `StatComp->GetVigor()`를 쓰면 0 대신 10이 보인다. 또 getter가 `float`을 돌려주는데 값은 정수 개념이라(`Attributes`는 `int32`) `FText::AsNumber`로 표시할 때 형식을 맞출 것.
+
+### 2) 설계
+
+- [ ] **12-5. (설계) `UpgradeStat`은 빈 함수이고, 호출자가 비용을 넘기는 구조이다.** (`WarriorPlayerState.cpp:11-16`, `WarriorPlayerState.h:25-26`)
+  `bool UpgradeStat(const FName& StatName, int32 RequiredSouls)`는 현재 `return false`뿐이다. 구현하기 전에 정할 것:
+  - 비용(`RequiredSouls`)을 **호출자가 넘기면** 잘못된 값을 넣어도 막을 수 없다. 스탯 이름과 현재 레벨만 받아 안쪽에서 비용을 구하는 편이 안전하다.
+  - 비용 계산(`GetRequiredSouls`)은 컴포넌트에 있는데 `UpgradeStat`은 영속 데이터를 가진 PlayerState에 있다. PlayerState가 Pawn 소속 컴포넌트를 거치면 Pawn이 없을 때(사망 등) 동작하지 않는다. 비용 테이블 조회를 PlayerState 쪽이나 별도 함수로 옮기는 방안도 있다.
+  - 업그레이드 후에는 (1) 소울 차감, (2) `Attributes` 증가와 레벨 증가, (3) 컴포넌트의 최대치 재계산(12-2의 현재값 처리 포함), (4) HUD/스탯창 갱신이 모두 이어져야 한다.
+
+### 3) 정리와 일관성
+
+- [ ] **12-6. 주석과 서식.** `CharacterStatComponent.cpp:43-45`의 `// [UI]` 주석이 스탯 계산 함수 위에 붙어 있다(UI 코드가 아님). `CharacterStatComponent.h:153,161`의 `Attunement= 10.f`, `Dexterity= 10.f`는 공백이 빠졌다. `.cpp:7`의 `#include <Data/LevelRequiredSouls.h>`는 각괄호이다(9-12).
+  헤더의 `Vigor = 10.f` 같은 기본값은 `StatDefine.csv`의 10과 중복이므로 "로딩 전 임시값"이라는 주석을 달아 두면 단일 출처 원칙(가이드 Q16)과의 관계가 분명해진다.
+- [ ] **12-7. DataTable 에셋 이동 후 참조 확인.** 에셋 3개가 CSV와 같은 `Content/Data/`로 옮겨졌고 생성자의 경로 3곳(`CharacterStatComponent.cpp:12-40`)도 `/Game/Data/...`로 바뀌었다(9-15를 일부 완화). 옛 폴더 `Content/Blueprints/Data/`는 디스크에서 사라졌다. 에디터의 Move가 아니라 파일을 직접 옮겼다면 **다른 블루프린트가 옛 경로를 참조하고 있지 않은지** 에디터에서 확인할 것(소스에서는 컴포넌트 3곳이 전부이다). 에셋과 CSV의 내용이 같은지 확인하는 절차와 원본 규칙은 아직 없다.
+- [ ] **12-8. 쓸모없다고 정한 `TEAM_DEV_LOG.md`가 이 커밋에 포함되어 푸시되었다.** 팀 개발일지는 Notion 페이지로 정했으므로 저장소의 `TEAM_DEV_LOG.md`는 제거 대상이다(삭제 커밋이 필요). 푸시된 상태라 다음 PR이 `main`에 들어가기 전에 지울 것.
+
+### 4) 확인된 좋은 점 (검증 결과)
+
+- `CalculateGrowthValue`의 구간 계산이 CSV 모델과 맞다. 예) Vigor 25포인트 → HP `1~20 × 10 + 21~25 × 7 = 200 + 35 = 235`, 0포인트 → 0, Strength/Dexterity의 임시 행(`MinLevel 0, MaxLevel 0, Value 0`)은 결과가 0이라 안전하다. 40을 넘는 포인트는 마지막 구간 상한에서 멈춘다.
+- `Attributes`를 "추가 포인트"로 보고 `초기값(StatDefine) + 추가`를 최종 속성으로 쓰는 구조가 가이드 Q16의 설계와 일치한다(M-1 해소).
+- 스탯 키를 `Vigor`~`Dexterity`까지 정적 상수로 확장했고, 성장 대응(Endurance→Stamina/Defense, Vitality→EquipLoad/Resistance, Strength·Dexterity→AttackPower)이 CSV의 `StatID`/`Target`과 일치한다.
+- `GetStatInitialValue`를 `UpdateCharacterStat` 앞으로 옮겨 읽는 순서가 자연스러워졌다.
+
+### 5) 이번 커밋으로 상태가 바뀐 이전 항목
+
+- 해소: 11-1 ~ 11-6, 9-16, M-1.
+- 일부 진전: 7-6(`Attributes`는 이제 사용됨, 현재값 처리는 12-2로 남음), 9-15(에셋이 CSV와 같은 폴더로).
+- 그대로: 7-7(`BeginPlay`와 `UpdateCharacterStat`의 이중 로드), 2-4, 3-2, 4-5, 9-1~9-7.
+- `PROJECT_GUIDE.md`의 0장 상태 표, 4장 `StatGrowth` 행, Q16, 13장 이슈 표를 위 변화에 맞춰 갱신했다.
+
+### 6) 우선순위
+
+1. 12-1(한 줄)을 고치고, 12-3의 반환 규칙을 정한다. `UpgradeStat`을 만들기 전에 해야 한다.
+2. 12-2(현재값 처리)와 12-5(업그레이드 흐름)를 같이 설계한다.
+3. 12-4(스탯창이 `GetVigor()` 등을 쓰도록)는 작은 변경이다.
+4. 12-8(`TEAM_DEV_LOG.md` 삭제)은 `main` PR 전에 처리한다.

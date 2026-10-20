@@ -42,13 +42,6 @@ void UStatusWindowWidget::RefreshStatus()
 		{
 			SetNumberText(TextBlock_Level, SaveData->Level);
 			SetNumberText(TextBlock_Souls, SaveData->Souls);
-			
-			SetNumberText(TextBlock_Vigor, SaveData->Attributes.Vigor);
-			SetNumberText(TextBlock_Attunement, SaveData->Attributes.Attunement);
-			SetNumberText(TextBlock_Endurance, SaveData->Attributes.Endurance);
-			SetNumberText(TextBlock_Vitality, SaveData->Attributes.Vitality);
-			SetNumberText(TextBlock_Strength, SaveData->Attributes.Strength);
-			SetNumberText(TextBlock_Dexterity, SaveData->Attributes.Dexterity);
 		}
 
 
@@ -56,6 +49,14 @@ void UStatusWindowWidget::RefreshStatus()
 		// CharacterStatComponent 활용.
 		if (UCharacterStatComponent* StatComp = StatOwner->GetCharacterStatComponent())
 		{
+			// [스탯]
+			SetNumberText(TextBlock_Vigor, static_cast<int32>(StatComp->GetVigor()));
+			SetNumberText(TextBlock_Attunement, static_cast<int32>(StatComp->GetAttunement()));
+			SetNumberText(TextBlock_Endurance, static_cast<int32>(StatComp->GetEndurance()));
+			SetNumberText(TextBlock_Vitality, static_cast<int32>(StatComp->GetVitality()));
+			SetNumberText(TextBlock_Strength, static_cast<int32>(StatComp->GetStrength()));
+			SetNumberText(TextBlock_Dexterity, static_cast<int32>(StatComp->GetDexterity()));
+
 			// [Pool]
 			SetNumberText(TextBlock_HP, static_cast<int32>(StatComp->GetMaxHP()));
 			SetNumberText(TextBlock_FP, static_cast<int32>(StatComp->GetMaxFP()));

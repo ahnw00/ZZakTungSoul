@@ -43,7 +43,7 @@ UCharacterStatComponent::UCharacterStatComponent()
 // [UI]
 // 스탯 계산
 // 기본값.
-float UCharacterStatComponent::GetStatInitialValue(const FName& StatName) const
+int32 UCharacterStatComponent::GetStatInitialValue(const FName& StatName) const
 {
 	if (!StatDefineTable)
 	{
@@ -53,7 +53,8 @@ float UCharacterStatComponent::GetStatInitialValue(const FName& StatName) const
 	static const FString ContextString(TEXT("GetStatInitialValue"));
 	// GetAllRows는 모든 행을 순서 없는 배열로 한꺼번에 긁어온다.
 	// FindRow는 행 순서와 무관하게 데이터를 이름으로 정확히 조회할 수 있다.
-	if (const FStatDefine* Row = StatDefineTable->FindRow<FStatDefine>(StatName, ContextString)) 
+	if (const FStatDefine* Row 
+		= StatDefineTable->FindRow<FStatDefine>(StatName, ContextString)) 
 	{
 		return static_cast<float>(Row->InitialValue);
 	}
@@ -67,9 +68,13 @@ float UCharacterStatComponent::GetStatInitialValue(const FName& StatName) const
 	
 	return 0.f;
 }
-float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const FName& InTarget, int32 AddedPoints) const
+// 투자 포인트로 성장값 계산.
+int32 UCharacterStatComponent::CalculateGrowthValue(
+	const FName& InStatID, 
+	const FName& InTarget, 
+	int32 AddedPoints) const
 {
-	if (!StatGrowthTable || AddedPoints == 0)
+	if (!StatGrowthTable || AddedPoints <= 0)
 	{
 		return 0.f;
 	}
@@ -82,30 +87,34 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 
 	for (const FStatGrowth* GrowthRow : Rows)
 	{
-		if (GrowthRow->StatID != InStatID || GrowthRow->Target != InTarget || AddedPoints < GrowthRow->MinLevel)
+		if (GrowthRow->StatID != InStatID 
+			|| GrowthRow->Target != InTarget 
+			|| AddedPoints < GrowthRow->MinLevel)
 		{
 			continue;
 		}
 
-		const int32 EffectivePoints = FMath::Min(AddedPoints, GrowthRow->MaxLevel) - GrowthRow->MinLevel + 1;
+		const int32 EffectivePoints 
+			= FMath::Min(AddedPoints, GrowthRow->MaxLevel) 
+			- GrowthRow->MinLevel + 1;
 		TotalBonus += EffectivePoints * GrowthRow->Value;
 	}
 
 
 	return static_cast<float>(TotalBonus);
 }
-// 증가값.
+// 최종 스탯 결과값.
 void UCharacterStatComponent::UpdateCharacterStat(const FWarriorAttributeData& Attributes)
 {
 	LoadCharacterStat();
 
 	// Attribute 최종 계산값.
-	Vigor = static_cast<int32>(GetStatInitialValue(VigorKey)) + Attributes.Vigor;
-	Attunement = static_cast<int32>(GetStatInitialValue(AttunementKey)) + Attributes.Attunement;
-	Endurance = static_cast<int32>(GetStatInitialValue(EnduranceKey)) + Attributes.Endurance;
-	Vitality = static_cast<int32>(GetStatInitialValue(VitalityKey)) + Attributes.Vitality;
-	Strength = static_cast<int32>(GetStatInitialValue(StrengthKey)) + Attributes.Strength;
-	Dexterity = static_cast<int32>(GetStatInitialValue(DexterityKey)) + Attributes.Dexterity;
+	Vigor = GetStatInitialValue(VigorKey) + Attributes.Vigor;
+	Attunement = GetStatInitialValue(AttunementKey) + Attributes.Attunement;
+	Endurance = GetStatInitialValue(EnduranceKey) + Attributes.Endurance;
+	Vitality = GetStatInitialValue(VitalityKey) + Attributes.Vitality;
+	Strength = GetStatInitialValue(StrengthKey) + Attributes.Strength;
+	Dexterity = GetStatInitialValue(DexterityKey) + Attributes.Dexterity;
 	// Pool 최종값 계산.
 	MaxHP += CalculateGrowthValue(VigorKey, HpKey, Attributes.Vigor);
 	MaxFP += CalculateGrowthValue(AttunementKey, FpKey, Attributes.Attunement);
@@ -182,6 +191,25 @@ void UCharacterStatComponent::LoadCharacterStat()
 	OverloadedSpeed = GetStatInitialValue(OverloadedSpeedKey);
 }
 
+int32 UCharacterStatComponent::GetRequiredSouls(int32 Level) const
+{
+	if (!LevelRequiredSoulsTable || Level <= 0)
+	{
+		return 0;
+	}
+
+	const FName RowName = FName(*FString::Printf(TEXT("Level%d"), Level));
+	static const FString ContextString(TEXT("GetRequiredSouls"));
+
+	if (
+		const FLevelRequiredSouls* Row 
+		= LevelRequiredSoulsTable->FindRow<FLevelRequiredSouls>(RowName, ContextString))
+	{
+		return Row->RequiredSouls;
+	}
+
+	return 0;
+}
 
 
 
@@ -194,23 +222,6 @@ void UCharacterStatComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	RegenerateStamina(DeltaTime);
 }
 
-int32 UCharacterStatComponent::GetRequiredSouls(int32 Level) const
-{
-	if (!LevelRequiredSoulsTable || Level <= 0)
-	{
-		return 0;
-	}
-
-	const FName RowName = FName(*FString::Printf(TEXT("Level%d"), Level));
-	static const FString ContextString(TEXT("GetRequiredSouls"));
-
-	if (const FLevelRequiredSouls* Row = LevelRequiredSoulsTable->FindRow<FLevelRequiredSouls>(RowName, ContextString))
-	{
-		return Row->RequiredSouls;
-	}
-
-	return 0;
-}
 
 // [스탯 제어 함수]
 	// 범위 제한.

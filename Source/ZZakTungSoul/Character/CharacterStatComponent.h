@@ -29,8 +29,8 @@ protected:
 	virtual void BeginPlay() override;
 	
 	void LoadCharacterStat();
-	float GetStatInitialValue(const FName& StatName) const;
-	float CalculateGrowthValue(const FName& InStatID, const FName& InTarget, int32 AddedPoints) const;
+	int32 GetStatInitialValue(const FName& StatName) const;
+	int32 CalculateGrowthValue(const FName& InStatID, const FName& InTarget, int32 AddedPoints) const;
 
 public:	
 	// Called every frame

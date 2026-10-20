@@ -5,30 +5,37 @@
 
 ---
 
-## 열린 항목 한눈에 (2026-10-19 기준, 맨 위에서 이것만 보면 된다)
+## 열린 항목 한눈에 (2026-10-20 기준, 맨 위에서 이것만 보면 된다)
 
 > 이 아래의 번호 섹션(0~9)은 **시간순 기록**이다. 현재 무엇이 남았는지는 이 표를 기준으로 하고, 항목 번호로 해당 섹션의 상세 근거를 찾는다. 항목이 해결되면 이 표에서 지우고 해당 섹션에 `[x]`를 단다(체크 표시는 리뷰어가 코드를 확인한 뒤에만 한다).
-> 기준 코드: `main` = `Ahn` = `2fabce4`, `Bae` = `origin/Bae` = `9fc0efe`(오늘 "1019 Attribute 관련 코드 작성" 커밋 포함), `Kang` = `0308a1e`. 빌드/실행은 리뷰어가 하지 않았다.
+> 기준 코드: `main` = `Ahn` = `2fabce4`, `Bae` = `1d98fd8`(10-19 "1019 Attribute 관련 코드 작성" `9fc0efe` 포함) + 10-20 미커밋 작업 트리, `Kang` = `0308a1e`. 빌드/실행은 리뷰어가 하지 않았다.
 
 | 우선순위 | 항목 | 내용 | 상세 |
 |---|---|---|---|
-| 높음 | 12-1 | `GetRequiredSouls`의 조건이 반전됨: 테이블이 있으면 항상 0을 반환하고, 테이블이 없으면 null 역참조 | 섹션 12 |
+| 높음 | 13-2 (= 12-2) | 레벨업(`UpgradeStat` → `UpdateCharacterStat`)할 때마다 현재 HP/FP가 초기 최대치로 되돌아감. 회복 정책을 먼저 정할 것 | 섹션 13, 12 |
 | 높음 (확인 필요) | 9-1 | 공격 후 `ActionState`가 `Attack`에 고착될 수 있음 (`PlayAttackMontage()`가 빈 함수) | 섹션 9 |
 | 높음 | 9-2, 9-3 | 락온의 `GetController()` null 역참조(`Warrior.cpp`), `LockOnTarget` 일반 포인터 | 섹션 9 |
 | 중간 | 9-4, 3-2, 4-5 | 전투 루프 없음(`ApplyDamage` 호출처 없음), 적에게 스탯 컴포넌트/인터페이스 없음, 컴포넌트를 `ACharacterBase`로 이동 | 섹션 9, 3 |
 | 중간 | 9-5, 9-6, 9-7 | 이동 속도 출처 4곳, `EnemyAIData` 속도 기본값 없음, AI 경로 2개(`WarriorAIController`/`EnemyAIController`) | 섹션 9 |
-| 중간 | 12-2, 12-3, 12-4, 12-5, 7-6, 7-7 | 성장 적용 후 현재값이 최대값보다 낮게 시작, 존재하지 않는 레벨의 비용이 0, 스탯창이 `Attributes` 원본(0)을 표시, `UpgradeStat` 미구현과 구조, `UpdateCharacterStat` 책임/이중 호출 | 섹션 12, 7 |
+| 중간 | 13-3, 13-4, 13-5, 12-3, 7-6, 7-7 | `UpgradeStat`이 호출자가 준 비용을 믿음, 레벨 상한이 우연히 걸림(레벨 표 10 / 성장 표 40 / `MaxValue` 99), 업그레이드 후 UI 미갱신, 비용 0의 의미, `UpdateCharacterStat` 책임/이중 호출 | 섹션 13, 12, 7 |
+| 중간 | 13-9, 13-10, 13-11, 13-12 | 화톳불 `UPROPERTY`가 `VisibleAnywhere`라 `BonfireID`를 못 바꿈, `Interact`가 `AWarrior`에 묶임, 호출처/오버랩 바인딩 없음, 적 리셋 구독 구조 | 섹션 13 |
 | 중간 | 9-15, 9-17 | CSV ↔ DataTable 에셋 동기화 규칙(에셋 3개는 10-19에 CSV와 같은 `Content/Data/`로 이동됨, 원본 규칙은 미정), 저장소 크기(`Frank_Slash_Pack` 약 957MB, LFS 없음) | 섹션 9, 12 (팀 합의 필요) |
 | 중간 | 2-4, 4-7, 5-4 | 구르기 비용 25 하드코딩, 스탯창이 최대값만 표시/열 때만 갱신 | 섹션 2, 4, 5 |
 | 낮음 | K-2, K-3, K-4, K-6, K-7, K-9 | 적 AI 정리 항목(비트필드 초기화, `GetPlayerPawn(0)`, 조용한 실패 경로, `Dead` 복구, `bIsCombat`, 테스트 자산) | 섹션 4, 9 |
 | 낮음 | 2-8, 3-3, 9-12 | 프로젝트 헤더 include 스타일 혼재(각괄호/따옴표) | 섹션 2, 3, 9 |
 | 낮음 | 12-8 | 쓸모없다고 정한 `TEAM_DEV_LOG.md`가 `Bae`에 커밋·푸시됨(삭제 필요) | 섹션 12 |
+| 낮음 | 13-1, 13-6, 13-7, 13-8, 13-13 ~ 13-16 | `int32` 함수 안의 `float` 캐스트 잔재, 스탯 이름 문자열 `if-else`, Pawn 없을 때 `true`, 스탯창 캐스트 14회, `Bonfire` 표기 통일, 사용 불가 피드백, 점화 상태 미저장, 정리 | 섹션 13 |
 | 낮음 | 1-6, 2-9~2-11, 11-7, 11-8, 12-6, 12-7, 이름·표기, 9-8~9-11, 9-13, 9-14 | 주석 처리된 코드, 변수명/표기 통일, 낡은 주석, 들여쓰기, `DA_Test` | 섹션 1, 2, 9 |
 
 **2026-10-19에 정리된 것**
 - 가이드 정정: G-10(Q19 오류), G-11(사망/리스폰 과장), G-12(Q2↔Q7), G-13(Q16), G-14(적 AI 반영), G-15(5장 코드 조각), G-17(번호 참조), G-18(병합 교훈)을 `PROJECT_GUIDE.md`에 반영했다. G-16(문서 분리)은 맨 위에 "현재 구현 상태 요약" 표와 맨 끝에 "알려진 이슈/체크리스트"를 추가해 부분 해결했다. 구체적인 변경은 섹션 10 참고.
 - 이 문서: R-1(이 표 추가), R-2(존재하지 않는 파일 참조 정리), R-3(Kang 항목 상태 표시)을 처리했다.
 - 문서 3개(`PROJECT_GUIDE.md`, `Review(Claude).md`, `리뷰 참고용.txt`)는 Bae PR #2를 통해 이미 `main`에 포함되어 있다.
+**2026-10-20에 정리된 것**
+- 코드 반영 확인(작업 트리): 12-1(`GetRequiredSouls` 조건 수정), 12-4(스탯창이 `GetVigor()` 등 최종값 사용). `UpgradeStat` 본문이 구현되어 12-5는 설계 문제로 좁혀짐. 새 항목은 섹션 13(13-1 ~ 13-16).
+- 기준 코드가 `1d98fd8` + 미커밋 변경(수정 4개, 새 파일 `Interactable/`, `Interface/InteractionInterface.*`)으로 바뀌었다.
+
+**2026-10-19에 정리된 것(이어서)**
 - 코드 반영 확인(커밋 `9fc0efe`): 11-1 ~ 11-6(`CalculateGrowthValue` 수정), 9-16(`StatGrowthTable`을 이제 읽음), M-1(`Attributes`는 추가 포인트, 최종 = 초기값 + 추가). 새로 발견한 문제는 섹션 12.
 
 ---
@@ -766,23 +773,23 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 
 ### 1) 동작 오류
 
-- [ ] **12-1. (높음) `GetRequiredSouls`의 조건이 반전되었다.** (`CharacterStatComponent.cpp:197-213`, 조건은 `:199`)
+- [x] **12-1. (높음) `GetRequiredSouls`의 조건이 반전되었다.** (2026-10-20: 현재 코드 `CharacterStatComponent.cpp:196`이 `!LevelRequiredSoulsTable || Level <= 0`으로 수정된 것을 확인함) (`CharacterStatComponent.cpp:197-213`, 조건은 `:199`)
   `if (LevelRequiredSoulsTable || Level <= 0) { return 0; }`로 되어 있다. `!LevelRequiredSoulsTable`이어야 한다.
   - 테이블이 정상 로드된 경우: 조건이 항상 참이라 **언제나 0을 반환**한다(필요 소울이 늘 0).
   - 테이블이 null인 경우(경로 오류, 에셋 이동 직후 등): 조건을 통과해 `:207`의 `LevelRequiredSoulsTable->FindRow(...)`에서 **null 역참조로 크래시**한다.
   아직 호출처가 없어 지금은 드러나지 않지만, `UpgradeStat`을 연결하는 순간 소울 소모가 0이 된다.
-- [ ] **12-2. (중간) 성장 적용 후 현재값이 최대값보다 낮게 시작한다.** (`CharacterStatComponent.cpp:98-130`)
+- [ ] **12-2. (중간 → 2026-10-20 높음으로 상향: `UpgradeStat`이 `UpdateCharacterStat`을 호출하게 되어 실제 경로가 됨, 13-2 참고) 성장 적용 후 현재값이 최대값보다 낮게 시작한다.** (`CharacterStatComponent.cpp:98-130`)
   `UpdateCharacterStat`이 `:100`에서 `LoadCharacterStat()`을 호출하면 `Current* = Max*(초기값)`으로 되돌려진다. 그 뒤 `:110-120`에서 `Max*`에만 성장치를 더하고, `:121-127`의 복원 분기는 `Current`가 이미 초기 최대값이라 `Clamp`만 한다.
   예: Vigor에 25포인트를 투자한 저장 데이터로 시작하면 `MaxHP`는 250 + 235 = 485이고 `CurrentHP`는 250이라 HUD가 52%로 시작한다. 지금은 `Attributes` 기본값이 0이라 보이지 않는다.
   또 업그레이드할 때마다 이 함수를 다시 부르면 현재 HP가 초기 최대값으로 돌아간다. 계산(`Max*` 갱신)과 현재값 처리(비율 유지 또는 전부 회복)를 분리해서 정할 것(7-6과 같은 주제).
-- [ ] **12-3. (중간) 존재하지 않는 레벨의 비용이 0이다.** (`CharacterStatComponent.cpp:207-212`)
+- [ ] **12-3. (중간) 존재하지 않는 레벨의 비용이 0이다.** (2026-10-20 부분 완화: `WarriorPlayerState.cpp:17`이 `RequiredSouls <= 0`이면 거부해서 "공짜 업그레이드"는 막힘. 다만 행이 없는 것과 "최대 레벨"이 구분되지 않고 로그도 없음. 13-3 참고) (`CharacterStatComponent.cpp:207-212`)
   `LevelRequiredSouls.csv`는 `Level1`~`Level10`만 있는데 `StatGrowth.csv`의 성장 구간은 40까지다. 11레벨 이상이거나 행이 없으면 `0`을 반환하므로, 12-1을 고친 뒤에도 "비용 0 = 공짜 업그레이드"가 된다. "비용 없음/최대 레벨"을 구분할 수 있는 값(예: `-1`)이나 `bool` 반환으로 바꾸고, 행이 없을 때는 `UE_LOG(Warning)`을 남길 것(`GetStatInitialValue`처럼).
-- [ ] **12-4. (중간) 스탯창이 계산 결과를 쓰지 않는다.** (`StatusWindowWidget.cpp:46-51`)
+- [x] **12-4. (중간) 스탯창이 계산 결과를 쓰지 않는다.** (2026-10-20: `StatusWindowWidget.cpp:53-58`이 `StatComp->GetVigor()` 등을 쓰도록 수정됨. 남은 `static_cast<int32>`는 13-8) (`StatusWindowWidget.cpp:46-51`)
   주 스탯 6개를 여전히 `SaveData->Attributes`(추가 포인트, 기본값 0)로 출력한다. 이번에 만든 `GetVigor()` 등(`CharacterStatComponent.h:82-92` 근처)은 호출처가 없다. 이 getter는 `초기값 + 추가`(= 10)를 돌려주므로 스탯창이 `StatComp->GetVigor()`를 쓰면 0 대신 10이 보인다. 또 getter가 `float`을 돌려주는데 값은 정수 개념이라(`Attributes`는 `int32`) `FText::AsNumber`로 표시할 때 형식을 맞출 것.
 
 ### 2) 설계
 
-- [ ] **12-5. (설계) `UpgradeStat`은 빈 함수이고, 호출자가 비용을 넘기는 구조이다.** (`WarriorPlayerState.cpp:11-16`, `WarriorPlayerState.h:25-26`)
+- [ ] **12-5. (설계) `UpgradeStat`은 빈 함수이고, 호출자가 비용을 넘기는 구조이다.** (2026-10-20: 함수 본문은 구현됨 `WarriorPlayerState.cpp:14-45`. 비용을 호출자가 넘기는 구조와 나머지 설계 문제는 13-3 ~ 13-6) (`WarriorPlayerState.cpp:11-16`, `WarriorPlayerState.h:25-26`)
   `bool UpgradeStat(const FName& StatName, int32 RequiredSouls)`는 현재 `return false`뿐이다. 구현하기 전에 정할 것:
   - 비용(`RequiredSouls`)을 **호출자가 넘기면** 잘못된 값을 넣어도 막을 수 없다. 스탯 이름과 현재 레벨만 받아 안쪽에서 비용을 구하는 편이 안전하다.
   - 비용 계산(`GetRequiredSouls`)은 컴포넌트에 있는데 `UpgradeStat`은 영속 데이터를 가진 PlayerState에 있다. PlayerState가 Pawn 소속 컴포넌트를 거치면 Pawn이 없을 때(사망 등) 동작하지 않는다. 비용 테이블 조회를 PlayerState 쪽이나 별도 함수로 옮기는 방안도 있다.
@@ -815,3 +822,62 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 2. 12-2(현재값 처리)와 12-5(업그레이드 흐름)를 같이 설계한다.
 3. 12-4(스탯창이 `GetVigor()` 등을 쓰도록)는 작은 변경이다.
 4. 12-8(`TEAM_DEV_LOG.md` 삭제)은 `main` PR 전에 처리한다.
+
+---
+
+## 13. 오늘 작업 리뷰 (2026-10-20, 미커밋 변경 + 새 파일)
+
+**대상**: 수정 4개(`CharacterStatComponent.h/.cpp`, `StatusWindowWidget.cpp`, `WarriorPlayerState.cpp`)와 새 파일 3묶음(`Interactable/BonFire.h/.cpp`, `Interface/InteractionInterface.h/.cpp`). 기준은 `Bae` `1d98fd8` 위의 작업 트리이고, 새 파일은 아직 추적되지 않는다(`git status`의 `??`).
+빌드와 실행은 하지 않았고 코드 읽기만 했다. 코드는 수정하지 않았다.
+
+**총평**: 방향이 좋다. `UpgradeStat`이 소울 검사 → 스탯 증가 → 소울 차감과 레벨 증가 → 컴포넌트 재계산 순서로 구현되어 12-5의 4단계 중 앞 3단계가 이어졌고, 스탯창은 계산된 최종값을 읽게 되었다. 화톳불은 "휴식 신호만 방송하고 적 리셋은 구독자가 맡는" 구조(`OnBonfireRest`)로 나뉘어 있어 의도한 설계와 맞다. 다만 **업그레이드 경로가 열리면서 12-2(현재값 초기화)가 실제로 발생하게 되었다.**
+
+**이번 세션에서 정한 규칙(기록)**: 데이터 읽기와 계산은 `int32`(`GetStatInitialValue`, `CalculateGrowthValue`), 게임플레이에서 쓰는 최종 멤버(`MaxHP`, `AttackPower` 등)는 `float`으로 둔다. `float` 멤버에 `int32`를 넣는 대입은 암묵 변환으로 허용한다.
+
+### 1) 스탯 컴포넌트와 업그레이드
+
+- [ ] **13-1. (낮음) `int32` 함수 안에 `float` 리터럴과 캐스트가 남아 있다.** 선언(`CharacterStatComponent.h:32-33`)과 정의 시그니처는 `int32`로 바뀌었지만 본문은 그대로다: `cpp:50`, `:69`, `:79`의 `return 0.f;`, `:59`의 `return static_cast<float>(Row->InitialValue);`, `:104`의 `return static_cast<float>(TotalBonus);`. 암묵 변환으로 컴파일되고 값도 맞지만(작은 정수), `int32` → `float` → `int32` 왕복이 그대로라 반환 타입을 바꾼 목적(11-6)이 절반만 이루어졌고, 컴파일러가 `float` → `int32` 변환 경고를 낼 수 있다. `return 0;`, `return Row->InitialValue;`, `return TotalBonus;`로 정리할 것.
+- [ ] **13-2. (높음) 레벨업할 때마다 현재 HP/FP가 초기 최대치로 돌아간다. (12-2의 실제 경로)** `WarriorPlayerState.cpp:40`의 `UpdateCharacterStat(...)` → `CharacterStatComponent.cpp:109` `LoadCharacterStat()`이 `CurrentHP = MaxHP`(초기값 250, `:181`)로 되돌린 뒤 `:119`에서 `MaxHP`만 키운다. `:130-145`는 `Clamp`만 한다.
+  - 예: HP 100 상태에서 Vigor를 올리면 현재 HP가 250으로 *회복*되고(전투 중 레벨업이 회복 수단이 됨), 이미 Vigor가 투자된 상태라면 `MaxHP`가 485여도 현재 HP는 250이라 HUD가 52%로 보인다. `CurrentHP <= 0.f` 분기(`:130`, `:138`)는 `LoadCharacterStat`이 항상 `CurrentHP = MaxHP`로 만들어서 **실행되지 않는 코드**다.
+  - 먼저 정책을 정한다: (가) 업그레이드 시 전부 회복(`Current* = Max*`이면 `:130-148`을 세 줄로 줄일 수 있음), (나) 현재값 유지(`LoadCharacterStat` 호출 전에 비율이나 값을 저장했다가 복원). 화톳불에서 쉬면 전부 회복되므로(`BonFire.cpp:106-108`) (나)가 자연스럽다.
+- [ ] **13-3. (중간) `UpgradeStat`이 호출자가 준 비용을 그대로 믿는다.** (`WarriorPlayerState.h:26`, `WarriorPlayerState.cpp:14-20`) `BlueprintCallable`이라 `RequiredSouls`에 1을 넣어 부르면 1소울로 올릴 수 있다. 비용은 `GetRequiredSouls(SaveData.Level)`처럼 안쪽에서 구하는 것이 안전하다(12-5). 그때 `Level`이 "현재 레벨"이므로 `Level1` 행(300)이 *레벨 1에서 2로 올리는 비용*인지 CSV(`LevelRequiredSouls.csv`)와 함께 문서로 정해 둘 것. 비용이 `0`일 때 거부하는 현재 방식(`:17`)은 "행 없음/최대 레벨"과 "비용 0"을 구분하지 못하고 조용히 `false`만 돌려준다(12-3).
+- [ ] **13-4. (중간) 레벨 상한이 우연히 걸린다.** `StatDefine`에는 `MaxValue = 99`(`StatDefine.h:25`)가 있지만 어디서도 쓰지 않는다. 지금은 `LevelRequiredSouls.csv`가 `Level10`까지라서 11레벨부터 비용 0으로 거부되어 상한이 생기는 것뿐이고, `StatGrowth.csv`의 구간은 40까지다. 세 숫자(레벨 표 10, 성장 표 40, `MaxValue` 99)가 서로 맞지 않는다. 상한을 명시적으로 검사하고(`Attributes.X + 초기값 >= MaxValue`이면 거부) 세 표의 범위를 맞출 것.
+- [ ] **13-5. (중간) 업그레이드 후 화면이 갱신되지 않는다.** `UpdateCharacterStat`은 `BroadcastAllStats()`로 HP/FP/Stamina만 방송한다(`cpp:150`). 스탯창은 열 때 한 번 `RefreshStatus`를 부르는 구조라(4-7, 5-4) 창이 열려 있는 동안 올리면 레벨, 소울, 주 스탯, 전투 스탯이 그대로다. `UpgradeStat`이 `true`를 돌려준 뒤 창을 다시 그리거나(`OnStatsUpdated` 같은 델리게이트) 창 쪽이 구독하게 할 것.
+- [ ] **13-6. (낮음) 스탯 이름을 문자열 `if-else`로 6번 비교한다.** (`WarriorPlayerState.cpp:23-29`) `FName == TEXT("Vigor")`는 매번 문자열 비교이고 오타는 컴파일이 아니라 `return false`로 끝난다. 같은 이름이 `CharacterStatComponent.h:187-192`의 `VigorKey` 등에도 있어 이중 관리다. `UENUM EAttributeType` + `switch`가 가장 안전하다(호출부도 같이 바꿔야 함). 6개 규모에서는 현재 형태도 읽을 만하므로 낮은 우선순위.
+- [ ] **13-7. (낮음) Pawn이 없으면 재계산 없이 `true`를 돌려준다.** (`WarriorPlayerState.cpp:36-42`) 사망이나 Pawn 교체 중이면 `SaveData`만 바뀌고 `UpdateCharacterStat`은 건너뛴다. 이후 Pawn이 생길 때 `Warrior.cpp`의 `UpdateCharacterStats()`(`Warrior.cpp:84`)가 다시 계산하므로 결과는 맞게 되지만, 호출자가 "반영됨"으로 오해할 수 있어 주석으로 남겨 둘 것.
+
+### 2) UI
+
+- [ ] **13-8. (낮음) 스탯창에 `static_cast<int32>(float getter)`가 14번 반복된다.** (`StatusWindowWidget.cpp:53-70`) 주 스탯 6개는 정수 개념이므로 `Vigor` 등 멤버와 getter(`CharacterStatComponent.h:79-89`)를 `int32`로 바꾸면 해당 6줄의 캐스트와 `cpp:112-117`의 암묵 변환이 모두 사라진다(별도 작업, 블루프린트 핀 영향 확인 필요). 나머지(`HP`, `AttackPower` 등)는 위 규칙대로 `float` 유지. 오늘 12-4가 해소되어 스탯창에는 이제 `초기값 + 추가`(= 10 + 투자)가 표시된다.
+
+### 3) `BonFire`와 `InteractionInterface` (새 파일)
+
+- [ ] **13-9. (중간) 에디터에서 값을 바꿀 수 없다.** (`BonFire.h:49-67`) `EnemyCheckRadius`, `BonfireID`, `BonFireDisplayName`이 `VisibleAnywhere`라 배치한 인스턴스마다 값을 못 정한다. 특히 `BonfireID`는 주석이 "레벨 내 겹치지 않는 ID"인데 *읽기 전용*이라 모두 `Bonfire_Default`가 된다(전송과 저장의 키가 겹침). `EditAnywhere`(또는 인스턴스별이면 `EditInstanceOnly`)로 바꾸고, 카테고리도 `Components`가 아니라 `Bonfire|Config`처럼 나눌 것. `BonfireState`도 레벨 디자이너가 초기 상태를 정해야 한다면 마찬가지.
+- [ ] **13-10. (중간) 인터페이스가 `AWarrior`에 묶여 있다.** (`InteractionInterface.h:26`) `Interact(class AWarrior*)`라서 NPC, AI, 다른 캐릭터 타입이 상호작용할 수 없고, 공통 헤더가 구체 클래스 하나를 알게 된다. `AActor*`나 `APawn*`를 받고 구현 쪽에서 필요하면 `Cast`하는 편이 확장에 유리하다. 이 인터페이스는 `UFUNCTION`이 아닌 순수 가상 함수라 블루프린트에서 구현할 수 없다(C++ 전용). 의도한 것인지 정할 것. 반환값이 없어서 "실패 이유"도 호출자가 알 수 없다(13-14).
+- [ ] **13-11. (중간) 아직 어디서도 호출하지 않는다.** `Interact(` 호출처가 없고 `InteractionSphere`에 오버랩 바인딩도 없다(`BonFire.cpp:23-29`는 콜리전 설정만). 플레이어가 화톳불을 쓸 수 없는 상태이므로 `Warrior`/`WarriorController` 쪽 입력과 대상 감지(스피어 `BeginOverlap`/`EndOverlap`으로 현재 상호작용 대상 보관 → 입력 시 `IInteractionInterface::Interact`)를 만들어야 완성된다.
+- [ ] **13-12. (중간) 적 리셋의 구독 구조.** `OnBonfireRest`는 화톳불 *인스턴스별* 델리게이트(`BonFire.h:34-36`)라서 게임모드 같은 월드 단위 관리자가 쓰려면 레벨의 모든 화톳불에 일일이 바인딩해야 한다. 화톳불이 월드 단위 객체(게임모드 또는 `UWorldSubsystem`)의 `HandleBonfireRest()`를 직접 한 번 부르게 하고, 적은 `Resettable` 인터페이스(`ResetToSpawn`)를 구현하는 구조가 더 단순하다. 현재 델리게이트는 블루프린트 연출(사운드, 화면 효과) 용도로 남겨도 된다.
+- [ ] **13-13. (낮음) 이름 표기가 섞여 있다.** 클래스/파일은 `ABonFire`/`BonFire.h`, 나머지는 `EBonfireState`, `BonfireID`, `GetBonfireDisplayName`인데 변수는 `BonFireDisplayName`(`BonFire.h:40,64`)이다. `Bonfire`로 통일하는 것이 좋다. 블루프린트나 에셋이 아직 이 클래스를 참조하기 전인 지금이 파일 이름을 바꾸기 가장 싸다.
+- [ ] **13-14. (낮음) 사용 불가 시 플레이어에게 아무 신호가 없다.** (`BonFire.cpp:49,77`) 로그만 남기고 조용히 `return`한다. 나중에 UI 메시지를 띄우려면 `CanInteractBonfire`가 이유(락온 중, 주변 적)를 돌려주는 편이 좋다. 또 적 감지는 `OverlapMultiByChannel(ECC_Pawn)`(`:60-67`)이라 적 캡슐이 `Pawn` 채널에 응답하는 설정에 의존한다. 적이 있는데도 사용이 가능해지는지 에디터에서 확인할 것. 락온 여부를 "전투 중"의 대리 지표로 쓰는 것(`:47`)은 락온 없이 교전할 때 빠지므로 2차 검사(반경)가 실제 방어선이다.
+- [ ] **13-15. (낮음) 점화 상태가 저장되지 않는다.** `BonfireState`는 런타임 값이고 `FWarriorSaveData`에 점화한 화톳불 목록이 없다. 다시 시작하면 모두 `Unlit`이다. `BonfireID`가 그 키로 쓰이도록 만든 것이므로(13-9를 먼저 고칠 것) 저장 구조는 이후 작업으로 남긴다.
+- [ ] **13-16. (낮음) 정리.** `BonFire.cpp:33-37`의 빈 `BeginPlay` 오버라이드는 지워도 된다. `BonFire.cpp:5-11`, `WarriorPlayerState.cpp:5-6`의 각괄호 `#include`(9-12)는 이번에도 늘었다. `Interactable/`와 `Interface/InteractionInterface.*`가 아직 추적되지 않으므로 커밋 때 포함할 것(`.generated.h`는 제외). `PROJECT_GUIDE.md`의 상태 표에 `UpgradeStat` 구현, 스탯창의 최종값 표시, 화톳불/상호작용 인터페이스가 아직 반영되지 않았다.
+
+### 4) 확인된 좋은 점
+
+- `UpgradeStat`의 검사 순서가 안전하다. 이름이 틀리면 `SaveData`를 건드리기 전에 `return false`(`:29`), 소울 차감은 모든 검사를 통과한 뒤(`:32`)라서 실패 시 부분 변경이 없다.
+- `GetRequiredSouls`가 `FindRow`(이름 조회)를 쓰고 `ContextString`을 함수 이름으로 둔 것, `CalculateGrowthValue`가 `GetAllRows`로 타입 검사를 받는 것이 이 파일의 다른 함수와 일관된다.
+- 화톳불의 휴식이 `SetCurrentHP/FP/Stamina`(`BonFire.cpp:106-108`)를 통해 `Clamp`와 UI 방송을 거친다. 멤버를 직접 바꾸지 않았다.
+- `ICharacterStatInterface`를 통해 컴포넌트에 접근해서 `BonFire`가 `AWarrior`의 내부 구조에 의존하지 않는다(`Interact`의 시그니처만 `AWarrior`를 알고 있음, 13-10).
+
+### 5) 이번 변경으로 상태가 바뀐 이전 항목
+
+- 해소: 12-1, 12-4.
+- 변경: 12-2(13-2로 상향), 12-3(부분 완화), 12-5(구현은 됨, 설계 문제가 13-3 ~ 13-7로 구체화).
+- 그대로: 7-7(`BeginPlay`와 `UpdateCharacterStat`의 이중 로드), 11-7, 11-8, 12-6 ~ 12-8, 9-1 ~ 9-7.
+
+### 6) 우선순위
+
+1. 13-2의 정책을 정하고 `UpdateCharacterStat`의 현재값 처리를 고친다(`UpgradeStat`이 이미 이 경로를 쓴다).
+2. 13-3(비용을 안쪽에서 구함)과 13-4(상한 명시)를 같이 정한다.
+3. 13-9(`BonfireID` 등 `EditAnywhere`)를 화톳불을 레벨에 배치하기 전에 고친다.
+4. 13-11(상호작용 호출 경로)과 13-5(UI 갱신)로 기능을 연결한다.
+5. 13-1, 13-8, 13-13, 13-16은 정리 작업으로 묶어서 한 번에 한다.

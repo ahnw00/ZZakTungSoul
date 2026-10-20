@@ -1,13 +1,13 @@
 # 🎮 ZZakTungSoul (짝퉁 소울) 프로젝트 분석 및 개발 가이드북
 
-> **작성일**: 2026-10-12 (최종 갱신: 2026-10-19)  
+> **작성일**: 2026-10-12 (최종 갱신: 2026-10-20)  
 > **프로젝트**: ZZakTungSoul (Unreal Engine 5)  
-> **작성자**: Antigravity & Bae (2026-10-19 사실 확인·정정: Claude 코드 리뷰어)  
+> **작성자**: Antigravity & Bae (2026-10-19·20 사실 확인·정정: Claude 코드 리뷰어)  
 > **브랜치**: `Bae` (`main`과 같은 커밋 `2fabce4`에서 갱신)
 
 ---
 
-## 0. 현재 구현 상태 요약 (2026-10-19) — 이 문서를 읽는 AI와 팀원은 먼저 읽을 것
+## 0. 현재 구현 상태 요약 (2026-10-20 갱신) — 이 문서를 읽는 AI와 팀원은 먼저 읽을 것
 
 > ⚠️ **읽는 규칙**: 아래 12장의 Q&A와 5~11장의 서술은 **"왜 이렇게 설계했는가"를 설명하는 학습 노트**입니다. 어떤 기능이 *실제로 구현되어 있는지*는 이 표를 기준으로 판단하세요. 코드가 바뀌면 이 표를 먼저 갱신하고, 문서에 새 사실을 쓰기 전에 **반드시 소스에서 확인**하세요(코드 조각을 문서에 복사하지 말고 파일 링크로 대체). 코드 리뷰의 근거와 열린 이슈는 루트의 `Review(Claude).md`에 있습니다.
 
@@ -15,17 +15,18 @@
 |---|---|---|
 | 스탯 컴포넌트 (HP/FP/Stamina, 델리게이트, 스태미나 회복, `UseFP`/`UseStamina`) | ✅ 구현 | `Character/CharacterStatComponent.*`. 초기값은 `DT_StatDefine`의 `InitialValue`를 `LoadCharacterStat()`이 읽어 적용 |
 | `ICharacterStatInterface` + HUD 바인딩 (`OnPossess` + `NativeConstruct`) | ✅ 구현 | Pawn이 교체되어도 견디는 **구조**. 실제 사망/리스폰 흐름은 아래 "미구현" 참고 |
-| 스탯창 (`C` 키, `WBP_StatusWindow`) | ✅ 구현 (1차) | 열 때만 갱신되고, HP/FP/Stamina는 **최대값만** 표시, 주 스탯은 `SaveData->Attributes` 원본값(현재 기본값 0) 출력 |
+| 스탯창 (`C` 키, `WBP_StatusWindow`) | ✅ 구현 (2차 완료) | 열 때만 갱신. HP/FP/Stamina는 **최대값만** 표시, 주 스탯 6종도 컴포넌트 계산값(`GetVigor` 등, 기본 10) 정상 출력 연동 완료 |
 | 세이브/로드 (슬롯, PlayerState) | ✅ 구현 | `AZTSGameMode`, `AWarriorPlayerState`, `UWarriorPlayerSaveGame` |
 | 구르기 스태미나 소모 | ✅ 구현 | 비용 25가 `Warrior.cpp`에 하드코딩 |
 | 적 AI 골격 (`AEnemyBase`, `AEnemyAIController`, BT Task/Service, `EnemyAIData`) | ✅ 구현 (진행 중) | Perception, 상태(`EEnemyState`), 순찰/추격/Strafe. 전투(공격/피격)는 미완 |
-| 주 스탯(Attributes) → 최종 스탯 계산 | ⚠️ 부분 (2026-10-19 갱신) | 컴포넌트의 `UpdateCharacterStat(Attributes)`가 `초기값 + 추가 포인트`로 주 스탯을 만들고, `CalculateGrowthValue`가 `StatGrowthTable`로 최대 HP/FP/Stamina와 방어력 등에 성장치를 더한다. `GetRequiredSouls`의 포인터 가드(`!LevelRequiredSoulsTable`) 수정 완료. **남은 것**: 성장 적용 후 현재값 처리(현재 HP가 최대값보다 낮게 시작할 수 있음), 스탯창이 계산값 대신 원본 `Attributes`(0)를 표시, `UpgradeStat`(PlayerState)은 빈 함수 |
+| 주 스탯(Attributes) → 최종 스탯 계산 | ✅ 구현 (2026-10-20 갱신) | 컴포넌트의 `UpdateCharacterStat(Attributes)`가 `초기값 + 추가 포인트`로 주 스탯을 만들고, `CalculateGrowthValue`가 `StatGrowthTable`로 성장치 반영. `GetStatInitialValue`의 `int32` 반환형 일치로 불필요한 왕복 형변환 제거 완료 |
 | 이동 속도 데이터 단일 출처 | ⚠️ 부분 | 값이 4곳에 따로 있음: `StatDefine.csv`(300), `Warrior.cpp`(400/600 하드코딩), 컴포넌트 `MaxWalkSpeed`(읽기만 함), `EnemyAIData`(적) |
 | 공격 애니메이션 | ⚠️ 확인 필요 | `Warrior::Attack()`이 부르는 `PlayAttackMontage()`가 현재 빈 함수. ABP가 `ActionState`로 재생하는 구조인지 PIE로 확인 필요 |
 | 피격/데미지 경로 | ❌ 미구현 | `ApplyDamage`, `UseFP`를 호출하는 곳이 프로젝트에 없음 → HP 바가 움직이지 않음 |
 | 사망/리스폰 | ❌ 미구현 | `OnDeath` 없음, 적의 `Dead` 상태에 진입하는 코드 없음 |
 | 적의 스탯/체력 | ❌ 미구현 | `AEnemyBase`는 스탯 컴포넌트와 인터페이스가 없음 |
-| 레벨업/소울 소모 | ⚠️ 부분 (2026-10-19 갱신) | 컴포넌트의 `GetRequiredSouls(Level)`로 레벨별 필요 소울 조회(`LevelRequiredSoulsTable`, 테이블 외 레벨 0 반환) 구현 완료. **남은 것**: `AWarriorPlayerState::UpgradeStat` 구현 및 소울 차감/레벨 증가 연동 |
+| 레벨업/소울 소모 & 스탯 업그레이드 | ✅ 구현 (2026-10-20 갱신) | 컴포넌트의 `GetRequiredSouls(Level)` 레벨별 필요 소울 조회, `AWarriorPlayerState::UpgradeStat`에서 소울 검사·차감·레벨 증가·스탯 포인트 투자 및 `UpdateCharacterStat` 실시간 동기화 완료 |
+| 상호작용 인터페이스 및 화톳불 액터 | ✅ 구현 (진행 중) | `IInteractionInterface` 다형성 인터페이스, `ABonfire` 액터(3중 안전 검사 `CanInteracBonfire`, 불 밝히기/휴식, HP/FP/Stamina 100% 회복, `OnBonfireRest` 델리게이트 방송). 플레이어 E키 입력 바인딩 및 레벨 배치는 진행 예정 |
 
 ---
 
@@ -56,7 +57,7 @@ flowchart TD
     end
 
     subgraph Mind ["2. 두뇌 (입력 및 판단)"]
-        PC["AWarriorController\n(향상된 입력 처리: 이동, 시점, 탭 회피/홀드 달리기)"]
+        PC["AWarriorController\n(향상된 입력 처리: 이동, 시점, 상호작용 E키)"]
         AI["AWarriorAIController\n(레거시: AWarrior를 AI가 조종할 때 사용)"]
         EAI["AEnemyAIController\n(Perception + EnemyAIData의 Behavior Tree 실행)"]
     end
@@ -67,18 +68,26 @@ flowchart TD
         Enemy["AEnemyBase\n(적 상태 EEnemyState, 이동 속도, Strafe 모드. 스탯 컴포넌트 없음)"]
     end
 
-    subgraph Expression ["4. 근육/동작 (애니메이션)"]
+    subgraph WorldInteract ["4. 월드 및 안식처 (상호작용)"]
+        Bonfire["ABonfire (BP_Bonfire)\n(상태 머신, 3중 안전 검사, HP 회복)"]
+        IInteract["IInteractionInterface\n(1:1 다형성 상호작용 규격: Interact)"]
+    end
+
+    subgraph Expression ["5. 근육/동작 (애니메이션)"]
         Anim["UWarriorAnimInstance (ABP_Warrior)\n(속도/각도 전달, 몽타주 재생, 노티파이)"]
     end
 
-    subgraph MemoryData ["5. 기억과 규칙 (데이터/저장)"]
-        PState["AWarriorPlayerState & UWarriorPlayerSaveGame\n(레벨, 보유 소울, 세이브 슬롯 관리)"]
+    subgraph MemoryData ["6. 기억과 규칙 (데이터/저장)"]
+        PState["AWarriorPlayerState & UWarriorPlayerSaveGame\n(레벨, 보유 소울, 스탯 업그레이드, 세이브)"]
         DataTables["DataTables (CSV)\n(기본 스탯 정의, 소프트캡 성장치, 레벨별 필요 소울)"]
     end
 
     GameMode -->|스폰 및 매핑| PC
     GameMode -->|스폰| Pawn
     PC -->|명령 전달| Pawn
+    Pawn -->|E키 상호작용| IInteract
+    IInteract -->|다형성 실행| Bonfire
+    Bonfire -.->|OnBonfireRest 델리게이트 방송| GameMode
     AI -->|명령 전달| Pawn
     EAI -->|명령 전달| Enemy
     Pawn -->|부품 장착| StatComp
@@ -89,7 +98,7 @@ flowchart TD
 
 ---
 
-## 3. 큰 줄기별 상세 분석 (6 Core Pillars)
+## 3. 큰 줄기별 상세 분석 (7 Core Pillars)
 
 ### 🌿 줄기 1: 게임의 사령탑과 세이브 시스템 (GameFramework & Save)
 * **주요 파일**: 
@@ -166,6 +175,19 @@ flowchart TD
   * `Source/ZZakTungSoul/Interface/CharacterStatInterface.h`, `.cpp` — 컴포넌트와 세이브 데이터를 한 창구로 제공
   * `Source/ZZakTungSoul/SaveData/WarriorSaveData.h` — `FWarriorSaveData`, `FWarriorAttributeData`
   * `Source/ZZakTungSoul/UI/PlayerHUDWidget.h`, `.cpp` / `StatusWindowWidget.h`, `.cpp` — HUD 게이지와 스탯창 (`Content/UI/WBP_PlayerHUD`, `WBP_StatusWindow`)
+
+### 🌿 줄기 7: 월드의 안식처와 상호작용 (Interactable & Bonfire)
+* **주요 파일**: 
+  * `Source/ZZakTungSoul/Interface/InteractionInterface.h`, `.cpp`
+  * `Source/ZZakTungSoul/Interactable/BonFire.h`, `.cpp`
+* **역할 및 동작**:
+  * **상호작용 규격 표준화 (`IInteractionInterface`)**:
+    * 월드의 모든 상호작용 가능한 객체(화톳불, 보물상자, 문, NPC 등)가 상속할 다형성 인터페이스 `Interact(AWarrior* Interactor)`.
+  * **화톳불 액터 (`ABonfire`)**:
+    * 상태 머신 `EBonfireState` (Unlit: 꺼짐, Lit: 켜짐).
+    * **3중 안전 검사 (`CanInteracBonfire`)**: 플레이어가 락온 중이거나 반경 15m(`EnemyCheckRadius`) 내에 살아있는 적(`!Enemy->IsDead()`)이 있으면 상호작용 차단.
+    * **불 밝히기 & 휴식 분기**: 꺼진 상태면 최초 점화(`Lit`), 켜진 상태면 플레이어 HP/FP/Stamina 100% 회복 및 `OnBonfireRest` 델리게이트 방송.
+    * **순간이동(Fast Travel) 대비**: `BonfireID`, `BonFireDisplayName` 식별자 선제 배치.
 
 ---
 
@@ -442,6 +464,17 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
   * 메뉴가 열려도 백그라운드 월드가 멈추지 않고 실시간으로 돌아가도록 `FInputModeGameAndUI` 적용.
   * 위젯 Z-Order를 `10`으로 지정하여 기존 HUD보다 위에 떠서 화면 전체를 덮도록 구성.
 
+### 11-4. 주 스탯 6종 계산 파이프라인 연동 및 불필요한 형변환 제거 (2026-10-20 완료)
+* **주 스탯 화면 출력 연동 (`StatusWindowWidget.cpp`)**:
+  * 기존에는 `SaveData->Attributes`의 원본 투자치(0)를 직접 읽어 출력했기 때문에 화면에 `0`으로 표시되는 문제가 있었음.
+  * `StatComp->GetVigor()`, `GetMind()`, `GetEndurance()`, `GetStrength()`, `GetDexterity()`, `GetIntelligence()`를 호출하도록 6줄을 교체하여 기획 기본값(10) + 투자치가 정상 반영된 계산 결과가 UI에 실시간 출력되도록 연결 완료.
+* **`GetStatInitialValue` 반환형 리팩토링 (`CharacterStatComponent.h/cpp`)**:
+  * `FStatDefine::InitialValue`가 이미 `int32`이므로, 함수의 반환형을 `float`에서 `int32`로 수정하여 주 스탯 대입 시 발생하던 6개의 불필요한 `static_cast<int32>` 왕복 캐스팅을 제거.
+* **스탯 업그레이드 백엔드 파이프라인 (`AWarriorPlayerState::UpgradeStat`)**:
+  * 대상 스탯 이름 검증 및 필요 소울 검사(`RequiredSouls <= 0 || SaveData.Souls < RequiredSouls`).
+  * 통과 시 소울 차감, 레벨 +1, 대상 스탯 투자 포인트 +1.
+  * `StatComp->UpdateCharacterStat(SaveData.Attributes)`를 즉시 재호출하여 HP/FP/Stamina 최대치 및 주 스탯을 동기화하고 HUD/스탯창에 실시간 반영.
+
 ---
 
 ## 12. [핵심 복습 & 아키텍처 문답집] 내가 짠 코드 완벽하게 설명하기 (2026-10-15)
@@ -701,6 +734,20 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 
 ---
 
+### 💬 Q22. 화톳불 상호작용에서 왜 '인터페이스'와 '델리게이트'를 둘 다 쓸까?
+* **핵심 답변**:
+  1. **플레이어 ➔ 화톳불: 인터페이스 (1:1 직접 명령)**:
+     - 플레이어가 눈앞의 물체에게 `E`키를 눌러 상호작용을 실행하는 것은 명확한 1:1 요청입니다.
+     - `IInteractionInterface`를 통해 플레이어는 대상이 화톳불이든, 보물상자든, 문이든 구분하지 않고 `Interact(this)` 한 줄로 다형성(Polymorphism) 있게 호출합니다.
+  2. **화톳불 ➔ 월드: 델리게이트 (1:N 광역 사건 통보)**:
+     - 화톳불에서 휴식했을 때 월드의 몬스터가 부활하고, 게임이 자동 저장되며, 화면이 어두워져야 합니다.
+     - 화톳불 액터가 스포너, 게임모드, UI를 일일이 찾아다니며 인터페이스로 호출하면 결합도(Coupling)가 치솟습니다. 특히 죽은 몬스터는 메모리에 존재하지도 않습니다.
+     - 따라서 화톳불은 `OnBonfireRest.Broadcast()`로 사건 발생만 외치고, 게임모드(저장)나 스포너(리스폰)가 각자 알아서 수신하도록 분리(Decoupling)합니다.
+  3. **사망 후 부활과 게임모드의 결합 분리**:
+     - 게임모드는 월드의 화톳불 액터 포인터를 직접 들고 있지 않고, 플레이어가 휴식할 때 `SaveData`에 기록된 마지막 부활 좌표(`FTransform`)만 꺼내어 리스폰시킴으로써 액터 간의 강한 결합을 방지합니다.
+
+---
+
 ### 📝 [실수에서 배운 실무 지혜 (Troubleshooting Log)]
 
 실제 프로젝트를 빌드하고 교차 검증하는 과정에서 겪었던 시행착오와 그로부터 얻은 교훈입니다:
@@ -732,10 +779,52 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 9. **데이터 테이블 포인터 유효성 검사 반전(`!` 누락)과 방어적 Fallback**:
    - **현상**: `CharacterStatComponent.cpp`의 `GetRequiredSouls` 구현 시 `if (LevelRequiredSoulsTable || Level <= 0)`로 작성하여, 테이블이 정상 로드되어 있을 때 도리어 참이 되어 항상 0을 반환하고 테이블이 없을 때 `FindRow` null 역참조 위험에 노출되는 조건 반전 버그 발생.
    - **교훈**: 포인터 널 검사 시 부정 연산자(`!`)의 누락 여부를 항상 점검해야 합니다. 또한 테이블에 존재하지 않는 행이 요청되었을 때 `FindRow`의 `nullptr` 반환을 안전하게 기본값(`0`)으로 흘려보내는 2중 안전장치(Safe Fallback)의 원리를 이해함.
+10. **불필요한 왕복 형변환(Ping-Pong Casting) 제거와 단일 출처 타입 준수**:
+    - **현상**: `FStatDefine::InitialValue`의 원본 데이터가 이미 `int32`임에도 불구하고 `GetStatInitialValue`가 `float`를 반환하도록 작성되어 있어, 주 스탯(`Vigor` 등)에 대입할 때마다 `static_cast<int32>`로 다시 되돌리는 `int32 -> float -> int32` 왕복 캐스팅이 발생함.
+    - **교훈**: 데이터 소스의 원본 타입을 존중하여 함수 반환형을 `int32`로 일치시키면 불필요한 캐스팅 6줄이 사라지고, 실수 변수(`MaxHP`)에는 C++의 암시적 프로모션(Implicit Promotion)으로 더 안전하게 호환됨.
+11. **과도한 중복 조건문과 매직 넘버(800.f) 제거**:
+    - **현상**: `CanInteracBonfire` 구현 시 이미 `OverlapMultiByChannel` 구체(15m)로 탐지된 적에 대해 루프 내부에서 또다시 `DistSquared < 800.f`와 적의 AI 상태(`Chase`, `Attack`)를 복잡하게 분기 검사함.
+    - **교훈**: 화톳불 위험 반경(`EnemyCheckRadius`) 내에 살아있는 적(`!Enemy->IsDead()`)이 한 마리라도 존재하면 상태와 무관하게 휴식을 차단하는 것이 소울라이크의 기본 규칙입니다. 중복 연산과 하드코딩 매직 넘버를 걷어내고 구체 탐색 결과 하나로 단순화하여 가독성과 유지보수성을 극대화함.
 
 ---
 
-## 13. 알려진 이슈와 다음 작업 (2026-10-19 코드 리뷰 기준)
+## 13. 월드의 안식처: 화톳불(Bonfire) 및 상호작용 시스템 구축 (2026-10-20)
+
+### 13-1. 설계 철학: 1:1 상호작용(인터페이스)과 1:N 월드 사건(델리게이트)의 분리
+* **`IInteractionInterface` (1:1 직접 명령)**:
+  * 플레이어가 월드의 특정 대상을 향해 상호작용 키(`E`키)를 눌렀을 때, 대상이 화톳불이든, 보물상자든, 레버든 상관없이 `Interact(this)` 한 줄로 호출하는 다형성 인터페이스.
+  * 호출 주체(플레이어)와 피호출 주체(오브젝트) 간의 결합도를 완벽히 분리함.
+* **`OnBonfireRest` 델리게이트 (1:N 광역 사건 통보)**:
+  * 화톳불에서 휴식할 때 발생하는 일(몬스터 리스폰, 자동 세이브, 화면 페이드 연출 등)을 화톳불 액터가 직접 게임모드나 몬스터들을 일일이 찾아다니며 호출하면 극심한 스파게티 결합이 발생함.
+  * 특히 이미 죽어서 소멸된 몬스터는 메모리에 존재하지도 않음.
+  * 따라서 화톳불은 휴식 시 `OnBonfireRest.Broadcast()`만 쏘고, 게임모드나 스포너가 이를 수신하여 각자의 책임을 수행하도록 완벽히 디커플링함.
+
+### 13-2. 화톳불 액터(`ABonfire`) C++ 구조 및 컴포넌트
+* **컴포넌트 구성**:
+  * `MeshComponent` (`UStaticMeshComponent`): 화톳불의 검/화로 비주얼을 담당하는 RootComponent.
+  * `InteractionSphere` (`USphereComponent`): 플레이어의 상호작용 가능 영역(반경 200.f) 콜리전.
+* **상태 머신 (`EBonfireState`)**:
+  * `Unlit` (최초 발견 시 꺼진 상태) ➔ 상호작용 시 불을 밝힘 (`Lit`).
+  * `Lit` (이미 점화된 상태) ➔ 상호작용 시 휴식 및 회복 실행.
+* **순간이동(Fast Travel) 선제적 대비**:
+  * 향후 화톳불 간 텔레포트 기능 구현 시 코드를 다시 뜯어고치지 않도록, `BonfireID`(`FName`)와 `BonFireDisplayName`(`FText`)을 선제 배치.
+
+### 13-3. 3중 안전 검사 (`CanInteracBonfire`)와 감지 단순화
+* **1차 검사**: 대상이 유효한 플레이어(`AWarrior`)인지 검사.
+* **2차 검사 (전투 상태 차단)**: 플레이어가 현재 적을 락온 중(`Interactor->IsLockOn()`)이면 상호작용 불가.
+* **3차 검사 (주변 적 탐지)**:
+  * 화톳불 주변 반경 15m(`EnemyCheckRadius = 1500.f`) 내에 `ECC_Pawn` 채널로 오버랩을 수행.
+  * 감지된 폰 중 살아있는 적(`!Enemy->IsDead()`)이 단 한 마리라도 존재하면 즉시 사용 차단.
+  * **단순화 이점**: 불필요한 매직 넘버(`800.f`) 거리 재계산이나 복잡한 AI 추격 상태 분기를 없애고, "위험 반경 내 살아있는 적 존재 여부" 하나로 소울라이크의 규칙을 명확하고 안전하게 구현.
+
+### 13-4. 휴식 로직 (`Interact`)
+* `ICharacterStatInterface`를 통해 플레이어의 스탯 컴포넌트를 획득.
+* `SetCurrentHP(MaxHP)`, `SetCurrentFP(MaxFP)`, `SetCurrentStamina(MaxStamina)`를 호출하여 Clamp 및 UI 방송을 거쳐 체력/마나/스태미나를 100% 완전 회복.
+* `OnBonfireRest.Broadcast()`를 호출하여 월드에 휴식 사건 통보.
+
+---
+
+## 14. 알려진 이슈와 다음 작업 (2026-10-20 갱신)
 
 > 근거와 상세 위치(파일, 행 번호)는 루트의 `Review(Claude).md` 마지막 섹션에 있습니다. 여기서는 **다음에 이 문서를 고치거나 기능을 추가할 때 알아야 할 사실**만 요약합니다.
 
@@ -748,7 +837,12 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 | 중간 | 적 데이터 안전성 | `EnemyAIData`의 속도 `float`에 기본값이 없고, `EnemyBase::UpdateMovementSpeed`는 데이터가 없으면 로그 없이 return |
 | 중간 | AI 경로 2개 | `AWarriorAIController`(레거시)와 `AEnemyAIController` 중 정식 경로를 정하고 정리 |
 | 해결 (2026-10-19) | `GetRequiredSouls` 조건 반전 | `CharacterStatComponent.cpp`의 `GetRequiredSouls` 조건문(`!LevelRequiredSoulsTable || Level <= 0`) 수정 완료 |
-| 중간 | 성장 시스템 마무리 | 성장 계산 및 `GetRequiredSouls` 조회 구현 완료. 남은 것: 성장 적용 후 현재 HP/FP가 최대값보다 낮게 시작하는 문제, 스탯창이 계산값 대신 `Attributes` 원본(0)을 표시, `UpgradeStat`(PlayerState)이 빈 함수 |
+| 해결 (2026-10-20) | 성장 시스템 마무리 | 주 스탯 10 UI 화면 출력 연결 완료, `AWarriorPlayerState::UpgradeStat` 구현 완료 |
+| 보통 | 화톳불 플레이어 연결 | 플레이어 E키 상호작용 입력 바인딩 및 `BP_Bonfire` 에셋 제작/레벨 배치 |
+| 보통 | 스탯창 잔여 UI | `StatusWindowWidget`에 다음 레벨 필요 소울(`TextBlock_RequiredSouls`) 표시 연결 |
+| 보통 | 몬스터 스포너 시스템 | `OnBonfireRest` 델리게이트를 수신하여 사망 몬스터 재생성 처리 |
+| 보통 | 레벨업 시 HP/FP 회복 정책 | `UpgradeStat` ➔ `UpdateCharacterStat` 호출 시 `CurrentHP/FP`가 기본 최대치로 리셋되는 현상. 증가분만 가산할지 완전 회복할지 정책 결정 |
+| 낮음 | 화톳불 속성 및 피드백 정리 | `BonfireID`를 레벨에서 수정 가능하도록 `EditAnywhere` 전환, 상호작용 실패 시 UI 알림 피드백 구조 고려 |
 | 중간 | CSV ↔ DataTable 동기화 규칙 없음 | Reimport 절차와 "어느 쪽이 원본인가"를 팀이 정할 것 |
 | 중간 | 저장소 크기 | `Content/Frank_Slash_Pack`이 약 957MB, Git LFS 미사용. 팀 합의 후 LFS 도입 또는 에셋 범위 축소 검토, 에셋 라이선스와 저장소 공개 범위 확인 |
 | 낮음 | include 스타일 혼재 | 프로젝트 헤더는 따옴표(`"Warrior/Warrior.h"`)로 통일하기로 하고 `Enemy`, `Warrior`, `Character` 폴더의 각괄호 include를 정리 |

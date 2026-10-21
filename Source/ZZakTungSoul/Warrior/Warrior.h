@@ -6,7 +6,6 @@
 #include "Character/CharacterBase.h"
 #include "Data/StateEnum.h"
 #include "Interface/CharacterStatInterface.h"
-#include "Interface/CharacterControllerInterface.h"
 #include "Warrior.generated.h"
 
 // [전방 선언].

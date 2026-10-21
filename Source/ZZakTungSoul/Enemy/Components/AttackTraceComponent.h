@@ -7,7 +7,7 @@
 #include "AttackTraceComponent.generated.h"
 
 // 전방 선언
-class USkeletalMeshComponent;
+class UMeshComponent;
 
 // Delegate 선언
 // 공격 판정 성공시 호출되는 Delegate
@@ -31,7 +31,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	// 공격 판정 시작 함수
-	void BeginTrace(USkeletalMeshComponent* InTraceMesh);
+	void BeginTrace(UMeshComponent* InTraceMesh);
 
 	// 공격 판정 종료 함수
 	void EndTrace();
@@ -46,6 +46,10 @@ private:
 	// 공격 판정 활성화 여부
 	bool IsTracing() const { return bIsTracing; }
 
+public:
+	// 충돌 성공 델리게이트 이벤트
+	FOnAttackTraceHit OnTraceHit;
+
 private:
 	// 공격 판정 활성화 여부 플래그
 	uint32 bIsTracing : 1 = false;
@@ -57,9 +61,6 @@ private:
 	FVector PreviousStart = FVector::ZeroVector;
 	FVector PreviousEnd = FVector::ZeroVector;
 
-	// 충돌 성공 델리게이트 이벤트
-	FOnAttackTraceHit OnTraceHit;
-
 private:
 	// 소켓 이름 키로 지정
 	inline static const FName SocketStartKey = TEXT("TraceStart");
@@ -68,7 +69,7 @@ private:
 protected:
 	// 소켓을 받아올 매쉬
 	UPROPERTY(EditDefaultsOnly, Category = "Trace|Socket")
-	TWeakObjectPtr<USkeletalMeshComponent> TraceMesh;
+	TWeakObjectPtr<UMeshComponent> TraceMesh;
 
 	// Trace 시작점 소켓 이름
 	UPROPERTY(EditDefaultsOnly, Category = "Trace|Socket")

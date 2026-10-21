@@ -9,6 +9,7 @@
 
 // 전방 선언
 class UEnemyAIData;
+class UEnemyAnimationData;
 
 /**
  * 
@@ -30,6 +31,9 @@ protected:
 	// 상태에 따라 회전 상태 변경 함수
 	void UpdateRotationMode();
 
+	// Trace에 걸린 액터 처리 함수
+	void HandleAttackTraceHit(const FHitResult& Hit);
+
 public:
 	// Getter / Setter
 	// 현재 적 상태 반환
@@ -43,6 +47,7 @@ public:
 
 	// 적 애셋 데이터 반환
 	const UEnemyAIData* GetEnemyAIData() const { return EnemyAIData; }
+	const UEnemyAnimationData* GetEnemyAnimationData() const { return EnemyAnimationData; }
 
 public:
 	// 적 상태 변경
@@ -57,8 +62,19 @@ protected:
 	EEnemyState CurrentState = EEnemyState::Idle;
 
 	// AI Data -> Behavior Tree / Movement Speed
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|AIData")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Data")
 	TObjectPtr<UEnemyAIData> EnemyAIData;
+
+	// Animation Data -> 공격 관련 Montage
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Data")
+	TObjectPtr<UEnemyAnimationData> EnemyAnimationData;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Combat")
+	TObjectPtr<class UMeshComponent> WeaponMeshComponent;
+
+	// 공격 판정을 위한 Trace Component
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
+	TObjectPtr<class UAttackTraceComponent> AttackTraceComponent;
 
 	// 현재 전투 상태 플래그
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
@@ -67,17 +83,4 @@ protected:
 	// Strafe 여부 플래그
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
 	uint32 bIsStrafeMode : 1;
-
-	/* 이동속도 =========================
-	// Patrol(순찰) 이동속도
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Movement")
-	float PatrolSpeed = 200.0f;
-
-	// Chase(추격) 이동속도
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Movement")
-	float ChaseSpeed = 450.0f;
-
-	// Strafe(간보기) 이동속도
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Movement")
-	float StarfeSpeed = 150.0f;	//*/
 };

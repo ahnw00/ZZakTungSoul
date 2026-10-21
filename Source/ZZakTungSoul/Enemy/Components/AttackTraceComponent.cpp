@@ -3,7 +3,7 @@
 
 #include "Enemy/Components/AttackTraceComponent.h"
 
-#include <Components/SkeletalMeshComponent.h>
+#include <Components/MeshComponent.h>
 #include <Engine/World.h>
 #include <DrawDebugHelpers.h>
 
@@ -43,15 +43,15 @@ void UAttackTraceComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 		return;
 	}
 
-	USkeletalMeshComponent* SkMesh = TraceMesh.Get();
-	if (!IsValid(SkMesh))
+	UMeshComponent* Mesh = TraceMesh.Get();
+	if (!IsValid(Mesh))
 	{
 		EndTrace();
 		return;
 	}
 
-	const FVector CurrentStart = SkMesh->GetSocketLocation(TraceStartSocketName);
-	const FVector CurrentEnd = SkMesh->GetSocketLocation(TraceEndSocketName);
+	const FVector CurrentStart = Mesh->GetSocketLocation(TraceStartSocketName);
+	const FVector CurrentEnd = Mesh->GetSocketLocation(TraceEndSocketName);
 
 	// 이전 프레임과 현재 프레임의 중간 지점
 	const FVector PreviousMiddle = (PreviousStart + PreviousEnd) / 2.0f;
@@ -67,7 +67,7 @@ void UAttackTraceComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	PreviousEnd = CurrentEnd;
 }
 
-void UAttackTraceComponent::BeginTrace(USkeletalMeshComponent* InTraceMesh)
+void UAttackTraceComponent::BeginTrace(UMeshComponent* InTraceMesh)
 {
 	// 매쉬 유효성 검사
 	if (!IsValid(InTraceMesh))

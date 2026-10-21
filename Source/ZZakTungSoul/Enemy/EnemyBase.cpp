@@ -4,6 +4,7 @@
 #include "Enemy/EnemyBase.h"
 #include <Enemy/EnemyAIController.h>
 #include <Enemy/Data/EnemyAIData.h>
+#include <Enemy/Components/AttackTraceComponent.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
 
@@ -23,6 +24,9 @@ AEnemyBase::AEnemyBase()
 
 	// AI제어 타입 설정
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	// Trace Component 설정
+	AttackTraceComponent = CreateDefaultSubobject<UAttackTraceComponent>(TEXT("AttackTraceComponent"));
 }
 
 void AEnemyBase::BeginPlay()
@@ -31,6 +35,12 @@ void AEnemyBase::BeginPlay()
 
 	// 초기 상태에 따른 이동속도 설정
 	UpdateMovementSpeed();
+
+	// Delegate 연결
+	if (AttackTraceComponent)
+	{
+		AttackTraceComponent->OnTraceHit.AddUObject(this, &AEnemyBase::HandleAttackTraceHit);
+	}
 }
 
 void AEnemyBase::UpdateMovementSpeed()
@@ -90,6 +100,19 @@ void AEnemyBase::UpdateRotationMode()
 
 	// 이동 방향으로 자동 회전 설정
 	GetCharacterMovement()->bOrientRotationToMovement = !bFaceToTarget;
+}
+
+void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
+{
+	AActor* HitActor = Hit.GetActor();
+	if (!IsValid(HitActor))
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Attack Hit: %s"), *HitActor->GetName());
+
+	// @Todo: 데미지 처리
 }
 
 void AEnemyBase::SetEnemyState(EEnemyState NewState)

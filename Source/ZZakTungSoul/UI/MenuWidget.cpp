@@ -7,9 +7,6 @@ void UMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-    EquipmentButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
-
     InventoryButton->OnMenuClicked.AddUniqueDynamic(
         this, &UMenuWidget::OpenMenu);
 
@@ -17,6 +14,24 @@ void UMenuWidget::NativeConstruct()
         this, &UMenuWidget::OpenMenu);
 
     SettingButton->OnMenuClicked.AddUniqueDynamic(
+        this, &UMenuWidget::OpenMenu);
+
+    RightWeaponButton->OnMenuClicked.AddUniqueDynamic(
+        this, &UMenuWidget::OpenMenu);
+
+    LeftWeaponButton->OnMenuClicked.AddUniqueDynamic(
+        this, &UMenuWidget::OpenMenu);
+
+    HeadButton->OnMenuClicked.AddUniqueDynamic(
+        this, &UMenuWidget::OpenMenu);
+
+    ChestButton->OnMenuClicked.AddUniqueDynamic(
+        this, &UMenuWidget::OpenMenu);
+
+    ArmsButton->OnMenuClicked.AddUniqueDynamic(
+        this, &UMenuWidget::OpenMenu);
+
+    LegsButton->OnMenuClicked.AddUniqueDynamic(
         this, &UMenuWidget::OpenMenu);
 
     UpperBeltButton->OnMenuClicked.AddUniqueDynamic(

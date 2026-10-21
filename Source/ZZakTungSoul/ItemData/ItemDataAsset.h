@@ -19,7 +19,7 @@ UENUM(BlueprintType)
 enum class EEquipmentSlot : uint8
 {
 	None,
-	RihgtHand,
+	RightHand,
 	LeftHand,
 	Head,
 	Chest,
@@ -36,8 +36,17 @@ UCLASS()
 class ZZAKTUNGSOUL_API UItemDataAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
+
+public:
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override
+	{
+		return FPrimaryAssetId("ItemData", GetFName());
+	}
 	
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FGuid InstanceID;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FName ItemID;
 
@@ -51,7 +60,7 @@ public:
 	EItemType ItemType;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<UTexture2D> Icon;
+	TSoftObjectPtr<UTexture2D> Icon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int32 MaxStack = 1;

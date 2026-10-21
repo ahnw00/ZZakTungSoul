@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Item/ItemDataAsset.h"
+#include "ItemData/ItemDataAsset.h"
 #include "WeaponDataAsset.generated.h"
 
 /**
@@ -13,6 +13,14 @@ UCLASS(BlueprintType)
 class ZZAKTUNGSOUL_API UWeaponDataAsset : public UItemDataAsset
 {
 	GENERATED_BODY()
+
+public:
+	UWeaponDataAsset();
+
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override
+	{
+		return FPrimaryAssetId("ItemData", GetFName());
+	}
 	
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

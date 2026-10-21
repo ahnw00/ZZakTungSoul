@@ -5,11 +5,12 @@
 #include "CoreMinimal.h"
 #include "Character/CharacterBase.h"
 #include "Data/StateEnum.h"
+#include <ItemData/ItemDataAsset.h>
+#include <Item/ItemObject.h>
 #include "Interface/CharacterStatInterface.h"
+#include <Interface/ItemInterface.h>
 #include "Warrior.generated.h"
 
-// [전방 선언].
-class UCharacterStatComponent;
 
 /**
  * 
@@ -17,7 +18,8 @@ class UCharacterStatComponent;
 UCLASS()
 class ZZAKTUNGSOUL_API AWarrior 
 	: public ACharacterBase,
-	public ICharacterStatInterface
+	public ICharacterStatInterface,
+	public IItemInterface
 {
 	GENERATED_BODY()
 	
@@ -43,6 +45,19 @@ private:
 	class UCameraComponent* Camera;
 	UPROPERTY(VisibleAnywhere, Category = "LockOn")
 	class UArrowComponent* LockOnPoint;
+
+	UPROPERTY(VisibleAnywhere, Category = "Stat")
+	TObjectPtr<class UCharacterStatComponent> CharacterStatComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "Weapon")
+	class USkeletalMeshComponent* Weapon;
+
+	UPROPERTY(VisibleAnywhere, Category = "Equipment")
+	class UEquipmentComponent* Equipment;
+
+	UPROPERTY(VisibleAnywhere, Category = "Inventory")
+	class UInventoryComponent* Inventory;
+
 
 	class ACharacter* LockOnTarget;
 	bool bLockOn = false;
@@ -70,9 +85,6 @@ protected:
 	//struct FCharacterStatData* CharacterStats; // 데이터 테이블에서 단일 행을 참조해 캐릭터 스탯으로 사용
 	void UpdateCharacterStats();
 
-	UPROPERTY(VisibleAnywhere, Category = "Stat")
-	TObjectPtr<UCharacterStatComponent> CharacterStatComponent;
-
 public:
 
 	void SprintStart();
@@ -94,6 +106,9 @@ public:
 	void ChangeLockOn(bool flag);
 	bool GetOverlaps();
 	FORCEINLINE bool IsLockOn() const { return bLockOn; }
+
+	// 상호작용
+	void Interact();
 
 	// Getter/Setter
 	
@@ -118,11 +133,25 @@ public:
 
 	//FORCEINLINE UArrowComponent GetLockOnPoint() { return LockOnPoint; }
 
-
-
 	// [캐릭터 스탯].
 	virtual UCharacterStatComponent* GetCharacterStatComponent() const override { return CharacterStatComponent; }
 	// [세이브 데이터].
 	virtual const struct FWarriorSaveData* GetSaveData() const override;
 	
+
+	// 아이템 관련 함수
+public:
+	void EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot);
+
+	// Inherited via IItemInterface
+	void ObtainItem(class UItemDataAsset* detectedItem) override;
+
+	FORCEINLINE void AddDetectedObject(AActor* Detected) { DetectedActors.AddUnique(Detected); }
+	FORCEINLINE void RemoveDetectedObject(AActor* Detected) { DetectedActors.Remove(Detected); }
+
+	// 상호작용 관련 변수
+private:
+	// 상호작용할 대상 저장 변수
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AActor>> DetectedActors;
 };

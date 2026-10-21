@@ -24,8 +24,8 @@ protected:
 	void OpenMenu(EMenuType MenuType);
 
 	// BindWidget 하면 블루프린트에 있는 위젯이랑 변수 이름이 똑같아야 Bind 돼요!
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UMenuButtonWidget> EquipmentButton;
+	//UPROPERTY(meta = (BindWidget))
+	//TObjectPtr<UMenuButtonWidget> EquipmentButton;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UMenuButtonWidget> InventoryButton;
@@ -35,6 +35,24 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UMenuButtonWidget> SettingButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UMenuButtonWidget> LeftWeaponButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UMenuButtonWidget> RightWeaponButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UMenuButtonWidget> HeadButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UMenuButtonWidget> ChestButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UMenuButtonWidget> ArmsButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UMenuButtonWidget> LegsButton;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UMenuButtonWidget> UpperBeltButton;

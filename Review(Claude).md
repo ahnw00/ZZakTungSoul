@@ -24,6 +24,8 @@
 | 낮음 | K-2, K-3, K-4, K-6, K-7, K-9 | 적 AI 정리 항목(비트필드 초기화, `GetPlayerPawn(0)`, 조용한 실패 경로, `Dead` 복구, `bIsCombat`, 테스트 자산) | 섹션 4, 9 |
 | 낮음 | 2-8, 3-3, 9-12 | 프로젝트 헤더 include 스타일 혼재(각괄호/따옴표) | 섹션 2, 3, 9 |
 | 낮음 | 12-8 | 쓸모없다고 정한 `TEAM_DEV_LOG.md`가 `Bae`에 커밋·푸시됨(삭제 필요) | 섹션 12 |
+| 중간 | 14-1, 14-2, 14-3, 14-4 | 불필요한 복잡도: 인터페이스→컴포넌트 2단 조회 4곳 복사(헬퍼 1개로), 비율 계산 중복(+ 미사용 getter), `BonFire`의 불필요한 분기와 `RestoreToFull()`, 실행되지 않는 현재값 분기 | 섹션 14 |
+| 낮음 | 14-5 ~ 14-9 | 주석 처리된 코드 28줄, 쓰지 않는 `OverloadedSpeed`/화톳불 getter, 생성자 테이블 로딩 3블록, 인터페이스의 두 책임, `SetNumberText`(= 13-8) | 섹션 14 |
 | 낮음 | 13-1, 13-6, 13-7, 13-8, 13-13 ~ 13-16 | `int32` 함수 안의 `float` 캐스트 잔재, 스탯 이름 문자열 `if-else`, Pawn 없을 때 `true`, 스탯창 캐스트 14회, `Bonfire` 표기 통일, 사용 불가 피드백, 점화 상태 미저장, 정리 | 섹션 13 |
 | 낮음 | 1-6, 2-9~2-11, 11-7, 11-8, 12-6, 12-7, 이름·표기, 9-8~9-11, 9-13, 9-14 | 주석 처리된 코드, 변수명/표기 통일, 낡은 주석, 들여쓰기, `DA_Test` | 섹션 1, 2, 9 |
 
@@ -848,7 +850,7 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 
 ### 2) UI
 
-- [ ] **13-8. (낮음) 스탯창에 `static_cast<int32>(float getter)`가 14번 반복된다.** (`StatusWindowWidget.cpp:53-70`) 주 스탯 6개는 정수 개념이므로 `Vigor` 등 멤버와 getter(`CharacterStatComponent.h:79-89`)를 `int32`로 바꾸면 해당 6줄의 캐스트와 `cpp:112-117`의 암묵 변환이 모두 사라진다(별도 작업, 블루프린트 핀 영향 확인 필요). 나머지(`HP`, `AttackPower` 등)는 위 규칙대로 `float` 유지. 오늘 12-4가 해소되어 스탯창에는 이제 `초기값 + 추가`(= 10 + 투자)가 표시된다.
+- [ ] **13-8. (낮음) 스탯창에 `static_cast<int32>(float getter)`가 14번 반복된다.** (`StatusWindowWidget.cpp:53-70`) **(2026-10-21 보강)** 원인은 헬퍼 `SetNumberText`(`cpp:28-34`)가 `auto Value`를 받는 캡처 없는 람다라서 호출하는 쪽이 타입을 맞춰야 하기 때문이다. 해결은 (1) 람다를 이 파일의 익명 `namespace` 안 일반 함수로 옮기고, (2) 매개변수를 `UTextBlock*`로(현재 `TObjectPtr<UTextBlock>&`는 수정 가능한 참조라 의미가 어긋남), (3) `int32` 버전과 `float` 버전(`FMath::RoundToInt`로 반올림) 두 개로 오버로드하면 호출부 캐스트 14개가 모두 사라진다. `static_cast<int32>`는 버림이라 249.9가 249로 보이는 문제도 같이 해소된다. 큰 `Souls`를 `float`으로 넘기지 않도록 `int32` 오버로드를 따로 둘 것(`float`은 약 1,600만부터 정수를 정확히 못 담음). 주 스탯 6개는 정수 개념이므로 `Vigor` 등 멤버와 getter(`CharacterStatComponent.h:79-89`)를 `int32`로 바꾸면 해당 6줄의 캐스트와 `cpp:112-117`의 암묵 변환이 모두 사라진다(별도 작업, 블루프린트 핀 영향 확인 필요). 나머지(`HP`, `AttackPower` 등)는 위 규칙대로 `float` 유지. 오늘 12-4가 해소되어 스탯창에는 이제 `초기값 + 추가`(= 10 + 투자)가 표시된다.
 
 ### 3) `BonFire`와 `InteractionInterface` (새 파일)
 
@@ -881,3 +883,96 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 3. 13-9(`BonfireID` 등 `EditAnywhere`)를 화톳불을 레벨에 배치하기 전에 고친다.
 4. 13-11(상호작용 호출 경로)과 13-5(UI 갱신)로 기능을 연결한다.
 5. 13-1, 13-8, 13-13, 13-16은 정리 작업으로 묶어서 한 번에 한다.
+
+---
+
+## 14. 불필요한 복잡도 전수검사 (2026-10-21, 사용자 요청)
+
+**범위**: `git blame`으로 확인한 사용자 작성 코드. 전부 직접 작성한 파일은 `CharacterStatComponent.h/.cpp`, `StatusWindowWidget.h/.cpp`, `PlayerHUDWidget.h/.cpp`, `WarriorPlayerState.h/.cpp`, `Interactable/BonFire.h/.cpp`, `Interface/CharacterStatInterface.*`, `Interface/InteractionInterface.*`이다. `WarriorController`는 UI 부분(`.cpp:18-23, 58-74, 342-390`, `.h:9-11, 97-116`)과 `Warrior.cpp`의 `UpdateCharacterStats` 끝 4줄만 해당하고, 나머지는 `ahnw00` 작성이라 제외했다. `Data/*.h`, `SaveData/*.h`는 구조체 선언뿐이라 복잡도 문제가 없다.
+기준은 **"같은 일을 더 짧고 단순하게 할 수 있는가"**이다. 버그는 섹션 11~13에 있고 여기서는 다루지 않는다. 빌드는 하지 않았고 제안 코드는 컴파일을 확인하지 않았다.
+
+**총평**: 구조 자체(인터페이스로 컴포넌트 접근, 델리게이트로 UI 갱신, 데이터 테이블 분리)는 과하지 않고 필요한 만큼이다. 복잡도는 대부분 **같은 모양의 코드를 여러 곳에 복사한 것**과 **쓰지 않는 코드를 남겨 둔 것**에서 나온다.
+
+### 1) 효과가 큰 순서
+
+- [ ] **14-1. (중간) "인터페이스 캐스트 → 컴포넌트 얻기 → null 검사" 2단 중첩이 4곳에 복사되어 있다.**
+  `WarriorPlayerState.cpp:36-42`, `BonFire.cpp:102-110`, `PlayerHUDWidget.cpp:16-19`, `WarriorController.cpp:349-355`(`StatusWindowWidget.cpp:37-50`은 `GetSaveData`도 쓰므로 별도). 매번 `Cast<ICharacterStatInterface>(X)` → `GetCharacterStatComponent()` → `if (Comp)` 순서다. 인터페이스에 정적 헬퍼 하나를 두면 4곳이 모두 한 단계로 줄고, 인터페이스를 거친다는 규칙도 한 곳에만 있게 된다.
+  ```cpp
+  // CharacterStatInterface.h (ICharacterStatInterface 안)
+  static UCharacterStatComponent* FindStatComponent(UObject* Object);
+
+  // CharacterStatInterface.cpp (지금 비어 있음)
+  UCharacterStatComponent* ICharacterStatInterface::FindStatComponent(UObject* Object)
+  {
+  	if (ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(Object))
+  	{
+  		return StatOwner->GetCharacterStatComponent();
+  	}
+  	return nullptr;
+  }
+  ```
+  ```cpp
+  // 사용 예: WarriorPlayerState.cpp:35-42가 이렇게 줄어든다.
+  if (UCharacterStatComponent* StatComp = ICharacterStatInterface::FindStatComponent(GetPawn()))
+  {
+  	StatComp->UpdateCharacterStat(SaveData.Attributes);
+  }
+  ```
+- [ ] **14-2. (중간) 같은 비율 계산이 두 곳에 있고, 한 곳은 아무도 쓰지 않는다.**
+  `CharacterStatComponent.h:94-100`의 `GetHPRatio/GetFPRatio/GetStaminaRatio`는 C++ 호출처가 없다(블루프린트 사용 여부는 에디터에서 확인 필요). 같은 `Max > 0 ? Clamp(Current / Max)` 계산을 `PlayerHUDWidget.cpp:61-77`의 `UpdateProgressBar`가 10줄짜리 `if/else`로 다시 한다. 델리게이트가 `Current`/`Max`를 넘기므로 위젯 쪽 계산이 필요하니, 위젯을 한 줄로 줄이고 컴포넌트의 ratio getter 3개는 BP 사용이 없으면 지울 것.
+  ```cpp
+  void UPlayerHUDWidget::UpdateProgressBar(UProgressBar* Bar, float Current, float Max)
+  {
+  	if (Bar)
+  	{
+  		Bar->SetPercent(Max > 0.f ? FMath::Clamp(Current / Max, 0.f, 1.f) : 0.f);
+  	}
+  }
+  ```
+- [ ] **14-3. (중간) `BonFire`의 불필요한 분기와 중복.**
+  - `CanInteractBonfire`(`BonFire.cpp:60-82`): `bHasOverlap`을 받아 `if (bHasOverlap) { for ... }`로 감쌌는데, 결과 배열이 비면 `for`가 아무것도 하지 않으므로 변수와 `if`가 필요 없다. 반환값을 버리고 바로 순회하면 들여쓰기가 한 단계 줄고, 안쪽 `Cast` + `IsDead` 조건도 한 줄로 합쳐진다.
+  - `Interact`(`:86-115`): `if (Unlit) {...; return;}` 뒤의 `if (Lit)`(`:100`)는 상태가 두 개뿐이라 항상 참이다. 이 `if`를 없애면 `Lit` 처리가 한 단계 바깥으로 나온다.
+  - HP/FP/Stamina를 각각 `SetCurrent*(Max*)`로 채우는 3줄(`:106-108`)은 컴포넌트 안에 `RestoreToFull()`을 만들어 한 번 호출하게 하면, 화톳불이 풀(pool)이 몇 개인지 알 필요가 없다. 이 함수는 13-2의 정책 (가)(업그레이드 시 전부 회복)에서도 그대로 쓸 수 있다.
+  ```cpp
+  void ABonFire::Interact(AWarrior* Interactor)
+  {
+  	if (!CanInteractBonfire(Interactor)) { return; }
+
+  	if (BonfireState == EBonfireState::Unlit)
+  	{
+  		BonfireState = EBonfireState::Lit;
+  		return;
+  	}
+
+  	if (UCharacterStatComponent* StatComp = ICharacterStatInterface::FindStatComponent(Interactor))
+  	{
+  		StatComp->RestoreToFull();   // 새 함수: SetCurrentHP/FP/Stamina(Max*)
+  	}
+  	OnBonfireRest.Broadcast();
+  }
+  ```
+- [ ] **14-4. (중간) 실행되지 않는 분기와 이중 초기화.** (`CharacterStatComponent.cpp:130-148`) `CurrentHP <= 0.f` 분기는 `LoadCharacterStat`이 항상 `CurrentHP = MaxHP`로 만들기 때문에 실행되지 않고, `else`의 `Clamp`는 값을 바꾸지 못한다(13-2). 정책이 정해지면 이 20줄이 `RestoreToFull()` 한 줄(또는 저장해 둔 값 복원 몇 줄)로 줄어든다. 또 `BeginPlay`(`:160`)와 `UpdateCharacterStat`(`:109`)가 둘 다 `LoadCharacterStat()`을 불러 시작할 때 두 번 실행된다(7-7). 읽는 사람이 "어느 쪽이 진짜 초기화인가"를 따라가야 한다.
+
+### 2) 정리하면 좋은 것
+
+- [ ] **14-5. (낮음) 주석 처리된 코드 덩어리.** `CharacterStatComponent.cpp:285-312`는 `UseStamina`의 옛 버전 두 개가 28줄이다(파일 328줄의 약 9%). 아이디어("다크소울은 스태미나가 음수까지 내려감")는 한 줄 TODO 주석이나 `PROJECT_GUIDE.md`에 남기고 코드는 지울 것. 이력은 Git이 보관한다(1-6).
+- [ ] **14-6. (낮음) 쓰지 않는 코드(YAGNI).**
+  - `OverloadedSpeed`: 멤버(`h:179`), 키(`h:210`), 로드 대입(`cpp:191`)만 있고 getter와 사용처가 없다. `GetMaxWalkSpeed()`도 호출처가 없다(9-5).
+  - `BonFire`의 `GetBonfireState/ID/DisplayName`(`BonFire.h:38-40`)과 `BonfireID`, `BonFireDisplayName`은 전송 메뉴가 생기기 전까지 쓰는 곳이 없다. 전송/저장 계획이 있다면 유지해도 되지만 13-9와 함께 그때 만드는 편이 단순하다.
+- [ ] **14-7. (낮음, 선택) 생성자의 테이블 로딩 3블록이 같은 모양이다.** (`CharacterStatComponent.cpp:18-40`) 경로만 다른 7줄짜리 블록이 세 번 반복된다. 테이블이 하나 더 늘어날 때 익명 `namespace`의 헬퍼(`UDataTable* FindDataTable(const TCHAR* Path)`, 안에서 `ConstructorHelpers::FObjectFinder`를 쓰고 `Succeeded()`면 `Object`를 돌려줌)로 묶으면 블록당 1줄이 된다. 지금은 3개라 그대로 둬도 읽기 어렵지 않다.
+- [ ] **14-8. (낮음, 선택) `ICharacterStatInterface`가 두 가지를 맡는다.** (`CharacterStatInterface.h:29,33`) `GetCharacterStatComponent`(모든 캐릭터)와 `GetSaveData`(플레이어만, 기본 `nullptr`)가 한 인터페이스에 있어 소비자가 `GetSaveData()`의 null을 매번 검사해야 한다. 소비자가 `StatusWindowWidget` 하나뿐인 지금은 문제없다. 적에게 이 인터페이스를 붙일 때(9-4, 3-2) 세이브 데이터 쪽을 `GetOwningPlayer()->GetPlayerState<AWarriorPlayerState>()`로 얻거나 인터페이스를 나눌지 다시 판단할 것.
+- [ ] **14-9. (낮음) `StatusWindowWidget`의 `SetNumberText`와 14번 캐스트.** 13-8과 같은 항목이다(오버로드 + 익명 `namespace`).
+
+### 3) 검토했고 문제없는 것 (불필요한 복잡도가 아님)
+
+- `PlayerHUDWidget`의 `UpdateHP/FP/Stamina` 세 개: 동적 델리게이트는 함수마다 바인딩 대상이 필요해서 얇은 래퍼 세 개가 필요하다. `BindStatComponent`의 해제 → 저장 → 연결 순서와 `NativeDestruct`의 해제도 올바른 구조이다.
+- `CharacterStatComponent.h`의 getter 18쌍(`UFUNCTION(BlueprintPure)` + `FORCEINLINE`): 단순 반복이지만 UE 관례이고 블루프린트 노출에 필요하다. `StatusWindowWidget.h`의 `BindWidgetOptional` 16쌍도 마찬가지다.
+- `CalculateGrowthValue`(수정 후), `GetStatInitialValue`, `GetRequiredSouls`: 길이가 짧고 조기 반환이 있어 흐름이 단순하다.
+- `UpgradeStat`의 검사 → 변경 → 차감 순서와 `ToggleStatusWindow`의 열고 닫기(`WarriorController.cpp:358-390`)도 적절하다.
+
+### 4) 우선순위
+
+1. 14-1(헬퍼)과 14-3의 `RestoreToFull()`을 같이 만든다. 호출처 5곳이 한꺼번에 단순해지고 13-2의 정책 결정에도 재료가 된다.
+2. 14-2, 14-4는 13-2 정책이 정해지면 같이 정리한다.
+3. 14-5, 14-6은 지우기만 하면 되는 작업이라 아무 때나 한 번에 한다(블루프린트에서 ratio getter 사용 여부만 먼저 확인).
+4. 14-7, 14-8은 필요가 생길 때까지 미룬다.

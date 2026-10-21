@@ -51,7 +51,25 @@ AWarriorController::AWarriorController()
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_load(TEXT("/Game/Input/IA_Load.IA_Load"));
 	if (ia_load.Succeeded()) IA_Load = ia_load.Object;
 
+	//---------------------------------------------------------------
+	// 디버그 용
+	// 
+	// 
+	//---------------------------------------------------------------
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> imc_debug(TEXT("/Game/Input/Debug/IMC_Debug.IMC_Debug"));
+	if (imc_debug.Succeeded()) IMC_Debug = imc_debug.Object;
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugToggle(TEXT("/Game/Input/Debug/IA_Debug_Toggle.IA_Debug_Toggle"));
+	if (ia_debugToggle.Succeeded()) IA_DebugToggle = ia_debugToggle.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum1(TEXT("/Game/Input/Debug/IA_Debug_Num1.IA_Debug_Num1"));
+	if (ia_debugNum1.Succeeded()) IA_DebugNum1 = ia_debugNum1.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum2(TEXT("/Game/Input/Debug/IA_Debug_Num2.IA_Debug_Num2"));
+	if (ia_debugNum2.Succeeded()) IA_DebugNum2 = ia_debugNum2.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum3(TEXT("/Game/Input/Debug/IA_Debug_Num3.IA_Debug_Num3"));
+	if (ia_debugNum3.Succeeded()) IA_DebugNum3 = ia_debugNum3.Object;
 
 
 
@@ -141,6 +159,17 @@ void AWarriorController::SetupInputComponent()
 	EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Started, this, &AWarriorController::Attack);
 	EnhancedInput->BindAction(IA_LockOn, ETriggerEvent::Completed, this, &AWarriorController::LockOn);
 	EnhancedInput->BindAction(IA_ChangeLockOn, ETriggerEvent::Triggered, this, &AWarriorController::ChangeLockOn);
+
+	//---------------------------------------------------------------
+	// 디버그 용 바인드
+	// TriggerDebugToggle 아래 디버그에 사용할 키들을 바인딩 해주면 됨.
+	// 
+	//---------------------------------------------------------------
+	EnhancedInput->BindAction(IA_DebugToggle, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugToggle);
+	EnhancedInput->BindAction(IA_DebugNum1, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum1);
+	EnhancedInput->BindAction(IA_DebugNum2, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum2);
+	EnhancedInput->BindAction(IA_DebugNum3, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum3);
+	//---------------------------------------------------------------
 
 	// 세이브/로드 바인드
 	EnhancedInput->BindAction(IA_Save, ETriggerEvent::Completed, this, &AWarriorController::Save);
@@ -333,6 +362,67 @@ void AWarriorController::Load()
 	if (GameMode)
 	{
 		GameMode->LoadGame();
+	}
+}
+
+void AWarriorController::TriggerDebugToggle()
+{
+	auto subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+
+	if (!subsystem || !IMC_Debug)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Debug Mode Failed"));
+		return;
+	}
+
+	bIsDebugModeActive = ~bIsDebugModeActive;
+
+	if (bIsDebugModeActive)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Debug Mode Active"));
+
+		subsystem->AddMappingContext(IMC_Debug, 10);
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드 활성화 (1, 2, 3 키 사용 가능)"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("Debug Mode Not Active"));
+
+		subsystem->RemoveMappingContext(IMC_Debug);
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("디버그 모드 비활성화"));
+	}
+}
+
+void AWarriorController::TriggerDebugNum1()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드: 숫자 1"));
+
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->SetOverlayState(EOverlayState::None);
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("플레이어 오버레이 상태: 주먹"));
+	}
+}
+
+void AWarriorController::TriggerDebugNum2()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드: 숫자 2"));
+
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->SetOverlayState(EOverlayState::OneHand);
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("플레이어 오버레이 상태: 한손"));
+	}
+}
+
+void AWarriorController::TriggerDebugNum3()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드: 숫자 3"));
+
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->SetOverlayState(EOverlayState::TwoHand);
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("플레이어 오버레이 상태: 양손"));
 	}
 }
 

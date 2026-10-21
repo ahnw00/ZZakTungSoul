@@ -6,6 +6,7 @@
 #include "Character/CharacterBase.h"
 #include "Data/StateEnum.h"
 #include "Interface/CharacterStatInterface.h"
+#include "Interface/CharacterControllerInterface.h"
 #include "Warrior.generated.h"
 
 // [전방 선언].
@@ -52,10 +53,14 @@ private:
 
 	bool bIsSprint = false;
 	bool bIsAttacking = false;
+	uint8 bCanComboInput:1 = false;
+	uint8 bComboQueued:1 = false;
 
 	EMoveState MoveState = EMoveState::Idle;
 	EActionState ActionState = EActionState::None;
 	EOverlayState OverlayState = EOverlayState::None;
+
+
 
 	int32 AttackCombo = 0;
 
@@ -83,7 +88,12 @@ public:
 	void BlockEnd();
 
 	void Attack();
+	void FinishAttack();
+	void SetComboWindow(bool bOpen);
+	void OnComboTransition();
 	FORCEINLINE bool IsAttacking() const { return bIsAttacking; }
+
+	FORCEINLINE  bool IsAttackKeyDown() const { return bIsAttacking; }
 
 	void Dodge(FVector ControlDir);
 
@@ -124,5 +134,7 @@ public:
 	virtual UCharacterStatComponent* GetCharacterStatComponent() const override { return CharacterStatComponent; }
 	// [세이브 데이터].
 	virtual const struct FWarriorSaveData* GetSaveData() const override;
+
+
 	
 };

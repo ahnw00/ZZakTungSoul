@@ -54,6 +54,25 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* IA_Load;
 
+	//---------------------------------------------------------------
+	// 디버그 용
+	// Insert키를 누르면 디버그 상태.
+	// Insert키를 누르면 디버그 컨텍스트가 추가 됨. (우선순위를 높게 주어 기존 키 가로채기 가능)
+	// 다시 누르면 제거.
+	// 
+	//---------------------------------------------------------------
+	uint8 bIsDebugModeActive : 1 = false;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputMappingContext* IMC_Debug;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugToggle;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum1;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum2;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum3;
+
 private:
 	void Move(const struct FInputActionValue& InputValue);
 	void Idle();
@@ -88,10 +107,14 @@ private:
 	void Save();
 	void Load();
 
-
-
-
-
+	//---------------------------------------------------------------
+	// 디버그 용 토글 함수 및 숫자들 트리거 함수.
+	// 
+	//---------------------------------------------------------------
+	void TriggerDebugToggle();
+	void TriggerDebugNum1();
+	void TriggerDebugNum2();
+	void TriggerDebugNum3();
 
 
 	// [UI]

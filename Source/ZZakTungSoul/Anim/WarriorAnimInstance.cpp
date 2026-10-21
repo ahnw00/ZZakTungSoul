@@ -24,7 +24,70 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 	{
 		BackStepMontage = BackStepMontageRef.Object;
 	}
+
+	//None						// 아무런 무기를 안든 상태
+	//Block,					// 무기를 든 채로 방패로 막기
+	//BlockWithoutWeapon,		// 무기를 안 든 채로 방패로 막기
+	//OneHand,					// 방패 든 채로 무기 들고 있는 상태		
+	//OneHandWithoutShield,		// 방패 안 든 채로 무기 들고 있는 상태	
+	//TwoHand					// 두 손으로 무기 들고 있는 상태
+
+	//if (!HasAnyFlags(RF_ClassDefaultObject))
+	//{
+	//	return;
+	//}
+
+	//None,	아무런 무기를 안든 상태
+	const int32 NoneAttackMontageMaxCount = 4;
+	AttackMontage.Add(EOverlayState::None);
+
+	for (int32 i = 1; i <= NoneAttackMontageMaxCount; i++)
+	{
+		FString ObjectPath = FString::Printf(
+			TEXT("/Game/RetargetAnimations/UnArmed/Warrior_Unarmed_Attack_Montage_%d.Warrior_Unarmed_Attack_Montage_%d"), i, i);
+
+		ConstructorHelpers::FObjectFinder<UAnimMontage> NoneAttackMontageRef(*ObjectPath);
+
+		if (NoneAttackMontageRef.Succeeded())
+		{
+			AttackMontage[EOverlayState::None].Entries.Add(NoneAttackMontageRef.Object);
+		}
+	}
+
+	//OneHand, 방패 든 채로 무기 들고 있는 상태
+	const int32 OneHandAttackMontageMaxCount = 4;
+	AttackMontage.Add(EOverlayState::OneHand);
+
+	for (int32 i = 1; i <= OneHandAttackMontageMaxCount; i++)
+	{
+		FString ObjectPath = FString::Printf(
+			TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_SwordAndShield_Attack_Montage_%d.Warrior_SwordAndShield_Attack_Montage_%d"), i, i);
+		ConstructorHelpers::FObjectFinder<UAnimMontage> OneHandAttackMontageRef(*ObjectPath);
+
+		if (OneHandAttackMontageRef.Succeeded())
+		{
+			AttackMontage[EOverlayState::OneHand].Entries.Add(OneHandAttackMontageRef.Object);
+		}
+	}
+
+	//TwoHand, 두 손으로 무기 들고 있는 상태
+	const int32 TwoHandAttackMontageMaxCount = 4;
+	AttackMontage.Add(EOverlayState::TwoHand);
+
+	for (int32 i = 1; i <= TwoHandAttackMontageMaxCount; i++)
+	{
+		FString ObjectPath = FString::Printf(
+			TEXT("/Game/RetargetAnimations/TwoHanded/Warrior_TwoHand_Attack1_Montage_%d.Warrior_TwoHand_Attack1_Montage_%d"), i, i);
+		ConstructorHelpers::FObjectFinder<UAnimMontage> TwoHandAttackMontageRef(*ObjectPath);
+
+		if (TwoHandAttackMontageRef.Succeeded())
+		{
+			AttackMontage[EOverlayState::TwoHand].Entries.Add(TwoHandAttackMontageRef.Object);
+		}
+	}
 }
+
+
 
 void UWarriorAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
@@ -76,7 +139,9 @@ void UWarriorAnimInstance::AnimNotify_ComboCheck()
 	if (AWarrior* Warrior = Cast<AWarrior>(Pawn))
 	{
 		if (Warrior->GetCombo() < 1)
+		{
 			StopAttackMontage();
+		}
 
 		Warrior->ResetCombo();
 	}
@@ -84,17 +149,25 @@ void UWarriorAnimInstance::AnimNotify_ComboCheck()
 
 void UWarriorAnimInstance::PlayMontage(const EActionState CurrentActionState)
 {
+
 }
 
-void UWarriorAnimInstance::PlayActionMontage()
+bool UWarriorAnimInstance::PlayActionMontage()
 {
+	//UE_LOG(LogTemp, Warning, TEXT("PlayActionMontage()== Start "));
 	auto Pawn = TryGetPawnOwner();
+
 	if (!Pawn)
-		return;
+	{
+		return false;
+	}
 
 	AWarrior* Warrior = Cast<AWarrior>(Pawn);
+
 	if (!Warrior)
-		return;
+	{
+		return false;
+	}
 
 	EActionState CurState = Warrior->GetActionState();
 
@@ -109,7 +182,32 @@ void UWarriorAnimInstance::PlayActionMontage()
 		Montage_Play(BackStepMontage);
 		break;
 	case EActionState::Attack:
-		Montage_Play(AttackMontage);
+	{
+		EOverlayState CurOverlayState = Warrior->GetOverlayState();
+		const int32 ComboIndex = Warrior->GetCombo();
+		
+		const auto Montages = AttackMontage.Find(CurOverlayState);
+
+		if (!Montages)
+		{
+			return false;
+		}
+
+		if (!Montages->Entries.IsValidIndex(ComboIndex))
+		{
+			return false;
+		}
+
+		//UE_LOG(LogTemp, Warning, TEXT("PlayActionMontage()== Montage_Play ComboIndex: %d"), ComboIndex);
+		float Time = Montage_Play(Montages->Entries[ComboIndex]);
+
+		//UE_LOG(LogTemp, Warning, TEXT("PlayActionMontage()== Montage_Play Montages->Entries[ComboIndex]: %s"), *Montages->Entries[ComboIndex]->GetName());
+		//UE_LOG(LogTemp, Warning, TEXT("PlayActionMontage()== Montage_Play Time: %f"), Time);
+		//UE_LOG(LogTemp, Warning, TEXT("PlayActionMontage()== Montage_Play ComboIndex: %d"), ComboIndex);
+
+		return Time > 0.f;
+		//Montage_Play(AttackMontage[CurOverlayState].Entries[ComboIndex]);
+	}
 		break;
 	case EActionState::Hit:
 		//Montage_Play();
@@ -117,6 +215,8 @@ void UWarriorAnimInstance::PlayActionMontage()
 	default:
 		break;
 	}
+
+	return true;
 }
 
 void UWarriorAnimInstance::PlayRollMontage()

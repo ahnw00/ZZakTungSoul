@@ -13,7 +13,7 @@ void UAnimNotifyState_AttackTrace::NotifyBegin(USkeletalMeshComponent* MeshComp,
 		UAttackTraceComponent* TraceComp = MeshComp->GetOwner()->FindComponentByClass<UAttackTraceComponent>();
 		if (TraceComp)
 		{
-			TraceComp->BeginTrace(MeshComp);
+			TraceComp->BeginTrace();
 		}
 	}
 }

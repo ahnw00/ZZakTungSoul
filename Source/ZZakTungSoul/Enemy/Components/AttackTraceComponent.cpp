@@ -67,16 +67,24 @@ void UAttackTraceComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	PreviousEnd = CurrentEnd;
 }
 
-void UAttackTraceComponent::BeginTrace(UMeshComponent* InTraceMesh)
+void UAttackTraceComponent::BeginTrace()
 {
+	UMeshComponent* Mesh = TraceMesh.Get();
+
 	// 매쉬 유효성 검사
-	if (!IsValid(InTraceMesh))
+	if (!IsValid(Mesh))
 	{
 		return;
 	}
 
-	// 소켓 유효성 검사
-	if (!InTraceMesh->DoesSocketExist(TraceStartSocketName) || !InTraceMesh->DoesSocketExist(TraceEndSocketName))
+	// 이미 판정중이면 건너뛰기
+	if (bIsTracing)
+	{
+		return;
+	}
+
+	// Socket 유효성 검사
+	if (!Mesh->DoesSocketExist(TraceStartSocketName) || !Mesh->DoesSocketExist(TraceEndSocketName))
 	{
 		return;
 	}
@@ -84,15 +92,12 @@ void UAttackTraceComponent::BeginTrace(UMeshComponent* InTraceMesh)
 	// 기존의 판정이 남아있다면 판정 초기화
 	EndTrace();
 
-	// 매쉬 받아오기
-	TraceMesh = InTraceMesh;
-
 	// 공격 판정 하기 전에 초기화
 	HitActors.Reset();
 
 	// 현재 판정하는 소켓 위치 저장
-	PreviousStart = InTraceMesh->GetSocketLocation(TraceStartSocketName);
-	PreviousEnd = InTraceMesh->GetSocketLocation(TraceEndSocketName);
+	PreviousStart = Mesh->GetSocketLocation(TraceStartSocketName);
+	PreviousEnd = Mesh->GetSocketLocation(TraceEndSocketName);
 
 	bIsTracing = true;
 
@@ -104,10 +109,44 @@ void UAttackTraceComponent::EndTrace()
 {
 	// 공격 판정 후 초기화
 	bIsTracing = false;
+
+	// Tick 비활성화
 	SetComponentTickEnabled(false);
 
+	// 판정 중복 Actor 초기화
 	HitActors.Reset();
-	TraceMesh.Reset();
+}
+
+void UAttackTraceComponent::SetTraceMesh(UMeshComponent* InTraceMesh)
+{
+	// 공격 판정 중 Mesh 변경 방지
+	if (bIsTracing)
+	{
+		EndTrace();
+	}
+
+	// 기존 Mesh와 같으면 건너뛰기
+	if (TraceMesh.Get() == InTraceMesh)
+	{
+		return;
+	}
+
+	// Null(맨손)일 때 참조 해제
+	if (!IsValid(InTraceMesh))
+	{
+		TraceMesh.Reset();
+		return;
+	}
+
+	// 소켓 유효성 검사
+	if (!InTraceMesh->DoesSocketExist(TraceStartSocketName) || !InTraceMesh->DoesSocketExist(TraceEndSocketName))
+	{
+		//TraceMesh.Reset();
+		return;
+	}
+
+	// Mesh 등록
+	TraceMesh = InTraceMesh;
 }
 
 void UAttackTraceComponent::CheckTrace(const FVector& Start, const FVector& End)

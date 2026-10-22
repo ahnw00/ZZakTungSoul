@@ -5,8 +5,13 @@
 #include <Enemy/EnemyAIController.h>
 #include <Enemy/Data/EnemyAIData.h>
 #include <Enemy/Components/AttackTraceComponent.h>
+#include <Character/CharacterStatComponent.h>
+#include <Interface/CharacterStatInterface.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
+#include <Components/StaticMeshComponent.h>
+#include <Components/SkeletalMeshComponent.h>
+#include <Engine/StaticMesh.h>
 
 AEnemyBase::AEnemyBase()
 {
@@ -35,6 +40,9 @@ void AEnemyBase::BeginPlay()
 
 	// 초기 상태에 따른 이동속도 설정
 	UpdateMovementSpeed();
+
+	// 무기 Mesh 초기화
+	InitializeWeapon();
 
 	// Delegate 연결
 	if (AttackTraceComponent)
@@ -112,7 +120,84 @@ void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
 
 	UE_LOG(LogTemp, Log, TEXT("Attack Hit: %s"), *HitActor->GetName());
 
-	// @Todo: 데미지 처리
+	// @Todo: 데미지 임시 처리
+	if (ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(HitActor))
+	{
+		TargetStatComp = StatOwner->GetCharacterStatComponent();
+
+		TargetStatComp->ApplyDamage(50.0f);
+
+		UE_LOG(LogTemp, Log, TEXT("Attack Hit!!!!!@!@!@@@@@@!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("Attack Noooooooooo Hit!!!!!"));
+	}
+
+}
+
+void AEnemyBase::InitializeWeapon()
+{
+	// 중복 초기화 방지
+	if (IsValid(WeaponMeshComponent) || !IsValid(WeaponMesh))
+	{
+		return;
+	}
+
+	// 캐릭터 SkeletalMesh 확인
+	USkeletalMeshComponent* CharacterSKMesh = GetMesh();
+	if (!IsValid(CharacterSKMesh))
+	{
+		return;
+	}
+
+	// Socket 유효성 검사
+	// 캐릭터의 무기 부착 Socket 확인
+	if (!CharacterSKMesh->DoesSocketExist(WeaponAttachSocketName))
+	{
+		return;
+	}
+
+	// 무기의 Socket 확인
+	if (!WeaponMesh->FindSocket(TEXT("TraceStart")) || !WeaponMesh->FindSocket(TEXT("TraceEnd")))
+	{
+		return;
+	}
+
+	// 무기 컴포넌트 생성
+	UStaticMeshComponent* NewMeshComp = NewObject<UStaticMeshComponent>(this, UStaticMeshComponent::StaticClass(), TEXT("EquippedWeaponMesh"));
+	if (!IsValid(NewMeshComp))
+	{
+		return;
+	}
+
+	// 무기 Mesh 적용
+	NewMeshComp->SetStaticMesh(WeaponMesh.Get());
+
+	// 실제 충돌 검사는 TraceComponent에서 함
+	NewMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	NewMeshComp->SetGenerateOverlapEvents(false);
+	NewMeshComp->SetSimulatePhysics(false);
+
+	// Component 추가 -> 런타임 설정
+	AddInstanceComponent(NewMeshComp);
+
+	// 부착 계층 설정
+	NewMeshComp->SetupAttachment(CharacterSKMesh, WeaponAttachSocketName);
+
+	// Transform 설정 Socket의 설정된 값 사용
+	NewMeshComp->SetRelativeTransform(FTransform::Identity);
+
+	// Component 등록 -> 런타임 설정
+	NewMeshComp->RegisterComponent();
+
+	// 실제 무기 Mesh Component 참조 저장
+	WeaponMeshComponent = NewMeshComp;
+	if (IsValid(WeaponMeshComponent))
+	{
+		AttackTraceComponent->SetTraceMesh(WeaponMeshComponent.Get());
+	}
+
 }
 
 void AEnemyBase::SetEnemyState(EEnemyState NewState)

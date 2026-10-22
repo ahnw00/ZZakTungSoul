@@ -31,10 +31,13 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	// 공격 판정 시작 함수
-	void BeginTrace(UMeshComponent* InTraceMesh);
+	void BeginTrace();
 
 	// 공격 판정 종료 함수
 	void EndTrace();
+
+	// 매쉬 컴포넌트 설정 함수
+	void SetTraceMesh(UMeshComponent* InTraceMesh);
 
 private:
 	// Sweep Trace 실행 함수

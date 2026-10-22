@@ -111,6 +111,7 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 		return;
 	}
 
+	// DataAsset 가져오기
 	const UEnemyAIData* AIData = Enemy->GetEnemyAIData();
 	if (nullptr == AIData || nullptr == AIData->MainBT)
 	{
@@ -126,15 +127,16 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 
 	// Blackboard 컴포넌트 가져오기
 	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
-
-	// 사용할 블랙보드 지정
-	if (UseBlackboard(BlackboardAsset, BlackboardComponent))
+	// Blackboard 검사
+	if (nullptr == BlackboardAsset || !UseBlackboard(BlackboardAsset, BlackboardComponent))		// 사용할 블랙보드 지정
 	{
-		// Blackboard 상태 설정
-		BlackboardComponent->ClearValue(BBKEY_TARGETACTOR);
-		BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
-		BlackboardComponent->SetValueAsVector(BBKEY_HOMELOCATION, Enemy->GetActorLocation());
+		return;
 	}
+
+	// Blackboard 상태 설정
+	BlackboardComponent->ClearValue(BBKEY_TARGETACTOR);
+	BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
+	BlackboardComponent->SetValueAsVector(BBKEY_HOMELOCATION, Enemy->GetActorLocation());
 
 	// Behavior Tree 실행
 	RunBehaviorTree(BehaviorTreeAsset);

@@ -29,7 +29,7 @@ void UEnemyBaseAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	if (nullptr == Movement)
+	if (nullptr == Movement || nullptr == Owner)
 	{
 		return;
 	}

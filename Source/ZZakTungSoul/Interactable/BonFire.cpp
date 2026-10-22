@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Interactable/BonFire.h"
+#include "Interactable/Bonfire.h"
 #include <Components/StaticMeshComponent.h>
 #include <Components/SphereComponent.h>
 #include <Warrior/Warrior.h>
@@ -12,7 +12,7 @@
 
 
 // Sets default values
-ABonFire::ABonFire()
+ABonfire::ABonfire()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	
@@ -30,13 +30,16 @@ ABonFire::ABonFire()
 
 }
 // Called when the game starts or when spawned
-void ABonFire::BeginPlay()
+void ABonfire::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	// 감지구체 오버랩 콜백 함수 바인딩.
+	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &ABonfire::OnInteractionSphereBeginOverlap);
+	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &ABonfire::OnInteractionSphereEndOverlap);
 }
 
-bool ABonFire::CanInteractBonfire(AWarrior* Interactor) const
+bool ABonfire::CanInteractBonfire(AWarrior* Interactor) const
 {
 	if (!Interactor)
 	{
@@ -83,7 +86,17 @@ bool ABonFire::CanInteractBonfire(AWarrior* Interactor) const
 	return true;
 }
 
-void ABonFire::Interact(AWarrior* Interactor)
+void ABonfire::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+
+}
+
+void ABonfire::OnInteractionSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+
+}
+
+void ABonfire::Interact(AWarrior* Interactor)
 {
 	// 검사.
 	if (!CanInteractBonfire(Interactor))

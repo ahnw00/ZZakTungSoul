@@ -10,14 +10,13 @@
 
 #include "Components/ArrowComponent.h"
 
-//DataTable
-//#include "Data/CharacterStatData.h"
 #include <Warrior/WarriorPlayerState.h>
 #include <Character/CharacterStatComponent.h>
 
 #include "Anim/WarriorAnimInstance.h"
 #include "Enemy/WarriorAIController.h"
 #include "Engine/OverlapResult.h"
+#include "Interface/InteractionInterface.h"
 
 AWarrior::AWarrior()
 {
@@ -538,6 +537,14 @@ void AWarrior::SetOverlayState(EOverlayState NewState)
 		return;
 
 	OverlayState = NewState;
+}
+
+void AWarrior::Interact()
+{
+	if (CurrentInteractable)
+	{
+		CurrentInteractable->Interact(this);
+	}
 }
 
 const FWarriorSaveData* AWarrior::GetSaveData() const

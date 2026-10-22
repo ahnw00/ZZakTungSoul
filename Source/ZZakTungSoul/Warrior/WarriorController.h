@@ -89,7 +89,8 @@ private:
 	void Load();
 
 
-
+	// 상호작용.
+	void Interact();
 
 
 

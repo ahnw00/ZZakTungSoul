@@ -148,6 +148,7 @@ void AWarriorController::SetupInputComponent()
 
 	// [UI]
 	InputComponent->BindKey(EKeys::C, IE_Pressed, this, &AWarriorController::ToggleStatusWindow);
+	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &AWarriorController::Interact);
 }
 
 void AWarriorController::Move(const FInputActionValue& InputValue)
@@ -339,6 +340,8 @@ void AWarriorController::Load()
 
 
 
+
+
 // [UI].
 // 사망, 리스폰 상황 때문에 미리 만들었음.
 void AWarriorController::OnPossess(APawn* InPawn)
@@ -385,6 +388,13 @@ void AWarriorController::ToggleStatusWindow()
 		bShowMouseCursor = true;
 		SetInputMode(FInputModeGameAndUI());
 	}
+}
 
-
+// 상호작용.
+void AWarriorController::Interact()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->Interact();
+	}
 }

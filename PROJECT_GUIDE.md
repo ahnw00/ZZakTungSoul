@@ -179,7 +179,7 @@ flowchart TD
 ### 🌿 줄기 7: 월드의 안식처와 상호작용 (Interactable & Bonfire)
 * **주요 파일**: 
   * `Source/ZZakTungSoul/Interface/InteractionInterface.h`, `.cpp`
-  * `Source/ZZakTungSoul/Interactable/BonFire.h`, `.cpp`
+  * `Source/ZZakTungSoul/Interactable/Bonfire.h`, `.cpp`
 * **역할 및 동작**:
   * **상호작용 규격 표준화 (`IInteractionInterface`)**:
     * 월드의 모든 상호작용 가능한 객체(화톳불, 보물상자, 문, NPC 등)가 상속할 다형성 인터페이스 `Interact(AWarrior* Interactor)`.
@@ -187,7 +187,7 @@ flowchart TD
     * 상태 머신 `EBonfireState` (Unlit: 꺼짐, Lit: 켜짐).
     * **3중 안전 검사 (`CanInteracBonfire`)**: 플레이어가 락온 중이거나 반경 15m(`EnemyCheckRadius`) 내에 살아있는 적(`!Enemy->IsDead()`)이 있으면 상호작용 차단.
     * **불 밝히기 & 휴식 분기**: 꺼진 상태면 최초 점화(`Lit`), 켜진 상태면 플레이어 HP/FP/Stamina 100% 회복 및 `OnBonfireRest` 델리게이트 방송.
-    * **순간이동(Fast Travel) 대비**: `BonfireID`, `BonFireDisplayName` 식별자 선제 배치.
+    * **순간이동(Fast Travel) 대비**: `BonfireID`, `BonfireDisplayName` 식별자 선제 배치.
 
 ---
 
@@ -807,7 +807,7 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
   * `Unlit` (최초 발견 시 꺼진 상태) ➔ 상호작용 시 불을 밝힘 (`Lit`).
   * `Lit` (이미 점화된 상태) ➔ 상호작용 시 휴식 및 회복 실행.
 * **순간이동(Fast Travel) 선제적 대비**:
-  * 향후 화톳불 간 텔레포트 기능 구현 시 코드를 다시 뜯어고치지 않도록, `BonfireID`(`FName`)와 `BonFireDisplayName`(`FText`)을 선제 배치.
+  * 향후 화톳불 간 텔레포트 기능 구현 시 코드를 다시 뜯어고치지 않도록, `BonfireID`(`FName`)와 `BonfireDisplayName`(`FText`)을 선제 배치.
 
 ### 13-3. 3중 안전 검사 (`CanInteracBonfire`)와 감지 단순화
 * **1차 검사**: 대상이 유효한 플레이어(`AWarrior`)인지 검사.

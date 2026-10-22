@@ -10,6 +10,7 @@
 
 // [전방 선언].
 class UCharacterStatComponent;
+class IInteractionInterface;
 
 /**
  * 
@@ -119,7 +120,15 @@ public:
 	//FORCEINLINE UArrowComponent GetLockOnPoint() { return LockOnPoint; }
 
 
+	// [상호작용]
+	void Interact();
+	void SetCurrentInteractable(class IInteractionInterface* InInteractable) { CurrentInteractable = InInteractable; }
+	class IInteractionInterface* GetCurrentInteractable() const { return CurrentInteractable; }
 
+private:
+	class IInteractionInterface* CurrentInteractable = nullptr;
+
+public:
 	// [캐릭터 스탯].
 	virtual UCharacterStatComponent* GetCharacterStatComponent() const override { return CharacterStatComponent; }
 	// [세이브 데이터].

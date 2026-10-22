@@ -211,6 +211,17 @@ int32 UCharacterStatComponent::GetRequiredSouls(int32 Level) const
 	return 0;
 }
 
+void UCharacterStatComponent::GetPreviewStats(const FWarriorAttributeData& InAttributes, 
+	float& OutMaxHP, float& OutMaxFP, float& OutMaxStamina, 
+	float& OutAttackPower, float& OutDefense, float& OutEquipLoad, float& OutResistance) const
+{
+	// Pool 가상 계산.
+
+	// 전투 스탯 가상 계산.
+
+	// 공격력.
+}
+
 
 
 // Called every frame

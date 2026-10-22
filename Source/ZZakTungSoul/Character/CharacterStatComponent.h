@@ -47,7 +47,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Stat|Events")
 	FOnStatChangedDelegate OnStaminaChanged;
 
+public:
+	// ==============================================================================================
 	// [Getter].
+	// ==============================================================================================
 	// Pool.
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	FORCEINLINE float GetCurrentHP() const { return CurrentHP; }
@@ -77,6 +80,10 @@ public:
 	// RequiredSouls
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
 	int32 GetRequiredSouls(int32 Level) const;
+
+	// 가상 수치 계산.
+	UFUNCTION(BlueprintPure, Category = "Stat|Simulation")
+	void GetPreviewStats(const struct FWarriorAttributeData& InAttributes, float& OutMaxHP, float& OutMaxFP, float& OutMaxStamina, float& OutAttackPower, float& OutDefense, float& OutEquipLoad, float& OutResistance) const;
 	// Attributes
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
 	FORCEINLINE float GetVigor() const { return Vigor; }
@@ -98,6 +105,11 @@ public:
 	float GetFPRatio() const { return MaxFP > 0.f ? FMath::Clamp(CurrentFP / MaxFP, 0.f, 1.f) : 0.f; }
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetStaminaRatio() const { return MaxStamina > 0.f ? FMath::Clamp(CurrentStamina / MaxStamina, 0.f, 1.f) : 0.f; }
+
+	
+
+
+
 
 	// [스탯 제어 및 소모 함수].
 	UFUNCTION(BlueprintCallable, Category = "Stat")

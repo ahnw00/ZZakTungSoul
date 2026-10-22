@@ -8,7 +8,7 @@
 ## 열린 항목 한눈에 (2026-10-22 기준, 맨 위에서 이것만 보면 된다)
 
 > 이 아래의 번호 섹션(0~9)은 **시간순 기록**이다. 현재 무엇이 남았는지는 이 표를 기준으로 하고, 항목 번호로 해당 섹션의 상세 근거를 찾는다. 항목이 해결되면 이 표에서 지우고 해당 섹션에 `[x]`를 단다(체크 표시는 리뷰어가 코드를 확인한 뒤에만 한다).
-> 기준 코드: `main` = `Ahn` = `2fabce4`, `Bae` = `4f7ca23`(10-20 `434331e` 화톳불, 10-21 `f05fe14`, 10-22 `4f7ca23` 포함) + 10-22 미커밋 작업 트리(`BonfireMenuWidget.*`, 컨트롤러/`Warrior` 수정, `PROJECT_GUIDE.md`), `Kang` = `0308a1e`. 빌드/실행은 리뷰어가 하지 않았다.
+> 기준 코드: `main` = `Ahn` = `2fabce4`, `Bae` = `ef6c899`(10-20 `434331e` 화톳불, 10-21 `f05fe14`, 10-22 `4f7ca23`, `ef6c899`: 화톳불 메뉴와 에셋 포함) + 미커밋 작업 트리(`GetPreviewStats` 골격, `LevelUpWidget.*`, `TeleportWidget.*`), `Kang` = `0308a1e`. 빌드/실행은 리뷰어가 하지 않았다.
 
 | 우선순위 | 항목 | 내용 | 상세 |
 |---|---|---|---|
@@ -19,17 +19,23 @@
 | 중간 | 9-4, 3-2, 4-5 | 전투 루프 없음(`ApplyDamage` 호출처 없음), 적에게 스탯 컴포넌트/인터페이스 없음, 컴포넌트를 `ACharacterBase`로 이동 | 섹션 9, 3 |
 | 중간 | 9-5, 9-6, 9-7 | 이동 속도 출처 4곳, `EnemyAIData` 속도 기본값 없음, AI 경로 2개(`WarriorAIController`/`EnemyAIController`) | 섹션 9 |
 | 중간 | 13-3, 13-4, 13-5, 12-3, 7-6, 7-7 | `UpgradeStat`이 호출자가 준 비용을 믿음, 레벨 상한이 우연히 걸림(레벨 표 10 / 성장 표 40 / `MaxValue` 99), 업그레이드 후 UI 미갱신, 비용 0의 의미, `UpdateCharacterStat` 책임/이중 호출 | 섹션 13, 12, 7 |
-| 중간 | 15-3, 15-4, 15-5, 15-6 | UI 모드 전환 코드 4곳 복사(위젯이 `CloseBonfireMenu()`를 안 씀), `CurrentInteractable` 가공되지 않은 포인터, 파일명 대소문자(Git `BonFire.*` ↔ 디스크 `Bonfire.*`), 코드와 에셋을 같이 커밋 | 섹션 15 |
+| 중간 | 16-1, 16-2, 16-3, 16-4, 16-5, 16-6 | 구현 전에 정할 설계: `GetPreviewStats`의 출력 7개 → 구조체, 공식을 `UpdateCharacterStat`과 공유, 위젯의 파생값 저장, 스탯 이름 `FName` 3번째 사용(= 13-6 격상, `EAttributeType`), `CommitLevelUp`은 `UpgradeStat` 반복 대신 일괄 함수, 스탯 텍스트/헬퍼 중복 | 섹션 16 |
+| 중간 | 15-3, 15-4, 15-5 | UI 모드 전환 코드 4곳 복사(위젯이 `CloseBonfireMenu()`를 안 씀), `CurrentInteractable` 가공되지 않은 포인터, 파일명 대소문자(Git `BonFire.*` ↔ 디스크 `Bonfire.*`) | 섹션 15 |
+| 중간 | 16-11 | 가이드 "임베딩한 스탯창이 실시간 자동 갱신" 서술이 코드와 맞지 않음(`RefreshStatus`는 열 때만 호출) | 섹션 16 |
 | 중간 | 13-10, 13-12 | `Interact`가 `AWarrior`에 묶임, 적 리셋 구독 구조 | 섹션 13 |
 | 중간 | 9-15, 9-17 | CSV ↔ DataTable 에셋 동기화 규칙(에셋 3개는 10-19에 CSV와 같은 `Content/Data/`로 이동됨, 원본 규칙은 미정), 저장소 크기(`Frank_Slash_Pack` 약 957MB, LFS 없음) | 섹션 9, 12 (팀 합의 필요) |
 | 중간 | 2-4, 4-7, 5-4 | 구르기 비용 25 하드코딩, 스탯창이 최대값만 표시/열 때만 갱신 | 섹션 2, 4, 5 |
 | 낮음 | K-2, K-3, K-4, K-6, K-7, K-9 | 적 AI 정리 항목(비트필드 초기화, `GetPlayerPawn(0)`, 조용한 실패 경로, `Dead` 복구, `bIsCombat`, 테스트 자산) | 섹션 4, 9 |
 | 낮음 | 2-8, 3-3, 9-12 | 프로젝트 헤더 include 스타일 혼재(각괄호/따옴표) | 섹션 2, 3, 9 |
+| 낮음 | 16-7 ~ 16-10, 16-12 | `LevelUpWidget` 초기화 시점/이름, `TeleportWidget` 구현 전 결정(점화 목록 저장), 서브메뉴 미연결, 헤더 서식, 가이드의 남은 오타·낡은 문구 | 섹션 16 |
 | 낮음 | 15-7 ~ 15-11 | 화면 디버그 메시지(`GEngine` null), 필수 버튼이 `BindWidgetOptional`, 필요 소울 0 표시, `E`/`C` 키 `BindKey`, 가이드의 확인 못한 "검증 완료" 문구 | 섹션 15 |
 | 중간 | 14-1, 14-2, 14-3, 14-4 | 불필요한 복잡도: 인터페이스→컴포넌트 2단 조회 4곳 복사(헬퍼 1개로), 비율 계산 중복(+ 미사용 getter), `Bonfire`의 불필요한 분기와 `RestoreToFull()`, 실행되지 않는 현재값 분기 | 섹션 14 |
 | 낮음 | 14-5 ~ 14-9 | 주석 처리된 코드 28줄, 쓰지 않는 `OverloadedSpeed`/화톳불 getter, 생성자 테이블 로딩 3블록, 인터페이스의 두 책임, `SetNumberText`(= 13-8) | 섹션 14 |
-| 낮음 | 13-1, 13-6, 13-7, 13-8, 13-14 ~ 13-16 | `int32` 함수 안의 `float` 캐스트 잔재, 스탯 이름 문자열 `if-else`, Pawn 없을 때 `true`, 스탯창 캐스트 14회, 사용 불가 피드백, 점화 상태 미저장, 정리 | 섹션 13 |
+| 낮음 | 13-1, 13-7, 13-8, 13-14 ~ 13-16 | `int32` 함수 안의 `float` 캐스트 잔재, Pawn 없을 때 `true`, 스탯창 캐스트 14회, 사용 불가 피드백, 점화 상태 미저장, 정리 | 섹션 13 |
 | 낮음 | 1-6, 2-9~2-11, 11-7, 11-8, 12-6, 12-7, 이름·표기, 9-8~9-11, 9-13, 9-14 | 주석 처리된 코드, 변수명/표기 통일, 낡은 주석, 들여쓰기, `DA_Test` | 섹션 1, 2, 9 |
+
+**2026-10-22 (후속 점검)**
+- 해소: 15-6(`ef6c899`에서 코드와 에셋이 함께 커밋됨). 새 항목은 섹션 16(16-1 ~ 16-12). 새로 추가된 `GetPreviewStats`, `LevelUpWidget`, `TeleportWidget`은 모두 골격 단계(본문이 비어 있음)라서 구현 전에 정할 설계를 중심으로 리뷰했다.
 
 **2026-10-22에 정리된 것**
 - 코드 반영 확인: 12-8(`TEAM_DEV_LOG.md` 삭제), 13-9(화톳불 `UPROPERTY`를 `EditAnywhere`로), 13-11(오버랩 바인딩 + `E` 키 + `Warrior::Interact`로 호출 경로 연결), 13-13(`Bonfire` 표기 통일, 단 Git 파일명은 15-5), 13-16 일부. 새 항목은 섹션 15(15-1 ~ 15-11).
@@ -1017,7 +1023,7 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
   ```
 - [ ] **15-4. (중간) `CurrentInteractable`이 가공되지 않은 인터페이스 포인터이다.** (`Warrior.h`의 `class IInteractionInterface* CurrentInteractable`) `UPROPERTY`가 될 수 없어서 대상 액터가 파괴되거나 서브레벨이 내려갈 때 `EndOverlap`이 오지 않으면 매달린 포인터가 된다. `TWeakInterfacePtr<IInteractionInterface>`(UE 5.1 이상)나 `TWeakObjectPtr<AActor>` + `Cast`로 바꾸면 안전하다. `LockOnTarget`(9-3)과 같은 종류의 문제이다.
 - [ ] **15-5. (중간) 파일 이름의 대소문자가 Git과 디스크에서 다르다.** 디스크의 파일은 `Interactable/Bonfire.h/.cpp`이고 코드의 `#include "Interactable/Bonfire.h"`, `#include "Bonfire.generated.h"`도 같지만, Git이 추적하는 이름은 `BonFire.h/.cpp`이다(`git ls-files`로 확인). `core.ignorecase=true`라서 Git이 이름 변경을 인식하지 못하고 `M`으로만 표시한다. 팀원이 받으면 Windows에서는 옛 이름 `BonFire.h`가 그대로 남아 UHT가 만드는 `BonFire.generated.h`와 코드의 `Bonfire.generated.h`가 달라진다(UHT나 대소문자를 구분하는 환경에서 오류가 날 수 있음, 미확인). 이름 변경을 Git에 반영하려면 임시 이름을 거쳐 두 번 `git mv`를 하고(예: `BonFire.h` → `tmp.h` → `Bonfire.h`) `.cpp`도 같게 한 뒤 커밋한다. `main`에 올리기 전에 처리할 것.
-- [ ] **15-6. (중간) 코드와 에셋이 따로 커밋될 위험.** `BonfireMenuWidget.*`, `Content/UI/WBP_BonfireMenuWidget.uasset`, `Content/Blueprints/Interactable/`가 아직 추적되지 않았고 `TestMap.umap`은 바이너리 변경이다. 컨트롤러 생성자가 `FClassFinder`로 경로를 찾는데 실패하면 로그 없이 `BonfireMenuWidgetClass`가 비어서 **메뉴가 그냥 열리지 않는다**(`WarriorController.cpp`의 `Succeeded()` else 없음, HUD/스탯창 로딩도 같다). 코드와 에셋을 같은 커밋으로 올리고, `Succeeded()`가 아닐 때 `UE_LOG(Error)`를 남기면 원인을 바로 찾는다. `.umap`은 바이너리라 같은 맵을 두 명이 고치면 병합할 수 없으니 맵 편집 담당을 정해 둘 것.
+- [x] **15-6. (중간) 코드와 에셋이 따로 커밋될 위험.** (2026-10-22: 커밋 `ef6c899`에 `BonfireMenuWidget.*`, `WBP_BonfireMenuWidget.uasset`, `BP_Bonfire.uasset`, `TestMap.umap`이 컨트롤러 변경과 함께 들어간 것을 확인함. `FClassFinder` 실패 시 로그를 남기는 것은 선택으로 남음) `BonfireMenuWidget.*`, `Content/UI/WBP_BonfireMenuWidget.uasset`, `Content/Blueprints/Interactable/`가 아직 추적되지 않았고 `TestMap.umap`은 바이너리 변경이다. 컨트롤러 생성자가 `FClassFinder`로 경로를 찾는데 실패하면 로그 없이 `BonfireMenuWidgetClass`가 비어서 **메뉴가 그냥 열리지 않는다**(`WarriorController.cpp`의 `Succeeded()` else 없음, HUD/스탯창 로딩도 같다). 코드와 에셋을 같은 커밋으로 올리고, `Succeeded()`가 아닐 때 `UE_LOG(Error)`를 남기면 원인을 바로 찾는다. `.umap`은 바이너리라 같은 맵을 두 명이 고치면 병합할 수 없으니 맵 편집 담당을 정해 둘 것.
 
 ### 3) 정리
 
@@ -1025,7 +1031,7 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 - [ ] **15-8. (낮음) 필수 버튼이 `BindWidgetOptional`이다.** (`BonfireMenuWidget.h:35-40`) 위젯 블루프린트에서 버튼 이름이 틀리면 에러 없이 버튼이 무반응이 된다. 반드시 있어야 하는 버튼이면 `HUD`처럼 `BindWidget`으로 해서 컴파일 때 잡히게 할 것.
 - [ ] **15-9. (낮음) 필요 소울이 0으로 표시될 수 있다.** (`StatusWindowWidget.cpp:51`) `GetRequiredSouls`가 행이 없을 때 `0`을 돌려주므로(12-3) 최대 레벨에서 "필요 소울: 0"으로 보인다. `-`나 `MAX`를 보여 주려면 반환 규칙(13-3)부터 정해야 한다.
 - [ ] **15-10. (낮음) `E`·`C` 키가 `BindKey`로 직접 묶여 있다.** (`WarriorController.cpp`의 `SetupInputComponent`) 나머지 입력은 모두 Enhanced Input(`IA_*`)인데 UI와 상호작용 키만 방식이 달라서 재배치나 게임패드 지원이 안 된다. `IA_Interact`, `IA_StatusWindow`를 만들어 같은 방식으로 묶으면 일관된다.
-- [ ] **15-11. (낮음) 미커밋 `PROJECT_GUIDE.md`의 새 문구 중 리뷰어가 확인할 수 없는 것.** "플레이어 E키 입력 및 오버랩 바인딩 연동"은 코드로 확인했다. "`BP_Bonfire` 레벨 배치 및 인게임 작동 검증 완료", "`WBP_StatusWindow` 임베딩 검증 완료"는 에셋을 읽을 수 없고 실행도 안 해서 확인하지 못했다. 또 15-1, 13-2, 13-3이 열려 있는 상태에서 "✅ 구현 (완료)"로 쓰면 독자가 오해하므로 "알려진 이슈" 표와 같이 갱신할 것. 헤더의 "브랜치 `Bae` (`main`과 같은 커밋 `2fabce4`에서 갱신)"는 틀렸다(`Bae`는 `4f7ca23`이고 `main`보다 앞섬). 본문의 `CanInteracBonfire`는 `CanInteractBonfire` 오타이다. `UpgradeStat`의 C++ 호출처는 없다(블루프린트의 호출 여부는 에셋을 읽지 못해 확인 못함).
+- [ ] **15-11. (낮음) 미커밋 `PROJECT_GUIDE.md`의 새 문구 중 리뷰어가 확인할 수 없는 것.** (2026-10-22 후속: 이 문구는 `ef6c899`로 커밋됨. `CanInteractBonfire` 오타는 한 곳(`:190`)만 고쳐졌고 나머지와 헤더의 브랜치 문구는 그대로. 새로 확인한 가이드 문제는 16-11, 16-12) "플레이어 E키 입력 및 오버랩 바인딩 연동"은 코드로 확인했다. "`BP_Bonfire` 레벨 배치 및 인게임 작동 검증 완료", "`WBP_StatusWindow` 임베딩 검증 완료"는 에셋을 읽을 수 없고 실행도 안 해서 확인하지 못했다. 또 15-1, 13-2, 13-3이 열려 있는 상태에서 "✅ 구현 (완료)"로 쓰면 독자가 오해하므로 "알려진 이슈" 표와 같이 갱신할 것. 헤더의 "브랜치 `Bae` (`main`과 같은 커밋 `2fabce4`에서 갱신)"는 틀렸다(`Bae`는 `4f7ca23`이고 `main`보다 앞섬). 본문의 `CanInteracBonfire`는 `CanInteractBonfire` 오타이다. `UpgradeStat`의 C++ 호출처는 없다(블루프린트의 호출 여부는 에셋을 읽지 못해 확인 못함).
 
 ### 4) 확인된 좋은 점
 
@@ -1046,3 +1052,64 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 2. 13-2(레벨업 시 현재 HP/FP 초기화)의 정책을 정한다. 화톳불 메뉴로 레벨업이 가능해졌으므로 이제 플레이어가 바로 겪는 문제이다.
 3. `main`에 올리기 전에 15-5(파일명 대소문자), 15-6(코드와 에셋을 같이 커밋)을 처리한다.
 4. 15-4(약참조), 15-7 ~ 15-10은 정리 작업으로 묶는다.
+
+---
+
+## 16. 레벨업 시뮬레이션과 새 위젯 골격 리뷰 (2026-10-22, 커밋 `ef6c899` 이후 미커밋 작업)
+
+**대상**: `CharacterStatComponent.h/.cpp`의 `GetPreviewStats`(본문 비어 있음), `UI/LevelUpWidget.h/.cpp`(선언만 있고 모든 함수 본문이 비어 있음), `UI/TeleportWidget.h/.cpp`(빈 클래스). 모두 **골격 단계**라서 동작 오류가 아니라 구현 전에 정할 설계를 중심으로 본다. 커밋 `ef6c899`는 앞 섹션에서 본 `BonfireMenuWidget`, `WarriorController`, `Bonfire` 변경을 그대로 담고 있어서 추가 코드 변화는 없었다.
+빌드와 실행은 하지 않았다. 코드는 수정하지 않았다.
+
+**총평**: 직전 논의의 결론(시뮬레이션 계산은 컴포넌트에, 임시 선택 상태는 위젯에)이 구조에 반영되어 있다. `PendingPoints`를 위젯이 갖고 `GetPreviewStats`를 컴포넌트에 둔 것이 그렇다. 구현에 들어가기 전에 정할 것은 **(1) 확정(Commit)을 한 번에 처리하는 방법, (2) 출력 값 7개를 넘기는 방식, (3) 공식을 `UpdateCharacterStat`과 공유하는 방법**이다.
+
+### 1) 컴포넌트: `GetPreviewStats`
+
+- [ ] **16-1. (중간) 출력 매개변수가 7개이다.** (`CharacterStatComponent.h:84-86`, `.cpp:214-223`) `float& OutMaxHP, OutMaxFP, OutMaxStamina, OutAttackPower, OutDefense, OutEquipLoad, OutResistance`는 스탯이 하나 늘 때마다 선언, 정의, C++ 호출부, 블루프린트 노드가 모두 바뀐다. 호출하는 쪽도 지역 변수 7개가 필요하다. 결과를 담는 구조체 하나(`FStatPreview`)를 반환하면 필드를 추가해도 호출부는 바뀌지 않고, 블루프린트에서도 `Break` 노드로 쓸 수 있다. 본문이 비어 있어 출력이 초기화되지 않으므로, 구현 전에 호출하면 쓰레기 값이 나온다는 점도 알아 둘 것(임시로 0 대입).
+  ```cpp
+  USTRUCT(BlueprintType)
+  struct FStatPreview
+  {
+  	GENERATED_BODY()
+  	UPROPERTY(BlueprintReadOnly) float MaxHP = 0.f;
+  	UPROPERTY(BlueprintReadOnly) float MaxFP = 0.f;
+  	UPROPERTY(BlueprintReadOnly) float MaxStamina = 0.f;
+  	UPROPERTY(BlueprintReadOnly) float AttackPower = 0.f;
+  	UPROPERTY(BlueprintReadOnly) float Defense = 0.f;
+  	UPROPERTY(BlueprintReadOnly) float EquipLoad = 0.f;
+  	UPROPERTY(BlueprintReadOnly) float Resistance = 0.f;
+  };
+  // UFUNCTION(BlueprintPure) FStatPreview GetPreviewStats(const FWarriorAttributeData& InAttributes) const;
+  ```
+- [ ] **16-2. (중간) 계산식이 `UpdateCharacterStat`(`cpp:112-127`)과 두 벌이 될 수 있다.** 시뮬레이션 숫자와 실제 적용 결과가 어긋나는 것이 이 기능의 가장 큰 위험이다. `GetPreviewStats`를 먼저 만들고 `UpdateCharacterStat`이 그 결과를 멤버에 대입하게 하면 공식이 한 곳에만 남는다. 이렇게 하면 계산(`GetPreviewStats`)과 현재값 처리(`UpdateCharacterStat`)가 갈라져 13-2, 7-6도 같이 풀린다. `InAttributes`는 `SaveData.Attributes`와 같은 **추가 포인트** 의미(기본값 10은 포함하지 않음)이므로, 위젯은 `BaseAttributes + PendingPoints`를 넘긴다는 점을 선언 주석에 적어 둘 것.
+
+### 2) `LevelUpWidget`
+
+- [ ] **16-3. (중간) 파생값을 멤버로 저장하고 있다.** (`LevelUpWidget.h:61-68`) `BaseLevel`, `BaseSouls`, `BaseAttributes`, `VirtualLevel`, `TotalRequiredSouls`, `PendingPoints` 6개 중 진짜 변하는 상태는 `PendingPoints` 하나이다. `VirtualLevel`은 `BaseLevel + (PendingPoints의 합)`이고 `TotalRequiredSouls`는 `BaseLevel`부터 `VirtualLevel` 직전까지 `GetRequiredSouls`의 합이다. 저장해 두면 `AddPoint`/`SubPoint`/초기화 어디선가 갱신을 빼먹는 순간 화면이 틀린다. `RefreshUI`에서 `PendingPoints`로부터 계산하면 필드가 줄고 불일치가 생길 수 없다.
+- [ ] **16-4. (중간) 스탯 이름을 `FName`으로 받는 곳이 세 번째가 된다.** (`AddPoint(FName)`, `SubPoint(FName)`, 이미 있는 `UpgradeStat(FName, ...)`, 13-6) 이 위젯에서 이름마다 `PendingPoints.Vigor` 같은 멤버로 분기하면 `if-else`가 하나 더 생긴다. `UENUM EAttributeType`을 하나 만들면 세 곳이 같은 타입을 쓰고, 오타가 컴파일 오류가 되며, 위젯 블루프린트의 버튼 이벤트에서 드롭다운으로 고를 수 있다. 13-6을 낮음에서 중간으로 올린다.
+- [ ] **16-5. (중간) `CommitLevelUp`을 `UpgradeStat`의 반복 호출로 만들면 안 된다.** `UpgradeStat`은 1포인트 단위(검사 → 증가 → 차감 → `UpdateCharacterStat`)이다. 포인트 N개를 N번 부르면 (1) 매번 `UpdateCharacterStat` → `LoadCharacterStat`이 현재 HP/FP를 초기화하고(13-2), (2) 중간에 소울이 모자라면 일부만 적용된 상태로 끝나며, (3) 레벨이 올라갈 때마다 비용이 바뀌는 계산이 호출마다 퍼진다. `AWarriorPlayerState`에 **일괄 함수**(예: `bool ApplyLevelUp(const FWarriorAttributeData& Pending)`)를 하나 두어 총 비용을 한 번에 검증하고, 전부 차감·증가한 뒤 `UpdateCharacterStat`을 한 번만 부르게 할 것. 총 비용 계산 `GetTotalRequiredSouls(FromLevel, ToLevel)`은 컴포넌트의 `GetRequiredSouls` 옆에 두고, 위젯(표시용)과 PlayerState(검증용)가 같이 쓰게 한다. 위젯이 계산한 `TotalRequiredSouls`는 믿지 말고 PlayerState가 다시 계산해야 한다(13-3).
+- [ ] **16-6. (중간) 스탯 텍스트 목록과 숫자 헬퍼가 중복된다.** (`LevelUpWidget.h:71-111`) `TextBlock_*` 20개가 `StatusWindowWidget.h`의 목록과 이름·용도가 거의 같고, 값을 넣는 `SetNumberText` 헬퍼도 세 번째로 필요해진다. 헬퍼는 13-8에서 제안한 오버로드 두 개를 `UI/` 공용 헤더의 `inline` 함수(또는 `UBlueprintFunctionLibrary`)로 한 번만 두고, 가능하면 "스탯 이름 + 값" 한 줄을 서브 위젯으로 만들어 스탯창과 레벨업 창이 같이 쓰게 하면 코드와 `UPROPERTY` 선언이 크게 줄어든다.
+- [ ] **16-7. (낮음) 초기화 시점과 이름.** (`LevelUpWidget.h:27-33`) 버튼 바인딩은 한 번만 하는 `NativeOnInitialized`에, 열릴 때마다 필요한 `PendingPoints` 초기화는 `InitializedLevelUp()`에 두고 호출 위치를 정해야 한다. 화톳불 메뉴 안에 임베드하고 `WidgetSwitcher`로 페이지를 전환하면 `NativeConstruct`가 다시 불리지 않으므로 전환할 때 부모가 `InitializedLevelUp()`을 직접 불러야 한다. 이름은 `InitializeLevelUp`이 자연스럽고, `CanAddPoint()`는 `BlueprintPure`로 하면 `+` 버튼의 활성/비활성에 쓸 수 있다. `h:56`의 "캐싱된 컴포넌트 가져오기" 주석과 달리 캐시 멤버는 없다(`UCharacterStatComponent`는 `ICharacterStatInterface` 헬퍼(14-1)로 얻으면 됨).
+
+### 3) 나머지
+
+- [ ] **16-8. (낮음) `TeleportWidget` 구현 전에 정할 것.** 빈 클래스(`TeleportWidget.h:12-17`)는 지금은 문제없다. 구현하려면 (1) 점화한 화톳불 목록을 어디에 저장하는지(`FWarriorSaveData`에는 아직 없음, 13-15), (2) `BonfireID`로 월드의 화톳불 위치를 찾는 방법, (3) 같은 레벨 안 이동인지 레벨 전환인지를 먼저 정해야 한다.
+- [ ] **16-9. (낮음) 아직 서브메뉴가 연결되지 않았다.** `BonfireMenuWidget::OnLevelUpClicked`는 여전히 `ToggleStatusWindow()`를 부르고, `OnTeleportClicked`는 디버그 메시지이다(`BonfireMenuWidget.cpp:28-40`). 새 위젯을 화톳불 메뉴 안에 임베드하는 방식이면 15-1, 15-3(UI 입력 모드 정리)과 같이 정리할 것.
+- [ ] **16-10. (낮음) 헤더 서식.** `CharacterStatComponent.h:50`의 `public:`이 바로 앞의 `public:` 구획과 중복되고, `h:109-112` 부근의 빈 줄 네 줄, `// ====` 구분선 주석이 추가되었다. `GetPreviewStats` 선언이 getter 목록 한가운데(`GetRequiredSouls`와 Attributes getter 사이)에 끼어 있으니 "시뮬레이션" 구획으로 분리할 것. `LevelUpWidget.h`에도 빈 줄이 여러 줄 있다.
+
+### 4) `PROJECT_GUIDE.md` (커밋 `ef6c899`에 포함된 내용)
+
+- [ ] **16-11. (오류 가능성) "임베딩한 `WBP_StatusWindow`가 최신 수치를 실시간으로 자동 갱신한다"는 서술(가이드 13-6)은 코드와 맞지 않는다.** `UStatusWindowWidget::RefreshStatus()`는 `NativeConstruct`(`StatusWindowWidget.cpp:11-17`)와 컨트롤러의 `ToggleStatusWindow`에서만 불린다. 델리게이트 구독도 없어서 메뉴가 열려 있는 동안 수치가 바뀌어도 갱신되지 않는다(4-7, 5-4, 13-5). 또 같은 클래스가 화톳불 메뉴에 임베드된 인스턴스와 `C`/`레벨업`으로 여는 별도 인스턴스 두 개가 동시에 존재할 수 있다(에셋 내용은 읽지 못해 확인하지 못함). "열릴 때 한 번 갱신"으로 정정할 것.
+- [ ] **16-12. (낮음) 남은 불일치.** 가이드 6행의 "`main`과 같은 커밋 `2fabce4`에서 갱신"은 `Bae`가 `ef6c899`이므로 틀리다. `CanInteracBonfire` 오타가 12장 11번 항목(792행 부근)과 13-3 제목(827행 부근)에 남아 있다. 14장 표의 `LevelUpWindowWidget`은 실제 클래스 이름 `ULevelUpWidget`과 다르다. 14장 표에는 15-1(메뉴와 스탯창의 입력 모드)이 없다.
+
+### 5) 이번 변경으로 상태가 바뀐 이전 항목
+
+- 해소: 15-6(코드와 에셋이 `ef6c899`에 함께 커밋됨).
+- 격상: 13-6(스탯 이름 `FName` 비교)을 낮음에서 중간으로(16-4).
+- 그대로: 13-1 ~ 13-5, 13-7, 13-8, 13-10, 13-12, 13-14, 13-15, 14-1 ~ 14-9, 15-1 ~ 15-5, 15-7 ~ 15-10. 15-5는 `git ls-files`가 여전히 `BonFire.h/.cpp`를 돌려준다.
+
+### 6) 우선순위
+
+1. 16-1, 16-2, 16-5를 먼저 정한다(출력 구조체, 공식 공유, 일괄 확정 함수). 구현에 들어간 뒤에 바꾸면 위젯과 PlayerState를 다시 고쳐야 한다.
+2. 16-4(`EAttributeType`)를 같이 도입한다. `UpgradeStat`, `AddPoint`, `SubPoint`가 한 번에 정리된다.
+3. 13-2(레벨업 시 현재 HP/FP)는 16-2의 분리와 함께 해결한다.
+4. 16-11(가이드의 "실시간 갱신" 정정)과 15-5(파일명 대소문자)는 `main`에 올리기 전에 처리한다.

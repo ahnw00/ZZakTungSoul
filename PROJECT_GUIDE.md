@@ -1,13 +1,13 @@
 # 🎮 ZZakTungSoul (짝퉁 소울) 프로젝트 분석 및 개발 가이드북
 
-> **작성일**: 2026-10-12 (최종 갱신: 2026-10-20)  
+> **작성일**: 2026-10-12 (최종 갱신: 2026-10-22)  
 > **프로젝트**: ZZakTungSoul (Unreal Engine 5)  
 > **작성자**: Antigravity & Bae (2026-10-19·20 사실 확인·정정: Claude 코드 리뷰어)  
 > **브랜치**: `Bae` (`main`과 같은 커밋 `2fabce4`에서 갱신)
 
 ---
 
-## 0. 현재 구현 상태 요약 (2026-10-20 갱신) — 이 문서를 읽는 AI와 팀원은 먼저 읽을 것
+## 0. 현재 구현 상태 요약 (2026-10-22 갱신) — 이 문서를 읽는 AI와 팀원은 먼저 읽을 것
 
 > ⚠️ **읽는 규칙**: 아래 12장의 Q&A와 5~11장의 서술은 **"왜 이렇게 설계했는가"를 설명하는 학습 노트**입니다. 어떤 기능이 *실제로 구현되어 있는지*는 이 표를 기준으로 판단하세요. 코드가 바뀌면 이 표를 먼저 갱신하고, 문서에 새 사실을 쓰기 전에 **반드시 소스에서 확인**하세요(코드 조각을 문서에 복사하지 말고 파일 링크로 대체). 코드 리뷰의 근거와 열린 이슈는 루트의 `Review(Claude).md`에 있습니다.
 
@@ -15,7 +15,7 @@
 |---|---|---|
 | 스탯 컴포넌트 (HP/FP/Stamina, 델리게이트, 스태미나 회복, `UseFP`/`UseStamina`) | ✅ 구현 | `Character/CharacterStatComponent.*`. 초기값은 `DT_StatDefine`의 `InitialValue`를 `LoadCharacterStat()`이 읽어 적용 |
 | `ICharacterStatInterface` + HUD 바인딩 (`OnPossess` + `NativeConstruct`) | ✅ 구현 | Pawn이 교체되어도 견디는 **구조**. 실제 사망/리스폰 흐름은 아래 "미구현" 참고 |
-| 스탯창 (`C` 키, `WBP_StatusWindow`) | ✅ 구현 (2차 완료) | 열 때만 갱신. HP/FP/Stamina는 **최대값만** 표시, 주 스탯 6종도 컴포넌트 계산값(`GetVigor` 등, 기본 10) 정상 출력 연동 완료 |
+| 스탯창 (`C` 키, `WBP_StatusWindow`) | ✅ 구현 (완료) | 열 때만 갱신. HP/FP/Stamina 최대값, 주 스탯 6종 계산값(기본 10), 다음 레벨 필요 소울(`TextBlock_RequiredSouls`) 정상 출력 연동 완료 |
 | 세이브/로드 (슬롯, PlayerState) | ✅ 구현 | `AZTSGameMode`, `AWarriorPlayerState`, `UWarriorPlayerSaveGame` |
 | 구르기 스태미나 소모 | ✅ 구현 | 비용 25가 `Warrior.cpp`에 하드코딩 |
 | 적 AI 골격 (`AEnemyBase`, `AEnemyAIController`, BT Task/Service, `EnemyAIData`) | ✅ 구현 (진행 중) | Perception, 상태(`EEnemyState`), 순찰/추격/Strafe. 전투(공격/피격)는 미완 |
@@ -26,7 +26,8 @@
 | 사망/리스폰 | ❌ 미구현 | `OnDeath` 없음, 적의 `Dead` 상태에 진입하는 코드 없음 |
 | 적의 스탯/체력 | ❌ 미구현 | `AEnemyBase`는 스탯 컴포넌트와 인터페이스가 없음 |
 | 레벨업/소울 소모 & 스탯 업그레이드 | ✅ 구현 (2026-10-20 갱신) | 컴포넌트의 `GetRequiredSouls(Level)` 레벨별 필요 소울 조회, `AWarriorPlayerState::UpgradeStat`에서 소울 검사·차감·레벨 증가·스탯 포인트 투자 및 `UpdateCharacterStat` 실시간 동기화 완료 |
-| 상호작용 인터페이스 및 화톳불 액터 | ✅ 구현 (진행 중) | `IInteractionInterface` 다형성 인터페이스, `ABonfire` 액터(3중 안전 검사 `CanInteracBonfire`, 불 밝히기/휴식, HP/FP/Stamina 100% 회복, `OnBonfireRest` 델리게이트 방송). 플레이어 E키 입력 바인딩 및 레벨 배치는 진행 예정 |
+| 상호작용 인터페이스 및 화톳불 액터 | ✅ 구현 (완료) | `IInteractionInterface` 다형성 인터페이스, `ABonfire` 액터(3중 안전 검사 `CanInteractBonfire`, 불 밝히기/휴식, HP/FP/Stamina 100% 회복, `OnBonfireRest` 델리게이트 방송). 플레이어 E키 입력 및 오버랩 바인딩 연동, `BP_Bonfire` 레벨 배치 및 인게임 작동 검증 완료 |
+| 화톳불 메뉴 UI (`WBP_BonfireMenuWidget`) | ✅ 구현 (1차) | `UBonfireMenuWidget` C++ 베이스 위젯, `NativeOnInitialized` 기반 버튼 바인딩(레벨업/전송/떠나기), 컨트롤러의 `OpenBonfireMenu`/`CloseBonfireMenu` 연동, `WBP_StatusWindow` 임베딩 검증 완료 |
 
 ---
 
@@ -180,14 +181,19 @@ flowchart TD
 * **주요 파일**: 
   * `Source/ZZakTungSoul/Interface/InteractionInterface.h`, `.cpp`
   * `Source/ZZakTungSoul/Interactable/Bonfire.h`, `.cpp`
+  * `Source/ZZakTungSoul/UI/BonfireMenuWidget.h`, `.cpp` (`Content/UI/WBP_BonfireMenuWidget`)
 * **역할 및 동작**:
   * **상호작용 규격 표준화 (`IInteractionInterface`)**:
     * 월드의 모든 상호작용 가능한 객체(화톳불, 보물상자, 문, NPC 등)가 상속할 다형성 인터페이스 `Interact(AWarrior* Interactor)`.
   * **화톳불 액터 (`ABonfire`)**:
     * 상태 머신 `EBonfireState` (Unlit: 꺼짐, Lit: 켜짐).
-    * **3중 안전 검사 (`CanInteracBonfire`)**: 플레이어가 락온 중이거나 반경 15m(`EnemyCheckRadius`) 내에 살아있는 적(`!Enemy->IsDead()`)이 있으면 상호작용 차단.
+    * **3중 안전 검사 (`CanInteractBonfire`)**: 플레이어가 락온 중이거나 반경 15m(`EnemyCheckRadius`) 내에 살아있는 적(`!Enemy->IsDead()`)이 있으면 상호작용 차단.
     * **불 밝히기 & 휴식 분기**: 꺼진 상태면 최초 점화(`Lit`), 켜진 상태면 플레이어 HP/FP/Stamina 100% 회복 및 `OnBonfireRest` 델리게이트 방송.
-    * **순간이동(Fast Travel) 대비**: `BonfireID`, `BonfireDisplayName` 식별자 선제 배치.
+    * **오버랩 감지 및 플레이어 등록**: `InteractionSphere`의 `OnComponentBegin/EndOverlap`을 통해 접근한 플레이어에게 `SetCurrentInteractable(this)` 등록/해제.
+    * **전송(Teleport) 대비 식별자**: `BonfireID`, `BonfireDisplayName`을 `EditAnywhere`로 열어 레벨 인스턴스별 고유 ID 지정 지원.
+  * **화톳불 메뉴 UI (`UBonfireMenuWidget`)**:
+    * 휴식 시 컨트롤러가 `OpenBonfireMenu()`로 호출하여 화면에 팝업. `NativeOnInitialized` 기반 버튼 3종(레벨업, 전송, 떠나기) 이벤트 처리.
+    * `WBP_StatusWindow`를 자식 위젯으로 통째로 임베딩하여 최신 스탯 수치 실시간 출력 및 `FInputModeGameAndUI` 조작 모드 지원.
 
 ---
 
@@ -785,10 +791,19 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 11. **과도한 중복 조건문과 매직 넘버(800.f) 제거**:
     - **현상**: `CanInteracBonfire` 구현 시 이미 `OverlapMultiByChannel` 구체(15m)로 탐지된 적에 대해 루프 내부에서 또다시 `DistSquared < 800.f`와 적의 AI 상태(`Chase`, `Attack`)를 복잡하게 분기 검사함.
     - **교훈**: 화톳불 위험 반경(`EnemyCheckRadius`) 내에 살아있는 적(`!Enemy->IsDead()`)이 한 마리라도 존재하면 상태와 무관하게 휴식을 차단하는 것이 소울라이크의 기본 규칙입니다. 중복 연산과 하드코딩 매직 넘버를 걷어내고 구체 탐색 결과 하나로 단순화하여 가독성과 유지보수성을 극대화함.
+12. **UMG 생명주기 선택(`NativeConstruct` vs `NativeOnInitialized`)과 델리게이트 중복 바인딩 방지**:
+    - **현상**: 화톳불 메뉴 위젯의 버튼 `OnClicked` 바인딩을 `NativeConstruct`에 배치할 경우, 화톳불 메뉴를 열고 닫을 때마다(`AddToViewport` 시마다) 바인딩 코드가 불필요하게 반복 실행됨.
+    - **교훈**: 위젯 생성(`CreateWidget`) 시 메모리 생애주기 동안 단 1회만 호출되는 `NativeOnInitialized`에 버튼 델리게이트를 바인딩하면, 화톳불을 수백 번 열고 닫아도 중복 바인딩이나 오버헤드 없이 안전하게 1회만 등록됨.
+13. **런타임 위젯 포인터와 가비지 컬렉터(GC) 방어 (`UPROPERTY()`의 스마트 참조 역할)**:
+    - **현상**: `AWarriorController`에서 위젯 인스턴스 변수(`BonfireMenuWidget`)에 `UPROPERTY()`를 누락할 경우, 에디터에 노출할 필요가 없는 변수임에도 불구하고 언리얼 가비지 컬렉터가 소유자가 없는 고아 객체로 판단하여 게임 실행 중 메모리에서 임의로 수거(Destroy)해 크래시를 유발함.
+    - **교훈**: 파라미터가 비어 있는 `UPROPERTY()`는 에디터 노출 목적이 아니라, 언리얼 리플렉션과 가비지 컬렉터에게 "내가 살아있는 동안 이 메모리를 절대 파괴하지 마라"는 강력한 참조 보존(Keep-Alive) 플래그임을 체득함.
+14. **클래스/파일명 대소문자 불일치(`ABonFire` vs `ABonfire`)와 C++ 리팩토링 교훈**:
+    - **현상**: C++ 클래스명은 `ABonfire`로 선언되었으나 함수나 바인딩에서 `ABonFire::` 등 대소문자가 섞여 컴파일러가 클래스 식별자를 찾지 못하는 `must be a class or namespace name` 에러 발생.
+    - **교훈**: 블루프린트 에셋(`BP_Bonfire`)을 생성하고 레벨에 배치하기 '전'인 순수 C++ 단계에서 발견하여 리팩토링 비용 없이 일괄 통일할 수 있었음. 파스칼 케이스와 복합 단어의 명명 규칙은 초기 단계에서 철저히 일치시켜야 함.
 
 ---
 
-## 13. 월드의 안식처: 화톳불(Bonfire) 및 상호작용 시스템 구축 (2026-10-20)
+## 13. 월드의 안식처: 화톳불(Bonfire) 및 상호작용 시스템 구축 (2026-10-20 ~ 2026-10-22 갱신)
 
 ### 13-1. 설계 철학: 1:1 상호작용(인터페이스)과 1:N 월드 사건(델리게이트)의 분리
 * **`IInteractionInterface` (1:1 직접 명령)**:
@@ -822,9 +837,33 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 * `SetCurrentHP(MaxHP)`, `SetCurrentFP(MaxFP)`, `SetCurrentStamina(MaxStamina)`를 호출하여 Clamp 및 UI 방송을 거쳐 체력/마나/스태미나를 100% 완전 회복.
 * `OnBonfireRest.Broadcast()`를 호출하여 월드에 휴식 사건 통보.
 
+### 13-5. 플레이어 E키 상호작용 및 오버랩 바인딩 파이프라인 (2026-10-22 완료)
+* **`AWarrior`의 기억 슬롯 (`CurrentInteractable`)**:
+  * 플레이어가 눈앞의 대상을 기억하는 `IInteractionInterface* CurrentInteractable` 포인터 선언.
+  * `Interact()` 호출 시 `if (CurrentInteractable) CurrentInteractable->Interact(this);` 다형성 명령 전달.
+* **`AWarriorController`의 E키 감지**:
+  * `InputComponent->BindKey(EKeys::E, IE_Pressed, ...)`를 통해 E키 입력 시 조종 중인 캐릭터의 `Warrior->Interact()` 호출.
+* **`ABonfire`의 오버랩 감지 및 플레이어 등록**:
+  * `InteractionSphere`의 `OnComponentBeginOverlap` / `OnComponentEndOverlap`을 `BeginPlay()`에서 `AddDynamic`으로 안전하게 바인딩.
+  * 플레이어 진입 시 `Warrior->SetCurrentInteractable(this);`, 퇴장 시 `Warrior->SetCurrentInteractable(nullptr);`로 안전한 등록 및 회수 완비.
+
+### 13-6. 화톳불 메뉴 UI 시스템 (`UBonfireMenuWidget`) 구축 (2026-10-22 완료)
+* **C++ 베이스 위젯 설계 (`UBonfireMenuWidget`)**:
+  * `Button_LevelUp`, `Button_Teleport`, `Button_Leave`를 `BindWidgetOptional`로 선언하여 디자이너가 원하는 레이아웃으로 버튼을 배치해도 안전 연동.
+  * **UMG 생명주기 최적화**: 위젯이 메모리에 생성(`CreateWidget`)될 때 딱 1회만 호출되는 `NativeOnInitialized()`에서 버튼 `OnClicked` 델리게이트를 등록하여, 메뉴를 수백 번 열고 닫아도 중복 바인딩 및 오버헤드 원천 차단.
+* **컨트롤러 지연 생성(Lazy Initialization) 및 조작 모드 제어**:
+  * `AWarriorController::OpenBonfireMenu()`에서 인스턴스가 없을 때만 `CreateWidget` 최초 생성 후 재사용.
+  * 메뉴 오픈 시 `bShowMouseCursor = true` 및 `FInputModeGameAndUI()`로 실시간 소울라이크 메뉴 모드 적용, 닫을 시 `FInputModeGameOnly()`로 즉시 플레이 조작 복구.
+* **위젯 임베딩(Embedding)을 통한 스탯창 연동**:
+  * `WBP_BonfireMenuWidget` 내에 기존 `WBP_StatusWindow`를 User Created 위젯으로 통째로 임베딩하여, 화톳불 메뉴가 스탯 계산을 몰라도 스탯창의 C++ `RefreshStatus()`가 최신 수치를 실시간으로 자동 갱신.
+
+### 13-7. `Bonfire` 명명 규칙 및 에디터 속성(`EditAnywhere`) 일괄 통일
+* 클래스명, 파일명, 함수명의 대소문자 혼재(`ABonFire` vs `ABonfire`)를 `ABonfire`로 완전 일괄 통일하여 네이밍 일관성 확보.
+* `BonfireID`, `BonfireDisplayName`, `EnemyCheckRadius`를 `EditAnywhere`로 전환하여 레벨 에디터 디테일 패널에서 인스턴스별 고유 ID/이름 커스터마이징 지원.
+
 ---
 
-## 14. 알려진 이슈와 다음 작업 (2026-10-20 갱신)
+## 14. 알려진 이슈와 다음 작업 (2026-10-22 갱신)
 
 > 근거와 상세 위치(파일, 행 번호)는 루트의 `Review(Claude).md` 마지막 섹션에 있습니다. 여기서는 **다음에 이 문서를 고치거나 기능을 추가할 때 알아야 할 사실**만 요약합니다.
 
@@ -838,11 +877,13 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 | 중간 | AI 경로 2개 | `AWarriorAIController`(레거시)와 `AEnemyAIController` 중 정식 경로를 정하고 정리 |
 | 해결 (2026-10-19) | `GetRequiredSouls` 조건 반전 | `CharacterStatComponent.cpp`의 `GetRequiredSouls` 조건문(`!LevelRequiredSoulsTable || Level <= 0`) 수정 완료 |
 | 해결 (2026-10-20) | 성장 시스템 마무리 | 주 스탯 10 UI 화면 출력 연결 완료, `AWarriorPlayerState::UpgradeStat` 구현 완료 |
-| 보통 | 화톳불 플레이어 연결 | 플레이어 E키 상호작용 입력 바인딩 및 `BP_Bonfire` 에셋 제작/레벨 배치 |
-| 보통 | 스탯창 잔여 UI | `StatusWindowWidget`에 다음 레벨 필요 소울(`TextBlock_RequiredSouls`) 표시 연결 |
+| 해결 (2026-10-22) | 화톳불 플레이어 연결 | 플레이어 E키 상호작용 입력 바인딩, 오버랩 바인딩 및 `BP_Bonfire` 레벨 배치/검증 완료 |
+| 해결 (2026-10-22) | 스탯창 잔여 UI | `StatusWindowWidget`에 `TextBlock_RequiredSouls` 연결 및 코드 통합 완료 |
 | 보통 | 몬스터 스포너 시스템 | `OnBonfireRest` 델리게이트를 수신하여 사망 몬스터 재생성 처리 |
 | 보통 | 레벨업 시 HP/FP 회복 정책 | `UpgradeStat` ➔ `UpdateCharacterStat` 호출 시 `CurrentHP/FP`가 기본 최대치로 리셋되는 현상. 증가분만 가산할지 완전 회복할지 정책 결정 |
-| 낮음 | 화톳불 속성 및 피드백 정리 | `BonfireID`를 레벨에서 수정 가능하도록 `EditAnywhere` 전환, 상호작용 실패 시 UI 알림 피드백 구조 고려 |
+| 해결 (2026-10-22) | 화톳불 메뉴 UI 및 리팩토링 | `UBonfireMenuWidget` C++ 베이스 위젯, `WBP_StatusWindow` 임베딩, `ABonfire` 명명 및 `EditAnywhere` 속성 통일 완료 |
+| 보통 | 화톳불 시각 연출 | `BP_Bonfire`에 불꽃 파티클(Particle/Niagara) 부착하여 `Lit` 시 점화 연출 |
+| 보통 | 레벨업 전용 윈도우 | 스탯창 임시 오픈 대신 레벨업 전용 창(`LevelUpWindowWidget`) 분리 제작 및 `UpgradeStat` 연동 |
 | 중간 | CSV ↔ DataTable 동기화 규칙 없음 | Reimport 절차와 "어느 쪽이 원본인가"를 팀이 정할 것 |
 | 중간 | 저장소 크기 | `Content/Frank_Slash_Pack`이 약 957MB, Git LFS 미사용. 팀 합의 후 LFS 도입 또는 에셋 범위 축소 검토, 에셋 라이선스와 저장소 공개 범위 확인 |
 | 낮음 | include 스타일 혼재 | 프로젝트 헤더는 따옴표(`"Warrior/Warrior.h"`)로 통일하기로 하고 `Enemy`, `Warrior`, `Character` 폴더의 각괄호 include를 정리 |

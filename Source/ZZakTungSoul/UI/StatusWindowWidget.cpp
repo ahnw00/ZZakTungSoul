@@ -71,7 +71,8 @@ void UStatusWindowWidget::RefreshStatus()
 		SetNumberText(TextBlock_Poise, static_cast<int32>(StatComp->GetPoise()));
 		SetNumberText(TextBlock_EquipLoad, static_cast<int32>(StatComp->GetEquipLoad()));
 		SetNumberText(TextBlock_Resistance, static_cast<int32>(StatComp->GetResistance()));
-		
+
+	}
 }
 
 

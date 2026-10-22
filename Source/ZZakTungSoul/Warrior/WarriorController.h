@@ -9,6 +9,7 @@
 // [전방 선언].
 class UPlayerHUDWidget;
 class UStatusWindowWidget;
+class UBonfireMenuWidget;
 
 /**
  * 
@@ -101,19 +102,33 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Status")
 	void ToggleStatusWindow();
 
+	// [화톳불 메뉴]
+	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
+	void OpenBonfireMenu();
+	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
+	void CloseBonfireMenu();
+
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 
 
 private:
+	// [플레이어 HUD]
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UPlayerHUDWidget> PlayerHUDWidgetClass;
 	UPROPERTY()
 	TObjectPtr<UPlayerHUDWidget> PlayerHUDWidget;
 
+	// [스탯창]
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UStatusWindowWidget> StatusWindowWidgetClass;
 	UPROPERTY()
 	TObjectPtr<UStatusWindowWidget> StatusWindowWidget;
+
+	// [화톳불]
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UBonfireMenuWidget> BonfireMenuWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UBonfireMenuWidget> BonfireMenuWidget;
 
 };

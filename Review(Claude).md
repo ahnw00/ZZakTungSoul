@@ -5,29 +5,34 @@
 
 ---
 
-## 열린 항목 한눈에 (2026-10-20 기준, 맨 위에서 이것만 보면 된다)
+## 열린 항목 한눈에 (2026-10-22 기준, 맨 위에서 이것만 보면 된다)
 
 > 이 아래의 번호 섹션(0~9)은 **시간순 기록**이다. 현재 무엇이 남았는지는 이 표를 기준으로 하고, 항목 번호로 해당 섹션의 상세 근거를 찾는다. 항목이 해결되면 이 표에서 지우고 해당 섹션에 `[x]`를 단다(체크 표시는 리뷰어가 코드를 확인한 뒤에만 한다).
-> 기준 코드: `main` = `Ahn` = `2fabce4`, `Bae` = `1d98fd8`(10-19 "1019 Attribute 관련 코드 작성" `9fc0efe` 포함) + 10-20 미커밋 작업 트리, `Kang` = `0308a1e`. 빌드/실행은 리뷰어가 하지 않았다.
+> 기준 코드: `main` = `Ahn` = `2fabce4`, `Bae` = `4f7ca23`(10-20 `434331e` 화톳불, 10-21 `f05fe14`, 10-22 `4f7ca23` 포함) + 10-22 미커밋 작업 트리(`BonfireMenuWidget.*`, 컨트롤러/`Warrior` 수정, `PROJECT_GUIDE.md`), `Kang` = `0308a1e`. 빌드/실행은 리뷰어가 하지 않았다.
 
 | 우선순위 | 항목 | 내용 | 상세 |
 |---|---|---|---|
+| 높음 (확인 필요) | 15-1, 15-2 | 화톳불 메뉴 → 스탯창 → 닫기에서 입력 모드/마우스 커서가 어긋남, 메뉴 중 이동·공격 입력이 계속 들어감(PIE 재현 필요) | 섹션 15 |
 | 높음 | 13-2 (= 12-2) | 레벨업(`UpgradeStat` → `UpdateCharacterStat`)할 때마다 현재 HP/FP가 초기 최대치로 되돌아감. 회복 정책을 먼저 정할 것 | 섹션 13, 12 |
 | 높음 (확인 필요) | 9-1 | 공격 후 `ActionState`가 `Attack`에 고착될 수 있음 (`PlayAttackMontage()`가 빈 함수) | 섹션 9 |
 | 높음 | 9-2, 9-3 | 락온의 `GetController()` null 역참조(`Warrior.cpp`), `LockOnTarget` 일반 포인터 | 섹션 9 |
 | 중간 | 9-4, 3-2, 4-5 | 전투 루프 없음(`ApplyDamage` 호출처 없음), 적에게 스탯 컴포넌트/인터페이스 없음, 컴포넌트를 `ACharacterBase`로 이동 | 섹션 9, 3 |
 | 중간 | 9-5, 9-6, 9-7 | 이동 속도 출처 4곳, `EnemyAIData` 속도 기본값 없음, AI 경로 2개(`WarriorAIController`/`EnemyAIController`) | 섹션 9 |
 | 중간 | 13-3, 13-4, 13-5, 12-3, 7-6, 7-7 | `UpgradeStat`이 호출자가 준 비용을 믿음, 레벨 상한이 우연히 걸림(레벨 표 10 / 성장 표 40 / `MaxValue` 99), 업그레이드 후 UI 미갱신, 비용 0의 의미, `UpdateCharacterStat` 책임/이중 호출 | 섹션 13, 12, 7 |
-| 중간 | 13-9, 13-10, 13-11, 13-12 | 화톳불 `UPROPERTY`가 `VisibleAnywhere`라 `BonfireID`를 못 바꿈, `Interact`가 `AWarrior`에 묶임, 호출처/오버랩 바인딩 없음, 적 리셋 구독 구조 | 섹션 13 |
+| 중간 | 15-3, 15-4, 15-5, 15-6 | UI 모드 전환 코드 4곳 복사(위젯이 `CloseBonfireMenu()`를 안 씀), `CurrentInteractable` 가공되지 않은 포인터, 파일명 대소문자(Git `BonFire.*` ↔ 디스크 `Bonfire.*`), 코드와 에셋을 같이 커밋 | 섹션 15 |
+| 중간 | 13-10, 13-12 | `Interact`가 `AWarrior`에 묶임, 적 리셋 구독 구조 | 섹션 13 |
 | 중간 | 9-15, 9-17 | CSV ↔ DataTable 에셋 동기화 규칙(에셋 3개는 10-19에 CSV와 같은 `Content/Data/`로 이동됨, 원본 규칙은 미정), 저장소 크기(`Frank_Slash_Pack` 약 957MB, LFS 없음) | 섹션 9, 12 (팀 합의 필요) |
 | 중간 | 2-4, 4-7, 5-4 | 구르기 비용 25 하드코딩, 스탯창이 최대값만 표시/열 때만 갱신 | 섹션 2, 4, 5 |
 | 낮음 | K-2, K-3, K-4, K-6, K-7, K-9 | 적 AI 정리 항목(비트필드 초기화, `GetPlayerPawn(0)`, 조용한 실패 경로, `Dead` 복구, `bIsCombat`, 테스트 자산) | 섹션 4, 9 |
 | 낮음 | 2-8, 3-3, 9-12 | 프로젝트 헤더 include 스타일 혼재(각괄호/따옴표) | 섹션 2, 3, 9 |
-| 낮음 | 12-8 | 쓸모없다고 정한 `TEAM_DEV_LOG.md`가 `Bae`에 커밋·푸시됨(삭제 필요) | 섹션 12 |
+| 낮음 | 15-7 ~ 15-11 | 화면 디버그 메시지(`GEngine` null), 필수 버튼이 `BindWidgetOptional`, 필요 소울 0 표시, `E`/`C` 키 `BindKey`, 가이드의 확인 못한 "검증 완료" 문구 | 섹션 15 |
 | 중간 | 14-1, 14-2, 14-3, 14-4 | 불필요한 복잡도: 인터페이스→컴포넌트 2단 조회 4곳 복사(헬퍼 1개로), 비율 계산 중복(+ 미사용 getter), `Bonfire`의 불필요한 분기와 `RestoreToFull()`, 실행되지 않는 현재값 분기 | 섹션 14 |
 | 낮음 | 14-5 ~ 14-9 | 주석 처리된 코드 28줄, 쓰지 않는 `OverloadedSpeed`/화톳불 getter, 생성자 테이블 로딩 3블록, 인터페이스의 두 책임, `SetNumberText`(= 13-8) | 섹션 14 |
-| 낮음 | 13-1, 13-6, 13-7, 13-8, 13-13 ~ 13-16 | `int32` 함수 안의 `float` 캐스트 잔재, 스탯 이름 문자열 `if-else`, Pawn 없을 때 `true`, 스탯창 캐스트 14회, `Bonfire` 표기 통일, 사용 불가 피드백, 점화 상태 미저장, 정리 | 섹션 13 |
+| 낮음 | 13-1, 13-6, 13-7, 13-8, 13-14 ~ 13-16 | `int32` 함수 안의 `float` 캐스트 잔재, 스탯 이름 문자열 `if-else`, Pawn 없을 때 `true`, 스탯창 캐스트 14회, 사용 불가 피드백, 점화 상태 미저장, 정리 | 섹션 13 |
 | 낮음 | 1-6, 2-9~2-11, 11-7, 11-8, 12-6, 12-7, 이름·표기, 9-8~9-11, 9-13, 9-14 | 주석 처리된 코드, 변수명/표기 통일, 낡은 주석, 들여쓰기, `DA_Test` | 섹션 1, 2, 9 |
+
+**2026-10-22에 정리된 것**
+- 코드 반영 확인: 12-8(`TEAM_DEV_LOG.md` 삭제), 13-9(화톳불 `UPROPERTY`를 `EditAnywhere`로), 13-11(오버랩 바인딩 + `E` 키 + `Warrior::Interact`로 호출 경로 연결), 13-13(`Bonfire` 표기 통일, 단 Git 파일명은 15-5), 13-16 일부. 새 항목은 섹션 15(15-1 ~ 15-11).
 
 **2026-10-19에 정리된 것**
 - 가이드 정정: G-10(Q19 오류), G-11(사망/리스폰 과장), G-12(Q2↔Q7), G-13(Q16), G-14(적 AI 반영), G-15(5장 코드 조각), G-17(번호 참조), G-18(병합 교훈)을 `PROJECT_GUIDE.md`에 반영했다. G-16(문서 분리)은 맨 위에 "현재 구현 상태 요약" 표와 맨 끝에 "알려진 이슈/체크리스트"를 추가해 부분 해결했다. 구체적인 변경은 섹션 10 참고.
@@ -802,7 +807,7 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 - [ ] **12-6. 주석과 서식.** `CharacterStatComponent.cpp:43-45`의 `// [UI]` 주석이 스탯 계산 함수 위에 붙어 있다(UI 코드가 아님). `CharacterStatComponent.h:153,161`의 `Attunement= 10.f`, `Dexterity= 10.f`는 공백이 빠졌다. `.cpp:7`의 `#include <Data/LevelRequiredSouls.h>`는 각괄호이다(9-12).
   헤더의 `Vigor = 10.f` 같은 기본값은 `StatDefine.csv`의 10과 중복이므로 "로딩 전 임시값"이라는 주석을 달아 두면 단일 출처 원칙(가이드 Q16)과의 관계가 분명해진다.
 - [ ] **12-7. DataTable 에셋 이동 후 참조 확인.** 에셋 3개가 CSV와 같은 `Content/Data/`로 옮겨졌고 생성자의 경로 3곳(`CharacterStatComponent.cpp:12-40`)도 `/Game/Data/...`로 바뀌었다(9-15를 일부 완화). 옛 폴더 `Content/Blueprints/Data/`는 디스크에서 사라졌다. 에디터의 Move가 아니라 파일을 직접 옮겼다면 **다른 블루프린트가 옛 경로를 참조하고 있지 않은지** 에디터에서 확인할 것(소스에서는 컴포넌트 3곳이 전부이다). 에셋과 CSV의 내용이 같은지 확인하는 절차와 원본 규칙은 아직 없다.
-- [ ] **12-8. 쓸모없다고 정한 `TEAM_DEV_LOG.md`가 이 커밋에 포함되어 푸시되었다.** 팀 개발일지는 Notion 페이지로 정했으므로 저장소의 `TEAM_DEV_LOG.md`는 제거 대상이다(삭제 커밋이 필요). 푸시된 상태라 다음 PR이 `main`에 들어가기 전에 지울 것.
+- [x] **12-8. 쓸모없다고 정한 `TEAM_DEV_LOG.md`가 이 커밋에 포함되어 푸시되었다.** (2026-10-22: 작업 트리에 파일이 없음을 확인함) 팀 개발일지는 Notion 페이지로 정했으므로 저장소의 `TEAM_DEV_LOG.md`는 제거 대상이다(삭제 커밋이 필요). 푸시된 상태라 다음 PR이 `main`에 들어가기 전에 지울 것.
 
 ### 4) 확인된 좋은 점 (검증 결과)
 
@@ -854,14 +859,14 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 
 ### 3) `Bonfire`와 `InteractionInterface` (새 파일)
 
-- [ ] **13-9. (중간) 에디터에서 값을 바꿀 수 없다.** (`Bonfire.h:49-67`) `EnemyCheckRadius`, `BonfireID`, `BonfireDisplayName`이 `VisibleAnywhere`라 배치한 인스턴스마다 값을 못 정한다. 특히 `BonfireID`는 주석이 "레벨 내 겹치지 않는 ID"인데 *읽기 전용*이라 모두 `Bonfire_Default`가 된다(전송과 저장의 키가 겹침). `EditAnywhere`(또는 인스턴스별이면 `EditInstanceOnly`)로 바꾸고, 카테고리도 `Components`가 아니라 `Bonfire|Config`처럼 나눌 것. `BonfireState`도 레벨 디자이너가 초기 상태를 정해야 한다면 마찬가지.
+- [x] **13-9. (중간) 에디터에서 값을 바꿀 수 없다.** (2026-10-22: `Bonfire.h:69,73,77`이 `EditAnywhere`로 수정됨. 카테고리는 아직 `Bonfire|Components`이고 `BonfireState`는 `VisibleAnywhere` 그대로이며, 둘 다 동작에는 문제없음) (`Bonfire.h:49-67`) `EnemyCheckRadius`, `BonfireID`, `BonfireDisplayName`이 `VisibleAnywhere`라 배치한 인스턴스마다 값을 못 정한다. 특히 `BonfireID`는 주석이 "레벨 내 겹치지 않는 ID"인데 *읽기 전용*이라 모두 `Bonfire_Default`가 된다(전송과 저장의 키가 겹침). `EditAnywhere`(또는 인스턴스별이면 `EditInstanceOnly`)로 바꾸고, 카테고리도 `Components`가 아니라 `Bonfire|Config`처럼 나눌 것. `BonfireState`도 레벨 디자이너가 초기 상태를 정해야 한다면 마찬가지.
 - [ ] **13-10. (중간) 인터페이스가 `AWarrior`에 묶여 있다.** (`InteractionInterface.h:26`) `Interact(class AWarrior*)`라서 NPC, AI, 다른 캐릭터 타입이 상호작용할 수 없고, 공통 헤더가 구체 클래스 하나를 알게 된다. `AActor*`나 `APawn*`를 받고 구현 쪽에서 필요하면 `Cast`하는 편이 확장에 유리하다. 이 인터페이스는 `UFUNCTION`이 아닌 순수 가상 함수라 블루프린트에서 구현할 수 없다(C++ 전용). 의도한 것인지 정할 것. 반환값이 없어서 "실패 이유"도 호출자가 알 수 없다(13-14).
-- [ ] **13-11. (중간) 아직 어디서도 호출하지 않는다.** `Interact(` 호출처가 없고 `InteractionSphere`에 오버랩 바인딩도 없다(`Bonfire.cpp:23-29`는 콜리전 설정만). 플레이어가 화톳불을 쓸 수 없는 상태이므로 `Warrior`/`WarriorController` 쪽 입력과 대상 감지(스피어 `BeginOverlap`/`EndOverlap`으로 현재 상호작용 대상 보관 → 입력 시 `IInteractionInterface::Interact`)를 만들어야 완성된다.
+- [x] **13-11. (중간) 아직 어디서도 호출하지 않는다.** (2026-10-22: `Bonfire.cpp:39-40` 오버랩 바인딩, `Warrior::Interact`/`SetCurrentInteractable`, `WarriorController`의 `E` 키 → `Interact()`로 연결됨. 연결하면서 생긴 새 문제는 섹션 15) `Interact(` 호출처가 없고 `InteractionSphere`에 오버랩 바인딩도 없다(`Bonfire.cpp:23-29`는 콜리전 설정만). 플레이어가 화톳불을 쓸 수 없는 상태이므로 `Warrior`/`WarriorController` 쪽 입력과 대상 감지(스피어 `BeginOverlap`/`EndOverlap`으로 현재 상호작용 대상 보관 → 입력 시 `IInteractionInterface::Interact`)를 만들어야 완성된다.
 - [ ] **13-12. (중간) 적 리셋의 구독 구조.** `OnBonfireRest`는 화톳불 *인스턴스별* 델리게이트(`Bonfire.h:34-36`)라서 게임모드 같은 월드 단위 관리자가 쓰려면 레벨의 모든 화톳불에 일일이 바인딩해야 한다. 화톳불이 월드 단위 객체(게임모드 또는 `UWorldSubsystem`)의 `HandleBonfireRest()`를 직접 한 번 부르게 하고, 적은 `Resettable` 인터페이스(`ResetToSpawn`)를 구현하는 구조가 더 단순하다. 현재 델리게이트는 블루프린트 연출(사운드, 화면 효과) 용도로 남겨도 된다.
-- [ ] **13-13. (낮음) 이름 표기가 섞여 있다.** 클래스/파일은 `ABonfire`/`Bonfire.h`, 나머지는 `EBonfireState`, `BonfireID`, `GetBonfireDisplayName`인데 변수는 `BonfireDisplayName`(`Bonfire.h:40,64`)이다. `Bonfire`로 통일하는 것이 좋다. 블루프린트나 에셋이 아직 이 클래스를 참조하기 전인 지금이 파일 이름을 바꾸기 가장 싸다.
+- [x] **13-13. (낮음) 이름 표기가 섞여 있다.** (2026-10-22: 코드는 `ABonfire`, `BonfireDisplayName`, 파일 `Bonfire.h/.cpp`로 통일됨. 단 Git이 기록한 파일명은 아직 `BonFire.*`라서 15-5 참고) 클래스/파일은 `ABonfire`/`Bonfire.h`, 나머지는 `EBonfireState`, `BonfireID`, `GetBonfireDisplayName`인데 변수는 `BonfireDisplayName`(`Bonfire.h:40,64`)이다. `Bonfire`로 통일하는 것이 좋다. 블루프린트나 에셋이 아직 이 클래스를 참조하기 전인 지금이 파일 이름을 바꾸기 가장 싸다.
 - [ ] **13-14. (낮음) 사용 불가 시 플레이어에게 아무 신호가 없다.** (`Bonfire.cpp:49,77`) 로그만 남기고 조용히 `return`한다. 나중에 UI 메시지를 띄우려면 `CanInteractBonfire`가 이유(락온 중, 주변 적)를 돌려주는 편이 좋다. 또 적 감지는 `OverlapMultiByChannel(ECC_Pawn)`(`:60-67`)이라 적 캡슐이 `Pawn` 채널에 응답하는 설정에 의존한다. 적이 있는데도 사용이 가능해지는지 에디터에서 확인할 것. 락온 여부를 "전투 중"의 대리 지표로 쓰는 것(`:47`)은 락온 없이 교전할 때 빠지므로 2차 검사(반경)가 실제 방어선이다.
 - [ ] **13-15. (낮음) 점화 상태가 저장되지 않는다.** `BonfireState`는 런타임 값이고 `FWarriorSaveData`에 점화한 화톳불 목록이 없다. 다시 시작하면 모두 `Unlit`이다. `BonfireID`가 그 키로 쓰이도록 만든 것이므로(13-9를 먼저 고칠 것) 저장 구조는 이후 작업으로 남긴다.
-- [ ] **13-16. (낮음) 정리.** `Bonfire.cpp:33-37`의 빈 `BeginPlay` 오버라이드는 지워도 된다. `Bonfire.cpp:5-11`, `WarriorPlayerState.cpp:5-6`의 각괄호 `#include`(9-12)는 이번에도 늘었다. `Interactable/`와 `Interface/InteractionInterface.*`가 아직 추적되지 않으므로 커밋 때 포함할 것(`.generated.h`는 제외). `PROJECT_GUIDE.md`의 상태 표에 `UpgradeStat` 구현, 스탯창의 최종값 표시, 화톳불/상호작용 인터페이스가 아직 반영되지 않았다.
+- [ ] **13-16. (낮음) 정리.** (2026-10-22: 빈 `BeginPlay`는 오버랩 바인딩으로 채워져 해소, `Interactable/`/`InteractionInterface.*`는 커밋됨. 각괄호 `#include`와 가이드 반영은 남음) `Bonfire.cpp:33-37`의 빈 `BeginPlay` 오버라이드는 지워도 된다. `Bonfire.cpp:5-11`, `WarriorPlayerState.cpp:5-6`의 각괄호 `#include`(9-12)는 이번에도 늘었다. `Interactable/`와 `Interface/InteractionInterface.*`가 아직 추적되지 않으므로 커밋 때 포함할 것(`.generated.h`는 제외). `PROJECT_GUIDE.md`의 상태 표에 `UpgradeStat` 구현, 스탯창의 최종값 표시, 화톳불/상호작용 인터페이스가 아직 반영되지 않았다.
 
 ### 4) 확인된 좋은 점
 
@@ -976,3 +981,68 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 2. 14-2, 14-4는 13-2 정책이 정해지면 같이 정리한다.
 3. 14-5, 14-6은 지우기만 하면 되는 작업이라 아무 때나 한 번에 한다(블루프린트에서 ratio getter 사용 여부만 먼저 확인).
 4. 14-7, 14-8은 필요가 생길 때까지 미룬다.
+
+---
+
+## 15. 화톳불 연동 리뷰 (2026-10-22, 커밋 `434331e` `f05fe14` `4f7ca23` + 미커밋 작업 트리)
+
+**대상**: `Interactable/Bonfire.*`, `UI/BonfireMenuWidget.*`(새 파일, 미추적), `Warrior/Warrior.*`(`Interact`, `CurrentInteractable`), `Warrior/WarriorController.*`(`E` 키, `OpenBonfireMenu`/`CloseBonfireMenu`), `UI/StatusWindowWidget.*`(`TextBlock_RequiredSouls`), 미커밋 `PROJECT_GUIDE.md`.
+빌드와 실행은 하지 않았고 코드 읽기만 했다. 에셋(`WBP_*`, `BP_Bonfire`, `TestMap`)의 내용은 읽을 수 없어서 아래 입력 모드 문제는 **코드 흐름으로 추론한 것이며 PIE에서 확인이 필요하다.** 코드는 수정하지 않았다.
+
+**총평**: 13-9, 13-11, 13-13이 한 번에 해결되었다. 화톳불이 오버랩으로 상호작용 대상을 등록하고(`EndOverlap`의 `GetCurrentInteractable() == this` 검사로 다른 화톳불로 덮어쓴 경우를 지키는 점이 좋다), `E` 키 → 컨트롤러 → `Warrior::Interact()` → 대상의 `Interact`로 이어지는 호출 경로가 인터페이스를 통해 `Warrior`와 `Bonfire`가 서로의 구체 클래스를 몰라도 되게 짜였다. `StatusWindowWidget::RefreshStatus`는 널 검사를 앞으로 모아 중첩이 한 단계 줄었다. 새 문제는 **UI 입력 모드를 여러 위젯이 제각각 바꾸는 부분**에 몰려 있다.
+
+### 1) 동작 오류 (실행 확인 필요)
+
+- [ ] **15-1. (높음) 화톳불 메뉴에서 스탯창을 열었다 닫으면 입력 모드가 어긋날 수 있다.**
+  `BonfireMenuWidget.cpp:28-35`의 `OnLevelUpClicked`는 `ToggleStatusWindow()`만 부르고 화톳불 메뉴를 닫지 않는다. 그래서 두 위젯이 동시에 화면에 있다(둘 다 `AddToViewport(10)`). 스탯창을 `C` 키나 `ToggleStatusWindow`로 닫을 때(`WarriorController.cpp`의 닫기 경로) `bShowMouseCursor = false` + `FInputModeGameOnly`로 되돌리는데, 이때 화톳불 메뉴는 화면에 남아 있다. 결과적으로 **메뉴는 보이는데 마우스 커서가 사라지고 게임 입력만 받는 상태**가 된다. 반대로 `떠나기`를 먼저 누르면(`BonfireMenuWidget.cpp:42-51`) 스탯창이 열려 있는데도 게임 입력 모드로 돌아간다.
+  해결 방향: 입력 모드를 "열려 있는 UI가 하나라도 있으면 UI 모드, 없으면 게임 모드"로 컨트롤러 한 곳에서 계산한다(15-3의 헬퍼). 또는 `레벨업`을 누르면 화톳불 메뉴를 닫고 스탯창을 열고, 스탯창을 닫으면 화톳불 메뉴로 돌아오게 한다.
+- [ ] **15-2. (중간) 메뉴가 열려 있는 동안에도 이동·공격 입력이 들어가고, 행동 중에도 메뉴가 열린다.**
+  `FInputModeGameAndUI`(`WarriorController.cpp`의 `OpenBonfireMenu`)는 게임 입력을 막지 않는다. 메뉴를 연 채 걸어서 영역을 벗어나면 메뉴가 남는다(`EndOverlap`은 `CurrentInteractable`만 해제하고 메뉴는 닫지 않음). 또 `AWarrior::Interact()`(`Warrior.cpp`, 새 함수)는 `ActionState`를 확인하지 않아서 구르기나 공격 중에도 `E`로 메뉴가 열린다. 메뉴를 여는 동안 `SetIgnoreMoveInput(true)`(닫을 때 해제)나 `FInputModeUIOnly`를 쓰고, `Interact()` 시작에서 `GetActionState() != EActionState::None`이면 반환할 것.
+
+### 2) 설계와 안전성
+
+- [ ] **15-3. (중간) UI 모드 전환 코드가 4곳에 복사되어 있고, 위젯이 컨트롤러의 닫기 함수를 쓰지 않는다.**
+  `ToggleStatusWindow`(열기·닫기 2곳), `OpenBonfireMenu`, `CloseBonfireMenu`가 모두 `bShowMouseCursor`와 `SetInputMode`를 직접 바꾸고, `BonfireMenuWidget::OnLeaveClicked`는 같은 일을 위젯 안에서 다시 한다(`:42-51`). 정작 컨트롤러에 있는 `CloseBonfireMenu()`를 부르지 않는다. 컨트롤러에 `UpdateUIInputMode()` 같은 한 함수를 두고(`StatusWindowWidget`과 `BonfireMenuWidget`이 `IsInViewport()`인지 보고 모드 결정), 열고 닫는 함수는 위젯을 넣고 빼기만 한 뒤 그 함수를 부르게 하면 15-1과 15-2가 같이 정리된다. 위젯의 `떠나기`는 `PC->CloseBonfireMenu()` 한 줄이면 된다.
+  ```cpp
+  void AWarriorController::UpdateUIInputMode()
+  {
+  	const bool bAnyUIOpen =
+  		(StatusWindowWidget && StatusWindowWidget->IsInViewport()) ||
+  		(BonfireMenuWidget && BonfireMenuWidget->IsInViewport());
+
+  	bShowMouseCursor = bAnyUIOpen;
+  	if (bAnyUIOpen) { SetInputMode(FInputModeGameAndUI()); }
+  	else            { SetInputMode(FInputModeGameOnly()); }
+  }
+  ```
+- [ ] **15-4. (중간) `CurrentInteractable`이 가공되지 않은 인터페이스 포인터이다.** (`Warrior.h`의 `class IInteractionInterface* CurrentInteractable`) `UPROPERTY`가 될 수 없어서 대상 액터가 파괴되거나 서브레벨이 내려갈 때 `EndOverlap`이 오지 않으면 매달린 포인터가 된다. `TWeakInterfacePtr<IInteractionInterface>`(UE 5.1 이상)나 `TWeakObjectPtr<AActor>` + `Cast`로 바꾸면 안전하다. `LockOnTarget`(9-3)과 같은 종류의 문제이다.
+- [ ] **15-5. (중간) 파일 이름의 대소문자가 Git과 디스크에서 다르다.** 디스크의 파일은 `Interactable/Bonfire.h/.cpp`이고 코드의 `#include "Interactable/Bonfire.h"`, `#include "Bonfire.generated.h"`도 같지만, Git이 추적하는 이름은 `BonFire.h/.cpp`이다(`git ls-files`로 확인). `core.ignorecase=true`라서 Git이 이름 변경을 인식하지 못하고 `M`으로만 표시한다. 팀원이 받으면 Windows에서는 옛 이름 `BonFire.h`가 그대로 남아 UHT가 만드는 `BonFire.generated.h`와 코드의 `Bonfire.generated.h`가 달라진다(UHT나 대소문자를 구분하는 환경에서 오류가 날 수 있음, 미확인). 이름 변경을 Git에 반영하려면 임시 이름을 거쳐 두 번 `git mv`를 하고(예: `BonFire.h` → `tmp.h` → `Bonfire.h`) `.cpp`도 같게 한 뒤 커밋한다. `main`에 올리기 전에 처리할 것.
+- [ ] **15-6. (중간) 코드와 에셋이 따로 커밋될 위험.** `BonfireMenuWidget.*`, `Content/UI/WBP_BonfireMenuWidget.uasset`, `Content/Blueprints/Interactable/`가 아직 추적되지 않았고 `TestMap.umap`은 바이너리 변경이다. 컨트롤러 생성자가 `FClassFinder`로 경로를 찾는데 실패하면 로그 없이 `BonfireMenuWidgetClass`가 비어서 **메뉴가 그냥 열리지 않는다**(`WarriorController.cpp`의 `Succeeded()` else 없음, HUD/스탯창 로딩도 같다). 코드와 에셋을 같은 커밋으로 올리고, `Succeeded()`가 아닐 때 `UE_LOG(Error)`를 남기면 원인을 바로 찾는다. `.umap`은 바이너리라 같은 맵을 두 명이 고치면 병합할 수 없으니 맵 편집 담당을 정해 둘 것.
+
+### 3) 정리
+
+- [ ] **15-7. (낮음) 화면 디버그 메시지와 플레이스홀더.** `Bonfire.cpp:97,112,129,146`, `BonfireMenuWidget.cpp:39`의 `GEngine->AddOnScreenDebugMessage`는 `GEngine`이 없는 환경에서 크래시할 수 있고 출시 빌드에는 남기지 않는 것이 좋다. `UE_LOG(LogTemp, Log, ...)`로 바꾸거나 `#if !UE_BUILD_SHIPPING`으로 감쌀 것. `:146`의 "휴식 + 스탯 업그레이드 창" 문구는 이제 실제 동작(메뉴 열기)과 맞지 않는다.
+- [ ] **15-8. (낮음) 필수 버튼이 `BindWidgetOptional`이다.** (`BonfireMenuWidget.h:35-40`) 위젯 블루프린트에서 버튼 이름이 틀리면 에러 없이 버튼이 무반응이 된다. 반드시 있어야 하는 버튼이면 `HUD`처럼 `BindWidget`으로 해서 컴파일 때 잡히게 할 것.
+- [ ] **15-9. (낮음) 필요 소울이 0으로 표시될 수 있다.** (`StatusWindowWidget.cpp:51`) `GetRequiredSouls`가 행이 없을 때 `0`을 돌려주므로(12-3) 최대 레벨에서 "필요 소울: 0"으로 보인다. `-`나 `MAX`를 보여 주려면 반환 규칙(13-3)부터 정해야 한다.
+- [ ] **15-10. (낮음) `E`·`C` 키가 `BindKey`로 직접 묶여 있다.** (`WarriorController.cpp`의 `SetupInputComponent`) 나머지 입력은 모두 Enhanced Input(`IA_*`)인데 UI와 상호작용 키만 방식이 달라서 재배치나 게임패드 지원이 안 된다. `IA_Interact`, `IA_StatusWindow`를 만들어 같은 방식으로 묶으면 일관된다.
+- [ ] **15-11. (낮음) 미커밋 `PROJECT_GUIDE.md`의 새 문구 중 리뷰어가 확인할 수 없는 것.** "플레이어 E키 입력 및 오버랩 바인딩 연동"은 코드로 확인했다. "`BP_Bonfire` 레벨 배치 및 인게임 작동 검증 완료", "`WBP_StatusWindow` 임베딩 검증 완료"는 에셋을 읽을 수 없고 실행도 안 해서 확인하지 못했다. 또 15-1, 13-2, 13-3이 열려 있는 상태에서 "✅ 구현 (완료)"로 쓰면 독자가 오해하므로 "알려진 이슈" 표와 같이 갱신할 것. 헤더의 "브랜치 `Bae` (`main`과 같은 커밋 `2fabce4`에서 갱신)"는 틀렸다(`Bae`는 `4f7ca23`이고 `main`보다 앞섬). 본문의 `CanInteracBonfire`는 `CanInteractBonfire` 오타이다. `UpgradeStat`의 C++ 호출처는 없다(블루프린트의 호출 여부는 에셋을 읽지 못해 확인 못함).
+
+### 4) 확인된 좋은 점
+
+- `Bonfire.cpp:107`의 `GetCurrentInteractable() == this` 검사: 겹친 영역에서 나갈 때 다른 화톳불이 등록한 대상을 지우지 않는다.
+- `Interactor->GetController<AWarriorController>()`(`:149`)처럼 템플릿 접근으로 한 줄에 캐스트와 널 검사를 처리했다.
+- `StatusWindowWidget::RefreshStatus`(`:39-45`)가 `SaveData`와 `StatComp`를 한 번에 검사하고 일찍 반환해서 이전의 중첩 `if` 3단이 한 단계로 줄었다.
+- 화톳불이 `AWarrior`가 아닌 `IInteractionInterface`로 불리는 구조라 나중에 NPC나 문 같은 다른 상호작용 대상을 `Warrior`를 고치지 않고 추가할 수 있다.
+
+### 5) 이번 변경으로 상태가 바뀐 이전 항목
+
+- 해소: 12-8, 13-9, 13-11, 13-13. 일부 해소: 13-16.
+- 그대로: 13-1 ~ 13-8, 13-10, 13-12, 13-14, 13-15, 14-1 ~ 14-9. `CharacterStatComponent.*`와 `WarriorPlayerState.*`는 10-20 이후 변경이 없다.
+- 14-1(인터페이스 → 컴포넌트 조회 복사)은 `Bonfire.cpp:136-144`에 그대로 있다. 14-3의 `bHasOverlap` 분기, `if (Lit)`, 3줄 회복도 그대로이다.
+
+### 6) 우선순위
+
+1. 15-1, 15-2(입력 모드)를 PIE에서 재현해 보고 15-3의 `UpdateUIInputMode()` 하나로 정리한다.
+2. 13-2(레벨업 시 현재 HP/FP 초기화)의 정책을 정한다. 화톳불 메뉴로 레벨업이 가능해졌으므로 이제 플레이어가 바로 겪는 문제이다.
+3. `main`에 올리기 전에 15-5(파일명 대소문자), 15-6(코드와 에셋을 같이 커밋)을 처리한다.
+4. 15-4(약참조), 15-7 ~ 15-10은 정리 작업으로 묶는다.

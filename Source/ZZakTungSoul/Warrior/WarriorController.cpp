@@ -21,6 +21,7 @@
 #include <UI/PlayerHUDWidget.h>
 #include <Interface/CharacterStatInterface.h>
 #include <UI/StatusWindowWidget.h>
+#include <UI/BonfireMenuWidget.h>
 
 AWarriorController::AWarriorController()
 {
@@ -64,13 +65,21 @@ AWarriorController::AWarriorController()
 	{
 		PlayerHUDWidgetClass = PlayerHUDClassRef.Class;
 	}
-	// [스탯창] Todo: 경로.
+	// [스탯창]
 	static ConstructorHelpers::FClassFinder<UStatusWindowWidget> StatusWindowClassRef(
 		TEXT("/Game/UI/WBP_StatusWindow.WBP_StatusWindow_C") 
 	);
 	if (StatusWindowClassRef.Succeeded())
 	{
 		StatusWindowWidgetClass = StatusWindowClassRef.Class;
+	}
+	// [화톳불]
+	static ConstructorHelpers::FClassFinder<UBonfireMenuWidget> BonfireMenuWidgetClassRef(
+		TEXT("/Game/UI/WBP_BonfireMenuWidget.WBP_BonfireMenuWidget_C")
+	);
+	if (BonfireMenuWidgetClassRef.Succeeded())
+	{
+		BonfireMenuWidgetClass = BonfireMenuWidgetClassRef.Class;
 	}
 }
 
@@ -387,6 +396,32 @@ void AWarriorController::ToggleStatusWindow()
 
 		bShowMouseCursor = true;
 		SetInputMode(FInputModeGameAndUI());
+	}
+}
+
+void AWarriorController::OpenBonfireMenu()
+{
+	// 검사.
+	if (!BonfireMenuWidget && BonfireMenuWidgetClass)
+	{
+		BonfireMenuWidget = CreateWidget<UBonfireMenuWidget>(this, BonfireMenuWidgetClass);
+	}
+	// 조작모드 전환
+	if (BonfireMenuWidget && !BonfireMenuWidget->IsInViewport())
+	{
+		BonfireMenuWidget->AddToViewport(10);
+		bShowMouseCursor = true;
+		SetInputMode(FInputModeGameAndUI());
+	}
+}
+
+void AWarriorController::CloseBonfireMenu()
+{
+	if (BonfireMenuWidget && BonfireMenuWidget->IsInViewport())
+	{
+		BonfireMenuWidget->RemoveFromParent();
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly());
 	}
 }
 

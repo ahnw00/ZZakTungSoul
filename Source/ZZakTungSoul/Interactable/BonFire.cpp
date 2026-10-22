@@ -5,6 +5,7 @@
 #include <Components/StaticMeshComponent.h>
 #include <Components/SphereComponent.h>
 #include <Warrior/Warrior.h>
+#include <Warrior/WarriorController.h>
 #include <Enemy/EnemyBase.h>
 #include <Engine/OverlapResult.h>
 #include <Interface/CharacterStatInterface.h>
@@ -88,11 +89,28 @@ bool ABonfire::CanInteractBonfire(AWarrior* Interactor) const
 
 void ABonfire::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	// 들어온 대상이 플레이어면 상호작용 대상에 화톳불 등록.
+	if (AWarrior* Warrior = Cast<AWarrior>(OtherActor))
+	{
+		Warrior->SetCurrentInteractable(this);
+
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[화톳불] 화톳불 영역에 진입. 상호작용 대상 등록."));
+	}
 
 }
 
 void ABonfire::OnInteractionSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	// 나간 대상이 플레이어라면 상호작용 대상 해제.
+	if (AWarrior* Warrior = Cast<AWarrior>(OtherActor))
+	{
+		if (Warrior->GetCurrentInteractable() == this)
+		{
+			Warrior->SetCurrentInteractable(nullptr);
+		}
+
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[화톳불] 화톳불 영역에 떠남. 상호작용 대상 해제."));
+	}
 
 }
 
@@ -107,7 +125,10 @@ void ABonfire::Interact(AWarrior* Interactor)
 	if (BonfireState == EBonfireState::Unlit)
 	{
 		BonfireState = EBonfireState::Lit;
+
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("[화톳불] 화톳불 불을 밝힘."));
 		return;
+	
 	}
 	// 이후 상호작용.
 	if (BonfireState == EBonfireState::Lit)
@@ -122,7 +143,15 @@ void ABonfire::Interact(AWarrior* Interactor)
 			}
 		}
 
-		// 휴식 방송.
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("[화톳불] 화톳불 휴식 + 스탯 업그레이드 창"));
+
+		// 화톳불 메뉴 요청.
+		if (AWarriorController* PC = Interactor->GetController<AWarriorController>())
+		{
+			PC->OpenBonfireMenu();
+		}
+
+		// 휴식 델리게이트 방송.
 		OnBonfireRest.Broadcast();
 	}
 }

@@ -8,6 +8,7 @@
 
 // 전방 선언
 class UAnimMontage;
+class UAnimInstance;
 
 /**
  * 
@@ -32,7 +33,7 @@ protected:
 
 private:
 	// 실행 상태 정리 함수
-	void CleanUp();
+	void CleanUp(bool bStopMontage);
 
 	// Montage종료 Delegate
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -44,15 +45,6 @@ protected:
 	// 현재 Task를 실행하는 BehaviorTree
 	TWeakObjectPtr<UBehaviorTreeComponent> OwnerBTComp;
 
-	// 현재 실행 중인지 확인하는 플래그
-	uint32 bIsAttacking : 1 = false;
-
-protected:
 	// 재생할 Montage
-	UPROPERTY(EditAnywhere, Category = "Attack")
 	TObjectPtr<UAnimMontage> AttackMontage;
-
-	// Montage 재생 속도
-	UPROPERTY(EditAnywhere, Category = "Attack")
-	float PlayRate = 1.0f;
 };

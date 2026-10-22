@@ -118,22 +118,27 @@ void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Attack Hit: %s"), *HitActor->GetName());
+	//UE_LOG(LogTemp, Log, TEXT("Attack Hit: %s"), *HitActor->GetName());
 
-	// @Todo: 데미지 임시 처리
-	if (ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(HitActor))
-	{
-		TargetStatComp = StatOwner->GetCharacterStatComponent();
-
-		TargetStatComp->ApplyDamage(50.0f);
-
-		UE_LOG(LogTemp, Log, TEXT("Attack Hit!!!!!@!@!@@@@@@!"));
-	}
-	else
+	// 인터페이스 형변환
+	ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(HitActor);
+	if (nullptr == StatOwner)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Noooooooooo Hit!!!!!"));
+		return;
 	}
 
+	UE_LOG(LogTemp, Log, TEXT("Attack Hit!!!!!@!@!@@@@@@!"));
+
+	// 스탯 컴포넌트 가져오기
+	TargetStatComp = StatOwner->GetCharacterStatComponent();
+	if (nullptr == TargetStatComp)
+	{
+		return;
+	}
+
+	// @Todo: 데미지 임시 처리
+	TargetStatComp->ApplyDamage(50.0f);
 }
 
 void AEnemyBase::InitializeWeapon()

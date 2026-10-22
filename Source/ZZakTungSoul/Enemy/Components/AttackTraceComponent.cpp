@@ -119,16 +119,16 @@ void UAttackTraceComponent::EndTrace()
 
 void UAttackTraceComponent::SetTraceMesh(UMeshComponent* InTraceMesh)
 {
-	// 공격 판정 중 Mesh 변경 방지
-	if (bIsTracing)
-	{
-		EndTrace();
-	}
-
 	// 기존 Mesh와 같으면 건너뛰기
 	if (TraceMesh.Get() == InTraceMesh)
 	{
 		return;
+	}
+
+	// 공격 판정 중 Mesh 변경 방지
+	if (bIsTracing)
+	{
+		EndTrace();
 	}
 
 	// Null(맨손)일 때 참조 해제

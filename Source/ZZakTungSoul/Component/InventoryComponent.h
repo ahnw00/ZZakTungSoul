@@ -1,10 +1,13 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "InventoryComponent.generated.h"
+
+// 전방 선언
+class UItemDataAsset;
 
 USTRUCT(BlueprintType)
 struct FInventoryItem
@@ -15,7 +18,7 @@ struct FInventoryItem
 	FGuid InstanceID;
 
 	UPROPERTY()
-	TObjectPtr<class UItemDataAsset> ItemData = nullptr;
+	TObjectPtr<UItemDataAsset> ItemData = nullptr;
 
 	UPROPERTY()
 	int32 Quantity = 1;
@@ -25,7 +28,6 @@ struct FInventoryItem
 };
 
 DECLARE_DELEGATE_OneParam(FOnItemObtainedDelegate, class UItemDataAsset* /*ObtainedItem*/)
-
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ZZAKTUNGSOUL_API UInventoryComponent : public UActorComponent
@@ -37,7 +39,9 @@ public:
 	UInventoryComponent();
 
 	FORCEINLINE const TArray<FInventoryItem>& GetItems() const { return Items; }
-	void AddItem(class UItemDataAsset* ItemData);
+	void AddItem(UItemDataAsset* ItemData);
+
+	FORCEINLINE UItemDataAsset* GetItemData(const FInventoryItem& item) const { return item.ItemData; };
 
 protected:
 	// Called when the game starts

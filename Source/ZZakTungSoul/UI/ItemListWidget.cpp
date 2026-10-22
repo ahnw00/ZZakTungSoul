@@ -2,6 +2,20 @@
 
 
 #include "UI/ItemListWidget.h"
+#include "ItemButtonWidget.h"
+
+
+UItemListWidget::UItemListWidget(const FObjectInitializer& ObjectInitializer)
+    : Super(ObjectInitializer)
+{
+    static ConstructorHelpers::FClassFinder<UItemButtonWidget> ItemButtonClassRef(
+        TEXT("/Game/Blueprints/UI/WBP_ItemButton.WBP_ItemButton")
+    );
+    if (ItemButtonClassRef.Succeeded())
+    {
+        ItemButtonClass = ItemButtonClassRef.Class;
+    }
+}
 
 void UItemListWidget::InitializeItemList(EItemListMode InMode, EItemListFilter InInitialFilter)
 {
@@ -48,4 +62,14 @@ void UItemListWidget::CreateFilterButtons()
         // Filter 값을 버튼에 전달
         // FilterContainer에 추가
     }
+}
+
+void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
+{
+    if (!InItemData || !ItemButtonClass || !ItemContainer)
+    {
+        return;
+    }
+
+
 }

@@ -32,6 +32,9 @@ enum class EItemListFilter : uint8
 	Legs
 };
 
+// 전방 선언
+class UInventoryComponent;
+
 /**
  * 
  */
@@ -41,6 +44,10 @@ class ZZAKTUNGSOUL_API UItemListWidget : public UUserWidget
 	GENERATED_BODY()
 	
 public:
+	void UItemListWidget(const FObjectInitializer& ObjectInitializer);
+
+	FORCEINLINE void SetInventory(UInventoryComponent* InInventory) { Inventory = InInventory; }
+
 	void InitializeItemList(
 		EItemListMode InMode,
 		EItemListFilter InInitialFilter);
@@ -52,12 +59,27 @@ public:
 	void ListItemsBySlot(EEquipmentSlot InSlot);
 
 private:
+	// 필터 버튼들 생성 함수
+	// 장비 변경 버튼을 눌렀느냐, 인벤토리 버튼을 눌렀느냐에 따라
+	// 생성되는 필터 버튼이 달라
 	void CreateFilterButtons();
+	
+	// 리스트 창에 띄워질 아이템 버튼 생성 함수
+	void AddItemButton(UItemDataAsset* InItemData, int32 Index);
 
 private:
+	UPROPERTY()
+	TObjectPtr<class UInventoryComponent> Inventory;
+
 	UPROPERTY()
 	EItemListMode ListMode;
 
 	UPROPERTY()
 	EItemListFilter CurrentFilter;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UUniformGridPanel> ItemContainer;
+
+	UPROPERTY()
+	TSubclassOf<class UItemButtonWidget> ItemButtonClass;
 };

@@ -1,8 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Component/InventoryComponent.h"
 #include <ItemData/ItemDataAsset.h>
+
+#include <Engine/AssetManager.h>
 
 
 // Sets default values for this component's properties
@@ -28,7 +30,6 @@ void UInventoryComponent::AddItem(UItemDataAsset* ItemData)
 	// 아이템 획득 시 델리게이트 호출
 	OnItemObtained.ExecuteIfBound(ItemData);
 }
-
 
 // Called when the game starts
 void UInventoryComponent::BeginPlay()

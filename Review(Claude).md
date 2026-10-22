@@ -8,18 +8,21 @@
 ## 열린 항목 한눈에 (2026-10-22 기준, 맨 위에서 이것만 보면 된다)
 
 > 이 아래의 번호 섹션(0~9)은 **시간순 기록**이다. 현재 무엇이 남았는지는 이 표를 기준으로 하고, 항목 번호로 해당 섹션의 상세 근거를 찾는다. 항목이 해결되면 이 표에서 지우고 해당 섹션에 `[x]`를 단다(체크 표시는 리뷰어가 코드를 확인한 뒤에만 한다).
-> 기준 코드: `main` = `Ahn` = `2fabce4`, `Bae` = `ef6c899`(10-20 `434331e` 화톳불, 10-21 `f05fe14`, 10-22 `4f7ca23`, `ef6c899`: 화톳불 메뉴와 에셋 포함) + 미커밋 작업 트리(`GetPreviewStats` 골격, `LevelUpWidget.*`, `TeleportWidget.*`), `Kang` = `0308a1e`. 빌드/실행은 리뷰어가 하지 않았다.
+> 기준 코드: `main` = `Ahn` = `2fabce4`, `Bae` = `ef6c899`(10-20 `434331e` 화톳불, 10-21 `f05fe14`, 10-22 `4f7ca23`, `ef6c899`: 화톳불 메뉴와 에셋 포함) + 미커밋 작업 트리(`CalculateDerivedStats`/`FStatPreview`, `ApplyLevelUp`, `GetTotalRequiredSouls`; 이 작업은 섹션 17에서 리뷰, `LevelUpWidget.*`/`TeleportWidget.*`는 커밋 `223d76f`), `Kang` = `0308a1e`. 빌드/실행은 리뷰어가 하지 않았다.
 
 | 우선순위 | 항목 | 내용 | 상세 |
 |---|---|---|---|
 | 높음 (확인 필요) | 15-1, 15-2 | 화톳불 메뉴 → 스탯창 → 닫기에서 입력 모드/마우스 커서가 어긋남, 메뉴 중 이동·공격 입력이 계속 들어감(PIE 재현 필요) | 섹션 15 |
-| 높음 | 13-2 (= 12-2) | 레벨업(`UpgradeStat` → `UpdateCharacterStat`)할 때마다 현재 HP/FP가 초기 최대치로 되돌아감. 회복 정책을 먼저 정할 것 | 섹션 13, 12 |
+| 높음 | 17-1, 17-2 | `ApplyLevelUp`: `PendingPoints`에 음수가 들어가도 막지 않아 한 스탯을 깎으면서 총합만 맞추는 입력이 통과함. 레벨 표(`Level1~10`)에 없는 11레벨 이상은 비용 0이라 소울 없이 레벨업됨 (CSV 확장이 선행 조건) | 섹션 17 |
+| 중간 | 17-3, 17-4 | `ApplyLevelUp`이 `MaxValue`(99)를 확인하지 않음, `UpgradeStat`이 호출자가 준 비용을 믿는 채로 남아 `ApplyLevelUp`과 두 갈래가 됨 (= 13-3) | 섹션 17, 13 |
+| 중간 | 17-5 | `LevelUpWidget`의 `NativeOnInitialized`/`NativeConstruct`가 `Super::`를 부르지 않고 빈 본문으로 오버라이드됨 (BP `Construct` 이벤트 미실행) | 섹션 17 |
+| 중간 | 17-6 (13-2 잔여) | 레벨업 시 현재 HP/FP 유지로 바뀜(13-2 해소). 남은 문제: 로드/시작 시 현재 HP가 초기 최대치로 시작해 `MaxHP`보다 낮고, `CurrentHP <= 0`(사망)에서 레벨업하면 부활함 | 섹션 17 |
 | 높음 (확인 필요) | 9-1 | 공격 후 `ActionState`가 `Attack`에 고착될 수 있음 (`PlayAttackMontage()`가 빈 함수) | 섹션 9 |
 | 높음 | 9-2, 9-3 | 락온의 `GetController()` null 역참조(`Warrior.cpp`), `LockOnTarget` 일반 포인터 | 섹션 9 |
 | 중간 | 9-4, 3-2, 4-5 | 전투 루프 없음(`ApplyDamage` 호출처 없음), 적에게 스탯 컴포넌트/인터페이스 없음, 컴포넌트를 `ACharacterBase`로 이동 | 섹션 9, 3 |
 | 중간 | 9-5, 9-6, 9-7 | 이동 속도 출처 4곳, `EnemyAIData` 속도 기본값 없음, AI 경로 2개(`WarriorAIController`/`EnemyAIController`) | 섹션 9 |
 | 중간 | 13-3, 13-4, 13-5, 12-3, 7-6, 7-7 | `UpgradeStat`이 호출자가 준 비용을 믿음, 레벨 상한이 우연히 걸림(레벨 표 10 / 성장 표 40 / `MaxValue` 99), 업그레이드 후 UI 미갱신, 비용 0의 의미, `UpdateCharacterStat` 책임/이중 호출 | 섹션 13, 12, 7 |
-| 중간 | 16-1, 16-2, 16-3, 16-4, 16-5, 16-6 | 구현 전에 정할 설계: `GetPreviewStats`의 출력 7개 → 구조체, 공식을 `UpdateCharacterStat`과 공유, 위젯의 파생값 저장, 스탯 이름 `FName` 3번째 사용(= 13-6 격상, `EAttributeType`), `CommitLevelUp`은 `UpgradeStat` 반복 대신 일괄 함수, 스탯 텍스트/헬퍼 중복 | 섹션 16 |
+| 중간 | 16-3, 16-4, 16-6 | 구현 전에 정할 설계: 위젯의 파생값 저장, 스탯 이름 `FName` 3번째 사용(= 13-6 격상, `EAttributeType`, `ApplyLevelUp`이 구조체 필드로 받아 `AddPoint`/`SubPoint`/`UpgradeStat`만 남음), 스탯 텍스트/헬퍼 중복 (16-1, 16-2, 16-5는 10-22 작업 트리에서 해소, 섹션 17) | 섹션 16 |
 | 중간 | 15-3, 15-4, 15-5 | UI 모드 전환 코드 4곳 복사(위젯이 `CloseBonfireMenu()`를 안 씀), `CurrentInteractable` 가공되지 않은 포인터, 파일명 대소문자(Git `BonFire.*` ↔ 디스크 `Bonfire.*`) | 섹션 15 |
 | 중간 | 16-11 | 가이드 "임베딩한 스탯창이 실시간 자동 갱신" 서술이 코드와 맞지 않음(`RefreshStatus`는 열 때만 호출) | 섹션 16 |
 | 중간 | 13-10, 13-12 | `Interact`가 `AWarrior`에 묶임, 적 리셋 구독 구조 | 섹션 13 |
@@ -850,7 +853,7 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 ### 1) 스탯 컴포넌트와 업그레이드
 
 - [ ] **13-1. (낮음) `int32` 함수 안에 `float` 리터럴과 캐스트가 남아 있다.** 선언(`CharacterStatComponent.h:32-33`)과 정의 시그니처는 `int32`로 바뀌었지만 본문은 그대로다: `cpp:50`, `:69`, `:79`의 `return 0.f;`, `:59`의 `return static_cast<float>(Row->InitialValue);`, `:104`의 `return static_cast<float>(TotalBonus);`. 암묵 변환으로 컴파일되고 값도 맞지만(작은 정수), `int32` → `float` → `int32` 왕복이 그대로라 반환 타입을 바꾼 목적(11-6)이 절반만 이루어졌고, 컴파일러가 `float` → `int32` 변환 경고를 낼 수 있다. `return 0;`, `return Row->InitialValue;`, `return TotalBonus;`로 정리할 것.
-- [ ] **13-2. (높음) 레벨업할 때마다 현재 HP/FP가 초기 최대치로 돌아간다. (12-2의 실제 경로)** `WarriorPlayerState.cpp:40`의 `UpdateCharacterStat(...)` → `CharacterStatComponent.cpp:109` `LoadCharacterStat()`이 `CurrentHP = MaxHP`(초기값 250, `:181`)로 되돌린 뒤 `:119`에서 `MaxHP`만 키운다. `:130-145`는 `Clamp`만 한다.
+- [x] **13-2. (높음) (2026-10-22: 작업 트리의 `UpdateCharacterStat`이 `LoadCharacterStat()` 호출을 없애고 `CurrentHP/FP`를 유지하도록 바뀐 것을 확인함. 남은 문제는 17-6) 레벨업할 때마다 현재 HP/FP가 초기 최대치로 돌아간다. (12-2의 실제 경로)** `WarriorPlayerState.cpp:40`의 `UpdateCharacterStat(...)` → `CharacterStatComponent.cpp:109` `LoadCharacterStat()`이 `CurrentHP = MaxHP`(초기값 250, `:181`)로 되돌린 뒤 `:119`에서 `MaxHP`만 키운다. `:130-145`는 `Clamp`만 한다.
   - 예: HP 100 상태에서 Vigor를 올리면 현재 HP가 250으로 *회복*되고(전투 중 레벨업이 회복 수단이 됨), 이미 Vigor가 투자된 상태라면 `MaxHP`가 485여도 현재 HP는 250이라 HUD가 52%로 보인다. `CurrentHP <= 0.f` 분기(`:130`, `:138`)는 `LoadCharacterStat`이 항상 `CurrentHP = MaxHP`로 만들어서 **실행되지 않는 코드**다.
   - 먼저 정책을 정한다: (가) 업그레이드 시 전부 회복(`Current* = Max*`이면 `:130-148`을 세 줄로 줄일 수 있음), (나) 현재값 유지(`LoadCharacterStat` 호출 전에 비율이나 값을 저장했다가 복원). 화톳불에서 쉬면 전부 회복되므로(`Bonfire.cpp:106-108`) (나)가 자연스럽다.
 - [ ] **13-3. (중간) `UpgradeStat`이 호출자가 준 비용을 그대로 믿는다.** (`WarriorPlayerState.h:26`, `WarriorPlayerState.cpp:14-20`) `BlueprintCallable`이라 `RequiredSouls`에 1을 넣어 부르면 1소울로 올릴 수 있다. 비용은 `GetRequiredSouls(SaveData.Level)`처럼 안쪽에서 구하는 것이 안전하다(12-5). 그때 `Level`이 "현재 레벨"이므로 `Level1` 행(300)이 *레벨 1에서 2로 올리는 비용*인지 CSV(`LevelRequiredSouls.csv`)와 함께 문서로 정해 둘 것. 비용이 `0`일 때 거부하는 현재 방식(`:17`)은 "행 없음/최대 레벨"과 "비용 0"을 구분하지 못하고 조용히 `false`만 돌려준다(12-3).
@@ -1064,7 +1067,7 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 
 ### 1) 컴포넌트: `GetPreviewStats`
 
-- [ ] **16-1. (중간) 출력 매개변수가 7개이다.** (`CharacterStatComponent.h:84-86`, `.cpp:214-223`) `float& OutMaxHP, OutMaxFP, OutMaxStamina, OutAttackPower, OutDefense, OutEquipLoad, OutResistance`는 스탯이 하나 늘 때마다 선언, 정의, C++ 호출부, 블루프린트 노드가 모두 바뀐다. 호출하는 쪽도 지역 변수 7개가 필요하다. 결과를 담는 구조체 하나(`FStatPreview`)를 반환하면 필드를 추가해도 호출부는 바뀌지 않고, 블루프린트에서도 `Break` 노드로 쓸 수 있다. 본문이 비어 있어 출력이 초기화되지 않으므로, 구현 전에 호출하면 쓰레기 값이 나온다는 점도 알아 둘 것(임시로 0 대입).
+- [x] **16-1. (중간) (2026-10-22: 작업 트리에서 `FStatPreview` 구조체 반환 `CalculateDerivedStats`로 바뀐 것을 확인함. 이름은 `GetPreviewStats`에서 변경, `Poise`와 이동 속도는 구조체에 없음) 출력 매개변수가 7개이다.** (`CharacterStatComponent.h:84-86`, `.cpp:214-223`) `float& OutMaxHP, OutMaxFP, OutMaxStamina, OutAttackPower, OutDefense, OutEquipLoad, OutResistance`는 스탯이 하나 늘 때마다 선언, 정의, C++ 호출부, 블루프린트 노드가 모두 바뀐다. 호출하는 쪽도 지역 변수 7개가 필요하다. 결과를 담는 구조체 하나(`FStatPreview`)를 반환하면 필드를 추가해도 호출부는 바뀌지 않고, 블루프린트에서도 `Break` 노드로 쓸 수 있다. 본문이 비어 있어 출력이 초기화되지 않으므로, 구현 전에 호출하면 쓰레기 값이 나온다는 점도 알아 둘 것(임시로 0 대입).
   ```cpp
   USTRUCT(BlueprintType)
   struct FStatPreview
@@ -1080,13 +1083,13 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
   };
   // UFUNCTION(BlueprintPure) FStatPreview GetPreviewStats(const FWarriorAttributeData& InAttributes) const;
   ```
-- [ ] **16-2. (중간) 계산식이 `UpdateCharacterStat`(`cpp:112-127`)과 두 벌이 될 수 있다.** 시뮬레이션 숫자와 실제 적용 결과가 어긋나는 것이 이 기능의 가장 큰 위험이다. `GetPreviewStats`를 먼저 만들고 `UpdateCharacterStat`이 그 결과를 멤버에 대입하게 하면 공식이 한 곳에만 남는다. 이렇게 하면 계산(`GetPreviewStats`)과 현재값 처리(`UpdateCharacterStat`)가 갈라져 13-2, 7-6도 같이 풀린다. `InAttributes`는 `SaveData.Attributes`와 같은 **추가 포인트** 의미(기본값 10은 포함하지 않음)이므로, 위젯은 `BaseAttributes + PendingPoints`를 넘긴다는 점을 선언 주석에 적어 둘 것.
+- [x] **16-2. (중간) (2026-10-22: `UpdateCharacterStat`이 `CalculateDerivedStats` 결과를 대입하도록 바뀌어 공식이 한 곳에 있음을 확인함) 계산식이 `UpdateCharacterStat`(`cpp:112-127`)과 두 벌이 될 수 있다.** 시뮬레이션 숫자와 실제 적용 결과가 어긋나는 것이 이 기능의 가장 큰 위험이다. `GetPreviewStats`를 먼저 만들고 `UpdateCharacterStat`이 그 결과를 멤버에 대입하게 하면 공식이 한 곳에만 남는다. 이렇게 하면 계산(`GetPreviewStats`)과 현재값 처리(`UpdateCharacterStat`)가 갈라져 13-2, 7-6도 같이 풀린다. `InAttributes`는 `SaveData.Attributes`와 같은 **추가 포인트** 의미(기본값 10은 포함하지 않음)이므로, 위젯은 `BaseAttributes + PendingPoints`를 넘긴다는 점을 선언 주석에 적어 둘 것.
 
 ### 2) `LevelUpWidget`
 
 - [ ] **16-3. (중간) 파생값을 멤버로 저장하고 있다.** (`LevelUpWidget.h:61-68`) `BaseLevel`, `BaseSouls`, `BaseAttributes`, `VirtualLevel`, `TotalRequiredSouls`, `PendingPoints` 6개 중 진짜 변하는 상태는 `PendingPoints` 하나이다. `VirtualLevel`은 `BaseLevel + (PendingPoints의 합)`이고 `TotalRequiredSouls`는 `BaseLevel`부터 `VirtualLevel` 직전까지 `GetRequiredSouls`의 합이다. 저장해 두면 `AddPoint`/`SubPoint`/초기화 어디선가 갱신을 빼먹는 순간 화면이 틀린다. `RefreshUI`에서 `PendingPoints`로부터 계산하면 필드가 줄고 불일치가 생길 수 없다.
 - [ ] **16-4. (중간) 스탯 이름을 `FName`으로 받는 곳이 세 번째가 된다.** (`AddPoint(FName)`, `SubPoint(FName)`, 이미 있는 `UpgradeStat(FName, ...)`, 13-6) 이 위젯에서 이름마다 `PendingPoints.Vigor` 같은 멤버로 분기하면 `if-else`가 하나 더 생긴다. `UENUM EAttributeType`을 하나 만들면 세 곳이 같은 타입을 쓰고, 오타가 컴파일 오류가 되며, 위젯 블루프린트의 버튼 이벤트에서 드롭다운으로 고를 수 있다. 13-6을 낮음에서 중간으로 올린다.
-- [ ] **16-5. (중간) `CommitLevelUp`을 `UpgradeStat`의 반복 호출로 만들면 안 된다.** `UpgradeStat`은 1포인트 단위(검사 → 증가 → 차감 → `UpdateCharacterStat`)이다. 포인트 N개를 N번 부르면 (1) 매번 `UpdateCharacterStat` → `LoadCharacterStat`이 현재 HP/FP를 초기화하고(13-2), (2) 중간에 소울이 모자라면 일부만 적용된 상태로 끝나며, (3) 레벨이 올라갈 때마다 비용이 바뀌는 계산이 호출마다 퍼진다. `AWarriorPlayerState`에 **일괄 함수**(예: `bool ApplyLevelUp(const FWarriorAttributeData& Pending)`)를 하나 두어 총 비용을 한 번에 검증하고, 전부 차감·증가한 뒤 `UpdateCharacterStat`을 한 번만 부르게 할 것. 총 비용 계산 `GetTotalRequiredSouls(FromLevel, ToLevel)`은 컴포넌트의 `GetRequiredSouls` 옆에 두고, 위젯(표시용)과 PlayerState(검증용)가 같이 쓰게 한다. 위젯이 계산한 `TotalRequiredSouls`는 믿지 말고 PlayerState가 다시 계산해야 한다(13-3).
+- [x] **16-5. (중간) (2026-10-22: `AWarriorPlayerState::ApplyLevelUp`과 `GetTotalRequiredSouls`가 추가된 것을 확인함. 다만 검증이 빠진 곳이 있어 17-1 ~ 17-3. 위젯의 `CommitLevelUp` 본문은 아직 비어 있음) `CommitLevelUp`을 `UpgradeStat`의 반복 호출로 만들면 안 된다.** `UpgradeStat`은 1포인트 단위(검사 → 증가 → 차감 → `UpdateCharacterStat`)이다. 포인트 N개를 N번 부르면 (1) 매번 `UpdateCharacterStat` → `LoadCharacterStat`이 현재 HP/FP를 초기화하고(13-2), (2) 중간에 소울이 모자라면 일부만 적용된 상태로 끝나며, (3) 레벨이 올라갈 때마다 비용이 바뀌는 계산이 호출마다 퍼진다. `AWarriorPlayerState`에 **일괄 함수**(예: `bool ApplyLevelUp(const FWarriorAttributeData& Pending)`)를 하나 두어 총 비용을 한 번에 검증하고, 전부 차감·증가한 뒤 `UpdateCharacterStat`을 한 번만 부르게 할 것. 총 비용 계산 `GetTotalRequiredSouls(FromLevel, ToLevel)`은 컴포넌트의 `GetRequiredSouls` 옆에 두고, 위젯(표시용)과 PlayerState(검증용)가 같이 쓰게 한다. 위젯이 계산한 `TotalRequiredSouls`는 믿지 말고 PlayerState가 다시 계산해야 한다(13-3).
 - [ ] **16-6. (중간) 스탯 텍스트 목록과 숫자 헬퍼가 중복된다.** (`LevelUpWidget.h:71-111`) `TextBlock_*` 20개가 `StatusWindowWidget.h`의 목록과 이름·용도가 거의 같고, 값을 넣는 `SetNumberText` 헬퍼도 세 번째로 필요해진다. 헬퍼는 13-8에서 제안한 오버로드 두 개를 `UI/` 공용 헤더의 `inline` 함수(또는 `UBlueprintFunctionLibrary`)로 한 번만 두고, 가능하면 "스탯 이름 + 값" 한 줄을 서브 위젯으로 만들어 스탯창과 레벨업 창이 같이 쓰게 하면 코드와 `UPROPERTY` 선언이 크게 줄어든다.
 - [ ] **16-7. (낮음) 초기화 시점과 이름.** (`LevelUpWidget.h:27-33`) 버튼 바인딩은 한 번만 하는 `NativeOnInitialized`에, 열릴 때마다 필요한 `PendingPoints` 초기화는 `InitializedLevelUp()`에 두고 호출 위치를 정해야 한다. 화톳불 메뉴 안에 임베드하고 `WidgetSwitcher`로 페이지를 전환하면 `NativeConstruct`가 다시 불리지 않으므로 전환할 때 부모가 `InitializedLevelUp()`을 직접 불러야 한다. 이름은 `InitializeLevelUp`이 자연스럽고, `CanAddPoint()`는 `BlueprintPure`로 하면 `+` 버튼의 활성/비활성에 쓸 수 있다. `h:56`의 "캐싱된 컴포넌트 가져오기" 주석과 달리 캐시 멤버는 없다(`UCharacterStatComponent`는 `ICharacterStatInterface` 헬퍼(14-1)로 얻으면 됨).
 
@@ -1113,3 +1116,88 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 2. 16-4(`EAttributeType`)를 같이 도입한다. `UpgradeStat`, `AddPoint`, `SubPoint`가 한 번에 정리된다.
 3. 13-2(레벨업 시 현재 HP/FP)는 16-2의 분리와 함께 해결한다.
 4. 16-11(가이드의 "실시간 갱신" 정정)과 15-5(파일명 대소문자)는 `main`에 올리기 전에 처리한다.
+
+---
+
+## 17. 레벨업 계산 엔진과 `ApplyLevelUp` 리뷰 (2026-10-22, 커밋 `223d76f` 이후 미커밋 작업 트리)
+
+**대상**: 작업 트리 변경 4개 — `CharacterStatComponent.h/.cpp`(`FStatPreview`, `CalculateDerivedStats`, `GetTotalRequiredSouls`, `UpdateCharacterStat` 재작성), `WarriorPlayerState.h/.cpp`(`ApplyLevelUp`), `PROJECT_GUIDE.md`(문구 갱신). 비교용으로 `LevelUpWidget.*`, `Bonfire.*`, `WarriorController.*`, `Warrior.*`, `StatusWindowWidget.*`, `PlayerHUDWidget.*`와 `Content/Data/*.csv`를 같이 읽었다.
+빌드와 실행은 하지 않았고 코드 읽기와 CSV 대조만 했다. 코드는 수정하지 않았다.
+
+**총평**: 섹션 16에서 구현 전에 정하자고 한 세 가지(출력 구조체, 공식 공유, 일괄 확정 함수)가 그대로 구현되었다. `UpdateCharacterStat`이 `CalculateDerivedStats`를 불러 대입하므로 시뮬레이션과 실제 적용이 어긋날 수 없게 되었고, `LoadCharacterStat()` 이중 호출이 사라져 레벨업 때 HP가 초기값으로 돌아가던 문제(13-2)도 해소되었다. 반면 `ApplyLevelUp`은 **입력 검증이 부족해서 값이 잘못 들어오면 그대로 반영**된다. 특히 11레벨 이상의 비용이 0인 점은 CSV 확장 작업과 직결된다.
+
+### 1) 확인된 변경
+
+| 항목 | 결과 | 근거 |
+|---|---|---|
+| 16-1 출력 구조체 | 해소 | `FStatPreview`(`h:10-29`), `CalculateDerivedStats`(`cpp:226-245`) |
+| 16-2 공식 공유 | 해소 | `UpdateCharacterStat`(`cpp:107-148`)이 `CalculateDerivedStats`(`:117`) 결과를 `MaxHP` 등에 대입 |
+| 16-5 일괄 확정 | 해소 (검증은 17-1 ~ 17-3) | `ApplyLevelUp`, `GetTotalRequiredSouls`(`cpp:211-224`) |
+| 13-2 레벨업 시 HP 초기화 | 해소 (잔여 문제 17-6) | `UpdateCharacterStat`이 더 이상 `LoadCharacterStat()`을 부르지 않음 |
+| 14-4 실행되지 않는 현재값 분기 | **오히려 도달 가능해짐** | 17-6 참고 |
+| 시뮬레이션 비용 `GetTotalRequiredSouls` | 의미 확인 | `Level1` 행 = 1→2 레벨 비용이고 `[FromLevel, ToLevel)`을 합산해서 CSV와 맞음 |
+
+`CalculateGrowthValue`의 구간 계산도 다시 대입해 보았다. Vigor 추가 25포인트 → `1~20 × 10 + 21~25 × 7 = 235`, 0포인트 → 0이고, 40을 넘는 포인트는 마지막 구간 상한에서 멈춘다.
+
+### 2) 동작 오류 (높음)
+
+- [ ] **17-1. (높음) `ApplyLevelUp`이 `PendingPoints`의 음수를 걸러내지 않는다.** (`WarriorPlayerState.cpp`의 `ApplyLevelUp`)
+  검사는 합계 `AddedLevels <= 0`뿐이다. 필드별 `>= 0`을 보지 않으므로 `Vigor = +5`, `Strength = -3`이면 합계 2로 통과해, 소울은 2레벨분만 내고 `Vigor`는 +5, `Strength`는 -3이 된다. 반대로 `Vigor = +1`, `Strength = -1`처럼 합계 0이 되는 입력은 거부되지만, 합계를 양수로 맞추면서 스탯을 재분배(환급)할 수 있다. 함수가 `BlueprintCallable`이라 위젯 블루프린트에서 구조체를 만들어 넘기면 그대로 들어간다(현재는 C++ 위젯이 비어 있어 드러나지 않을 뿐이다).
+  모든 필드가 `0` 이상인지 확인하고, 하나라도 음수면 `false`를 돌려줄 것. `FWarriorAttributeData`에 `HasNegative()`/`Total()` 같은 작은 도우미를 두면 `PlayerState`와 위젯의 `CanAddPoint`가 같은 검사를 쓴다.
+- [ ] **17-2. (높음) 레벨 표에 없는 레벨은 비용 0이라 소울 없이 레벨업된다.** (`CharacterStatComponent.cpp:191-209`, `ApplyLevelUp`)
+  `LevelRequiredSouls.csv`는 `Level1`~`Level10`만 있고 `GetRequiredSouls`는 행이 없으면 `0`을 돌려준다(12-3). `ApplyLevelUp`은 `GetTotalRequiredSouls`의 합이 `SaveData.Souls`보다 큰지만 보므로, **Level 11 이상으로 올리는 구간은 비용 0**이다. 소울이 0이어도 통과하고, 한 번에 `Vigor +50`처럼 큰 값을 넣어도 막히지 않는다. 기존 `UpgradeStat`에는 `RequiredSouls <= 0` 거부가 있었지만 `ApplyLevelUp`에는 없다.
+  `GetRequiredSouls`가 "행 없음/최대 레벨"을 구분해서 돌려주거나(예: `-1` 또는 `bool` 출력), 총비용 계산 중 하나라도 행이 없으면 실패(`false`)로 처리해야 한다. **CSV 쪽에서는 `LevelRequiredSouls.csv`를 목표 최대 레벨까지 채우는 일이 이 기능의 선행 조건**이다.
+
+### 3) 설계와 안전성 (중간)
+
+- [ ] **17-3. (중간) 스탯 상한(`MaxValue` 99)을 확인하지 않는다.** (`ApplyLevelUp`, 13-4 참고)
+  `StatDefine.csv`의 `Vigor ... MaxValue = 99`는 어디서도 쓰이지 않는다. 총 레벨 상한이 레벨 표(10)에 우연히 걸리던 것(13-4)이 17-2로 사라지면 `Vigor`가 99를 넘어 올라가는 것을 막는 곳이 없다. 성장 표는 40포인트(= 스탯 값 50)까지만 정의되어 있어서 그 이후의 증가량도 정해야 한다. `ApplyLevelUp`에서 `초기값 + 기존 + 추가 <= MaxValue`를 검사하고, `StatDefine` 행을 읽는 함수는 컴포넌트에 이미 있으니(`GetStatInitialValue`) 최대값을 읽는 짝 함수를 두면 된다.
+- [ ] **17-4. (중간) `UpgradeStat`과 `ApplyLevelUp`이 같은 일을 두 갈래로 한다. (= 13-3)**
+  `UpgradeStat(FName, int32 RequiredSouls)`는 호출자가 준 비용을 믿고 이름을 문자열로 비교한다. `ApplyLevelUp`은 비용을 안쪽에서 계산한다. 사용처가 없다면 `UpgradeStat`을 지우거나, 구조체 한 개를 만들어 `ApplyLevelUp`을 부르는 얇은 함수로 바꿔서 로직이 한 곳에만 남게 할 것. 지금 남겨 두면 나중에 블루프린트가 `UpgradeStat`을 부르는 순간 검증을 우회한다. `PROJECT_GUIDE.md`도 "`UpgradeStat`(단일) 및 `ApplyLevelUp`(일괄 승인) 완비"라고 적어 두 갈래를 정상으로 서술하고 있다.
+- [ ] **17-5. (중간) `LevelUpWidget`의 오버라이드가 `Super::`를 부르지 않는다.** (`LevelUpWidget.cpp:5-12`)
+  `NativeOnInitialized()`와 `NativeConstruct()`가 빈 본문이라 `Super::NativeOnInitialized()`/`Super::NativeConstruct()`가 호출되지 않는다. `UUserWidget`의 `Super`를 건너뛰면 블루프린트의 `Event Construct`/`Event On Initialized`가 실행되지 않고 위젯 초기화 순서가 어긋난다. 골격 단계라 지금은 영향이 없지만, 본문을 채우기 전에 `Super::` 호출을 먼저 넣어 둘 것(`BonfireMenuWidget::NativeOnInitialized`는 이미 올바르게 호출한다).
+- [ ] **17-6. (중간) `UpdateCharacterStat`의 현재값 처리에 두 가지 남은 문제가 있다.** (`cpp:127-145`)
+  1. **시작/로드 시 현재 HP가 `MaxHP`보다 낮다.** 컴포넌트 `BeginPlay`가 `LoadCharacterStat()`으로 `CurrentHP = 초기값(250)`을 만든 뒤 `AWarrior::BeginPlay` → `UpdateCharacterStat`이 `MaxHP`만 키우고 `Current`는 유지(`Clamp`)한다. 저장 데이터에 투자된 포인트가 있으면 `Vigor +25`일 때 `MaxHP 485` / `CurrentHP 250`으로 시작해 HUD가 52%로 보인다(12-2의 원래 시나리오). `SaveData.CurrentHP/CurrentFP`가 있지만 어디서도 읽거나 쓰지 않는다. 시작/로드 경로에서만 "현재값 = 저장값(없으면 최대)"로 정하는 분기가 필요하다. 그리고 `LoadGame()`이 `PlayerState`만 덮어쓰고 폰의 `UpdateCharacterStat`을 부르지 않으므로 로드해도 수치가 그대로다(7-6).
+  2. **`CurrentHP <= 0`(사망 상태)이면 레벨업이 부활이 된다.** `:127-130`의 분기는 이전에는 실행되지 않던 코드(14-4)였는데, `LoadCharacterStat()` 호출이 빠지면서 도달 가능해졌다. 사망 처리(`OnDeath`)가 생기면 사망 중에 `ApplyLevelUp`이 `Current = Max`로 되살린다. `FP`도 같고, 스태미나는 항상 `MaxStamina`로 채운다(`:145`). 의도한 정책이면 주석으로 남기고, 아니라면 `HP <= 0`일 때 `ApplyLevelUp`을 거부(`Interact`도 사망 중에는 막힘)하거나 이 분기를 지울 것.
+
+### 4) 정리와 일관성 (낮음 ~ 중간)
+
+- [ ] **17-7. (낮음) `PROJECT_GUIDE.md`의 13-8 새 문구가 코드와 다르다.**
+  "`UpdateCharacterStat`에서 `LoadCharacterStat()` 중복 호출을 제거하여 **레벨업이나 세이브 로드 시** `CurrentHP`가 강제로 풀피가 되는 현상 방지 (Review 13-2, 14-4 해결)"라고 적혀 있다. 레벨업 경로는 맞지만 세이브 로드는 `LoadGame()`이 `UpdateCharacterStat`을 부르지 않아서 해당 없다(17-6의 1번). 14-4는 해소가 아니라 사망 시 부활로 바뀌었다(17-6의 2번). "`ApplyLevelUp`... 원자적(Atomic) 갱신"도 17-1 ~ 17-3의 검증이 빠진 상태에서는 과장이다. 상태 표의 "✅ 구현 (2026-10-22 갱신)"도 "🟡 검증 보강 필요"로 낮추는 편이 맞다.
+- [ ] **17-8. (낮음) 블루프린트에서 `FWarriorAttributeData`를 만들 수 없다.** (`WarriorSaveData.h`)
+  구조체는 `BlueprintType`이지만 필드가 `UPROPERTY()`뿐이라 블루프린트에는 보이지 않는다. `CalculateDerivedStats(BlueprintPure)`와 `ApplyLevelUp(BlueprintCallable)`의 인자로 쓰이지만 블루프린트가 값을 채울 수 없다. 레벨업 위젯을 C++로 끝낼 거라면 `BlueprintType`/`UFUNCTION`을 빼는 쪽이 의도에 맞고, 블루프린트에서도 쓸 거라면 필드에 `BlueprintReadWrite`가 필요하다. 세이브 구조체에 읽기/쓰기를 열면 외부에서 임의 수정이 쉬워지므로 위젯용 별도 구조체를 두는 방법도 있다.
+- [ ] **17-9. (낮음) `int32` 반환 함수 안의 `float` 잔재가 그대로다. (= 13-1)** `GetStatInitialValue`의 `return 0.f;` / `static_cast<float>(Row->InitialValue)`(`cpp:50`, `:59`), `CalculateGrowthValue`의 `return 0.f;` / `static_cast<float>(TotalBonus)`(`:79`, `:104`). 의도한 변환 규칙이 있으니(13장의 기록) 캐스트만 지우면 된다.
+- [ ] **17-10. (낮음) 성장 계산이 매 호출마다 테이블 전체를 훑는다.** `CalculateGrowthValue`가 `GetAllRows`로 모든 행을 가져와 스탯마다 반복한다. `CalculateDerivedStats` 한 번에 8회, `+`/`-` 버튼을 누를 때마다 위젯이 부른다면 한 번 클릭에 16행 × 8번이다. 지금 크기(14행)에서는 문제없지만 CSV를 40~99 구간 × 8개 스탯으로 늘리면 수백 행이 된다. `BeginPlay`에서 `StatID/Target`별로 한 번 묶어 두거나, 호출 횟수가 문제가 될 때만 손볼 것.
+- [ ] **17-11. (낮음) `FStatPreview` 위치와 범위.** 구조체가 컴포넌트 헤더에 있어 이를 쓰는 위젯이 컴포넌트 헤더를 include해야 한다. `Data/` 아래로 옮기면 위젯은 데이터만 알면 된다. `Poise`, `MaxWalkSpeed`는 성장 대상이 아니라서 빠진 것으로 보이지만(맞음), 미리보기에서 값이 나오지 않으므로 UI에서 "변화 없음"으로 표시할지 정해 둘 것.
+- [ ] **17-12. (낮음) `ApplyLevelUp`이 실패 이유를 돌려주지 않는다.** `false` 하나로 (1) 포인트 없음, (2) 폰 없음, (3) 소울 부족이 구분되지 않아 UI에서 안내 문구를 낼 수 없다. 17-1 ~ 17-3의 검증이 늘어나면 `enum`(또는 `FText` 출력)이 필요해진다. 또 `PlayerState`가 `GetPawn()`의 컴포넌트에 비용 조회를 맡기는 구조라 폰이 없으면 레벨업이 불가능하다(12-5).
+
+### 5) CSV 확장 작업(`Claude.md`)에 미치는 영향
+
+코드가 확정한 의미 두 가지를 성장표 설계에 반영해야 한다.
+
+1. **`StatGrowth.csv`의 `MinLevel`/`MaxLevel`은 "투자한 추가 포인트 수"(0부터 세는 증가량)이다.** `CalculateGrowthValue`가 `AddedPoints`로 구간을 계산한다(`cpp:72-105`). `Claude.md` 3-2의 표는 "스탯 값(11부터)" 기준으로 썼으므로 **구간을 포인트 기준으로 바꿔야 한다.** 예: Vigor→HP `11~27: +25`는 `1~17: +25`, `28~49`는 `18~39`, `50~99`는 `40~89`로 쓴다. 이 문서의 "레벨의 기준" 쟁점은 코드로 확정되었다.
+2. **`LevelRequiredSouls.csv`를 목표 최대 레벨까지 채우는 일은 레벨업 비용이 새는 것을 막는 일이기도 하다**(17-2). `Level1`~`Level10`만 있으면 11레벨부터 비용 0이다. 행 이름은 `Level%d`(`cpp:198`)이므로 `Level11`, `Level12`, ...로 이어서 써야 한다. 성장 표가 40포인트(레벨 41)까지이므로 최소한 `Level1`~`Level40`이 필요하다.
+3. `Strength`/`Dexterity` → `AttackPower`는 0,0,0 행이다(`StatGrowth.csv`의 `Growth_013`, `Growth_014`). `Value`가 0이라 아무 일도 하지 않으므로 스탯창에서 힘/기량을 올려도 공격력이 변하지 않는다. 계획표의 값으로 채우기 전까지는 레벨업 UI에서 "효과 없음"으로 보일 수 있다.
+4. 에셋은 `Content/Data/`로 이동되어 CSV와 같은 폴더에 있다(12-7). CSV를 고친 뒤에는 에디터에서 해당 DataTable을 **리임포트**해야 게임에 반영된다(9-15).
+
+### 6) 확인된 좋은 점
+
+- `ApplyLevelUp`이 **모든 검사를 끝낸 뒤에야** `SaveData`를 바꾼다. 실패 시 부분 변경이 없다(검사 항목은 17-1 ~ 17-3에서 보강).
+- `UpdateCharacterStat`이 `Attributes`(추가 포인트)를 `초기값 + 추가`로 환산해 `Vigor` 등 getter에 저장하고, 스탯창이 그 getter를 읽는다. 표시값과 계산값이 같은 출처이다.
+- `CalculateDerivedStats`가 `const`/`BlueprintPure`이고 상태를 바꾸지 않아 미리보기에 안전하다. 같은 함수를 실제 적용에도 쓰므로 "보이는 값 = 적용되는 값"이 구조로 보장된다.
+- `GetTotalRequiredSouls`가 `FromLevel >= ToLevel`이면 0을 돌려줘서 역방향 입력에 안전하다.
+
+### 7) 이번 변경으로 상태가 바뀐 이전 항목
+
+- 해소: 13-2, 16-1, 16-2, 16-5.
+- 모습이 바뀜: 14-4(실행되지 않던 분기 → 사망 시 부활, 17-6), 12-3/13-3(비용 0 문제가 `ApplyLevelUp`으로 옮겨감, 17-2/17-4).
+- 그대로: 13-1(→ 17-9), 13-3(→ 17-4), 13-4(→ 17-3), 13-5, 13-6, 15-1 ~ 15-5, 16-3, 16-4, 16-6 ~ 16-12.
+
+### 8) 우선순위
+
+1. 17-1, 17-2를 `ApplyLevelUp`에서 먼저 막는다(음수, 비용 0). 둘 다 한 함수 안의 작은 수정이다. 이 검증이 있어야 위젯 `CommitLevelUp`을 안전하게 연결할 수 있다.
+2. `LevelRequiredSouls.csv`를 `Level40`까지 확장한다(5-2). 17-2를 코드로 막으면 11레벨부터 올릴 수 없게 되므로 CSV와 같이 진행한다.
+3. 17-3(`MaxValue` 상한)과 17-4(`UpgradeStat` 정리)를 같이 정한다.
+4. 17-5(`Super::` 호출)는 위젯 본문을 쓰기 전에 넣는다.
+5. 17-6의 시작/로드 경로와 사망 정책은 `OnDeath`와 `LoadGame`을 만들 때 같이 정한다.
+6. `StatGrowth.csv` 확장은 5-1의 포인트 기준으로 쓴다. 17-7(가이드 문구)은 `main` 병합 전에 정정한다.

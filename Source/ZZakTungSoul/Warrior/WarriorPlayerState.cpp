@@ -43,3 +43,61 @@ bool AWarriorPlayerState::UpgradeStat(const FName& StatName, int32 RequiredSouls
 
 	return true;
 }
+
+bool AWarriorPlayerState::ApplyLevelUp(const FWarriorAttributeData& PendingPoints)
+{
+	// 올리려는 총 레벨 수 계산.
+	const int32 AddedLevels
+		= PendingPoints.Vigor
+		+ PendingPoints.Attunement
+		+ PendingPoints.Endurance
+		+ PendingPoints.Vitality
+		+ PendingPoints.Strength
+		+ PendingPoints.Dexterity;
+
+
+	if (AddedLevels <= 0)
+	{
+		return false;
+	}
+
+	// 스탯 컴포넌트 유효성 검사.
+	ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(GetPawn());
+	if (!StatOwner)
+	{
+		return false;
+	}
+
+	UCharacterStatComponent* StatComp = StatOwner->GetCharacterStatComponent();
+	if (!StatComp)
+	{
+		return false;
+	}
+
+	// 필요한 총 소울 계산 및 소지 소울 검증.
+	const int32 FromLevel = SaveData.Level;
+	const int32 ToLevel = FromLevel + AddedLevels;
+	const int32 TotalCost = StatComp->GetTotalRequiredSouls(FromLevel, ToLevel);
+
+	if (SaveData.Souls < TotalCost)
+	{
+		return false;
+	}
+
+	// 일괄 승인
+	SaveData.Souls -= TotalCost;
+	SaveData.Level += AddedLevels;
+
+	SaveData.Attributes.Vigor += PendingPoints.Vigor;
+	SaveData.Attributes.Attunement += PendingPoints.Attunement;
+	SaveData.Attributes.Endurance += PendingPoints.Endurance;
+	SaveData.Attributes.Vitality += PendingPoints.Vitality;
+	SaveData.Attributes.Strength += PendingPoints.Strength;
+	SaveData.Attributes.Dexterity += PendingPoints.Dexterity;
+
+	
+	// 캐릭터 컴포넌트에 반영.
+	StatComp->UpdateCharacterStat(SaveData.Attributes);
+	
+	return true;
+}

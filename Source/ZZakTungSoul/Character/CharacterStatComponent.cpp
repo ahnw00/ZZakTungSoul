@@ -106,9 +106,7 @@ int32 UCharacterStatComponent::CalculateGrowthValue(
 // 최종 스탯 결과값.
 void UCharacterStatComponent::UpdateCharacterStat(const FWarriorAttributeData& Attributes)
 {
-	LoadCharacterStat();
-
-	// Attribute 최종 계산값.
+	// Attribute 기본 수치 갱신.
 	Vigor = GetStatInitialValue(VigorKey) + Attributes.Vigor;
 	Attunement = GetStatInitialValue(AttunementKey) + Attributes.Attunement;
 	Endurance = GetStatInitialValue(EnduranceKey) + Attributes.Endurance;
@@ -116,16 +114,15 @@ void UCharacterStatComponent::UpdateCharacterStat(const FWarriorAttributeData& A
 	Strength = GetStatInitialValue(StrengthKey) + Attributes.Strength;
 	Dexterity = GetStatInitialValue(DexterityKey) + Attributes.Dexterity;
 	// Pool 최종값 계산.
-	MaxHP += CalculateGrowthValue(VigorKey, HpKey, Attributes.Vigor);
-	MaxFP += CalculateGrowthValue(AttunementKey, FpKey, Attributes.Attunement);
-	MaxStamina += CalculateGrowthValue(EnduranceKey, StaminaKey, Attributes.Endurance);
+	const FStatPreview NewStats = CalculateDerivedStats(Attributes);
+	MaxHP = NewStats.MaxHP;
+	MaxFP = NewStats.MaxFP;
+	MaxStamina = NewStats.MaxStamina;
 	// Stat 최종값 계산.
-	Defense += CalculateGrowthValue(EnduranceKey, DefenseKey, Attributes.Endurance);
-	EquipLoad += CalculateGrowthValue(VitalityKey, EquipLoadKey, Attributes.Vitality);
-	Resistance += CalculateGrowthValue(VitalityKey, ResistanceKey, Attributes.Vitality);
-	AttackPower += CalculateGrowthValue(StrengthKey, AttackPowerKey, Attributes.Strength);
-	AttackPower += CalculateGrowthValue(DexterityKey, AttackPowerKey, Attributes.Dexterity);
-
+	Defense = NewStats.Defense;
+	EquipLoad = NewStats.EquipLoad;
+	Resistance = NewStats.Resistance;
+	AttackPower = NewStats.AttackPower;
 
 	if (CurrentHP <= 0.f)
 	{
@@ -211,15 +208,40 @@ int32 UCharacterStatComponent::GetRequiredSouls(int32 Level) const
 	return 0;
 }
 
-void UCharacterStatComponent::GetPreviewStats(const FWarriorAttributeData& InAttributes, 
-	float& OutMaxHP, float& OutMaxFP, float& OutMaxStamina, 
-	float& OutAttackPower, float& OutDefense, float& OutEquipLoad, float& OutResistance) const
+int32 UCharacterStatComponent::GetTotalRequiredSouls(int32 FromLevel, int32 ToLevel) const
 {
-	// Pool 가상 계산.
+	if (FromLevel >= ToLevel)
+	{
+		return 0;
+	}
 
-	// 전투 스탯 가상 계산.
+	int32 TotalSouls = 0;
+	for (int32 L = FromLevel; L < ToLevel; ++L)
+	{
+		TotalSouls += GetRequiredSouls(L);
+	}
+	return TotalSouls;
+}
 
-	// 공격력.
+FStatPreview UCharacterStatComponent::CalculateDerivedStats(const FWarriorAttributeData& InAttributes) const
+{
+	FStatPreview OutPreview;
+
+	// 1. Pool 스탯 가상 계산.
+	OutPreview.MaxHP = GetStatInitialValue(HpKey) + CalculateGrowthValue(VigorKey, HpKey, InAttributes.Vigor);
+	OutPreview.MaxFP = GetStatInitialValue(FpKey) + CalculateGrowthValue(AttunementKey, FpKey, InAttributes.Attunement);
+	OutPreview.MaxStamina = GetStatInitialValue(StaminaKey) + CalculateGrowthValue(EnduranceKey, StaminaKey, InAttributes.Endurance);
+
+	// 2. 전투 스탯 가상 계산.
+	OutPreview.Defense = GetStatInitialValue(DefenseKey) + CalculateGrowthValue(EnduranceKey, DefenseKey, InAttributes.Endurance);
+	OutPreview.EquipLoad = GetStatInitialValue(EquipLoadKey) + CalculateGrowthValue(VitalityKey, EquipLoadKey, InAttributes.Vitality);
+	OutPreview.Resistance = GetStatInitialValue(ResistanceKey) + CalculateGrowthValue(VitalityKey, ResistanceKey, InAttributes.Vitality);
+
+	// 3. 공격 가상 계산.
+	OutPreview.AttackPower = GetStatInitialValue(AttackPowerKey) + CalculateGrowthValue(StrengthKey, AttackPowerKey, InAttributes.Strength)
+		+ CalculateGrowthValue(DexterityKey, AttackPowerKey, InAttributes.Dexterity);
+
+	return OutPreview;
 }
 
 

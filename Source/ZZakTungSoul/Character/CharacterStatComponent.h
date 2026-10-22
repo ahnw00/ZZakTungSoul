@@ -6,6 +6,29 @@
 #include "Components/ActorComponent.h"
 #include "CharacterStatComponent.generated.h"
 
+// 레벨업 및 스택 시뮬레이션용 미리보기 구조체.
+USTRUCT(BlueprintType)
+struct FStatPreview
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
+	float MaxHP = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
+	float MaxFP = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
+	float MaxStamina = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
+	float AttackPower = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
+	float Defense = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
+	float EquipLoad = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
+	float Resistance = 0.f;
+};
+
+
 // [델리게이트 선언]
 // 스탯이 바뀔 때(현재값, 최대값) 2개의 float 데이터를 방송하는 델리게이트 타입 정의.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatChangedDelegate, float, CurrentValue, float, MaxValue);
@@ -81,9 +104,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
 	int32 GetRequiredSouls(int32 Level) const;
 
+	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
+	int32 GetTotalRequiredSouls(int32 FromLevel, int32 ToLevel) const;
+
 	// 가상 수치 계산.
 	UFUNCTION(BlueprintPure, Category = "Stat|Simulation")
-	void GetPreviewStats(const struct FWarriorAttributeData& InAttributes, float& OutMaxHP, float& OutMaxFP, float& OutMaxStamina, float& OutAttackPower, float& OutDefense, float& OutEquipLoad, float& OutResistance) const;
+	FStatPreview CalculateDerivedStats(const struct FWarriorAttributeData& InAttributes) const;
 	// Attributes
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
 	FORCEINLINE float GetVigor() const { return Vigor; }

@@ -25,10 +25,10 @@
 | 피격/데미지 경로 | ❌ 미구현 | `ApplyDamage`, `UseFP`를 호출하는 곳이 프로젝트에 없음 → HP 바가 움직이지 않음 |
 | 사망/리스폰 | ❌ 미구현 | `OnDeath` 없음, 적의 `Dead` 상태에 진입하는 코드 없음 |
 | 적의 스탯/체력 | ❌ 미구현 | `AEnemyBase`는 스탯 컴포넌트와 인터페이스가 없음 |
-| 레벨업/소울 소모 & 스탯 업그레이드 | ✅ 구현 (2026-10-20 갱신) | 컴포넌트의 `GetRequiredSouls(Level)` 레벨별 필요 소울 조회, `AWarriorPlayerState::UpgradeStat`에서 소울 검사·차감·레벨 증가·스탯 포인트 투자 및 `UpdateCharacterStat` 실시간 동기화 완료 |
+| 레벨업/소울 소모 & 스탯 업그레이드 | ✅ 구현 (2026-10-22 갱신) | 컴포넌트의 `GetRequiredSouls`/`GetTotalRequiredSouls`(다중 레벨 비용 계산), `AWarriorPlayerState::UpgradeStat`(단일) 및 `ApplyLevelUp`(일괄 승인) 완비. 소울 부족 검증 및 원자적(Atomic) 갱신 |
 | 상호작용 인터페이스 및 화톳불 액터 | ✅ 구현 (완료) | `IInteractionInterface` 다형성 인터페이스, `ABonfire` 액터(3중 안전 검사 `CanInteractBonfire`, 불 밝히기/휴식, HP/FP/Stamina 100% 회복, `OnBonfireRest` 델리게이트 방송). 플레이어 E키 입력 및 오버랩 바인딩 연동, `BP_Bonfire` 레벨 배치 및 인게임 작동 검증 완료 |
 | 화톳불 메뉴 UI (`WBP_BonfireMenuWidget`) | ✅ 구현 (1차) | `UBonfireMenuWidget` C++ 베이스 위젯, `NativeOnInitialized` 기반 버튼 바인딩(레벨업/전송/떠나기), 컨트롤러의 `OpenBonfireMenu`/`CloseBonfireMenu` 연동, `WBP_StatusWindow` 임베딩 검증 완료 |
-| 화톳불 레벨업 서브 메뉴 (`ULevelUpWidget`) | 🟡 구현 중 (C++ 골격) | 가상 장바구니(`PendingPoints`, `VirtualLevel`, `TotalRequiredSouls`), 소울 초과 사전 차단(`CanAddPoint`), 6종 스탯 및 파생 스탯 텍스트 슬롯, 확인 모달 선언 완료. `CharacterStatComponent::GetPreviewStats` 시뮬레이션 연동 진행 중 |
+| 화톳불 레벨업 서브 메뉴 (`ULevelUpWidget`) & 시뮬레이션 | 🟡 구현 중 (계산 엔진 완비) | `FStatPreview` 및 `CharacterStatComponent::CalculateDerivedStats` 공통 계산 엔진, `ApplyLevelUp` 일괄 결제 완비. `LevelUpWidget.h` 선언 및 `cpp` 내부 장바구니/UI 갱신 연동 진행 중 |
 | 화톳불 텔레포트 서브 메뉴 (`UTeleportWidget`) | ⏸️ 보류 (골격 생성) | `UTeleportWidget` 기본 뼈대 클래스 생성 완료. 맵 및 추가 화톳불 배치 후 구현 연기 합의 |
 
 ---
@@ -870,17 +870,21 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 * `BonfireID`, `BonfireDisplayName`, `EnemyCheckRadius`를 `EditAnywhere`로 전환하여 레벨 에디터 디테일 패널에서 인스턴스별 고유 ID/이름 커스터마이징 지원.
 
 ### 13-8. 화톳불 레벨업 서브메뉴 시스템 (`ULevelUpWidget`) 및 시뮬레이션 파이프라인 (2026-10-22 진행 중)
+* **스탯 계산 엔진 통합 및 단일 진실 원천 (`CalculateDerivedStats`)**:
+  * 7개의 out 매개변수 대신 `FStatPreview` 구조체를 반환하는 순수 연산 함수 `CalculateDerivedStats` 구현 (Claude Review 16-1, 16-2 해결).
+  * **일관성 확보**: `UpdateCharacterStat`(실제 몸통 갱신)과 `LevelUpWidget`(UI 가상 시뮬레이션) 양쪽에서 동일한 공통 함수를 호출하여 수치 불일치 원천 차단.
+  * **풀피 꼼수 차단**: `UpdateCharacterStat` 내부에서 `LoadCharacterStat()` 중복 호출을 제거하여 레벨업이나 세이브 로드 시 `CurrentHP`가 강제로 풀피가 되는 현상 방지 (Review 13-2, 14-4 해결).
+* **다중 레벨업 소울 비용 계산 및 일괄 결제 (`ApplyLevelUp`)**:
+  * `CharacterStatComponent::GetTotalRequiredSouls(FromLevel, ToLevel)`를 통해 N레벨 상승 시 필요한 총 소울을 한 번에 계산 (Review 16-5 전반부 해결).
+  * `AWarriorPlayerState::ApplyLevelUp(PendingPoints)`: PlayerState가 직접 총비용을 검증하고 소울 차감, 레벨 증가, 스탯 가산을 원자적(Atomic)으로 1회 처리 후 컴포넌트 갱신 (Review 16-5 후반부 해결).
 * **정통 소울라이크 가상 장바구니 & 일괄 확정(Commit) 메커니즘**:
   * `+` 버튼 클릭 시 즉시 세이브데이터를 깎지 않고 임시 포인트(`PendingPoints`), 가상 레벨(`VirtualLevel`), 누적 차감 소울(`TotalRequiredSouls`)로 가상 시뮬레이션.
   * **소울 초과 사전 차단 (`CanAddPoint`)**: `TotalRequiredSouls + NextCost <= BaseSouls`를 사전 검사하여 보유 소울 초과 시 포인트 증가 원천 차단.
   * `[-]` 버튼 지원 (가상 포인트 차감 및 해당 레벨 소울 환불).
-  * **최종 확인 모달**: [결정] 버튼 클릭 시 `Panel_ConfirmModal` 팝업 ➔ [예] 클릭 시 `CommitLevelUp()`을 통해 `PlayerState->UpgradeStat` 일괄 영구 반영.
-* **파생 스탯 실시간 연동 설계 (`CharacterStatComponent::GetPreviewStats`)**:
-  * 기본 스탯뿐만 아니라 MaxHP, MaxFP, Stamina, 공격력, 방어력 등 파생 스탯의 변화(예: HP 800 ➔ 830)를 실시간 비교 출력하기 위해 `CharacterStatComponent`에 순수 연산 함수 `GetPreviewStats` 배치.
-  * UI 위젯은 `VirtualAttributes = Base + Pending`만 합성하여 전달하고, 스탯 계산 공식은 컴포넌트가 전담하여 단일 책임 원칙(SRP) 준수.
+  * **최종 확인 모달**: [결정] 버튼 클릭 시 `Panel_ConfirmModal` 팝업 ➔ [예] 클릭 시 `CommitLevelUp()`을 통해 `PlayerState->ApplyLevelUp` 일괄 영구 반영.
 * **UMG 라이프사이클 최적화**:
   * `NativeOnInitialized()`: 영구 델리게이트 바인딩(결정, 취소, 모달 예/아니오) 전담.
-  * `NativeConstruct()`: 화면 오픈 시마다 최신 PlayerState 데이터 복사 및 장바구니 0 리셋 전담.
+  * `NativeConstruct()`: 화면 오픈 시마다 최신 PlayerState 데이터 복사 및 장바구니 0 리셋(`InitializedLevelUp`) 전담.
 
 ---
 
@@ -900,11 +904,11 @@ UI 에셋: `Content/UI/WBP_PlayerHUD.uasset`
 | 해결 (2026-10-20) | 성장 시스템 마무리 | 주 스탯 10 UI 화면 출력 연결 완료, `AWarriorPlayerState::UpgradeStat` 구현 완료 |
 | 해결 (2026-10-22) | 화톳불 플레이어 연결 | 플레이어 E키 상호작용 입력 바인딩, 오버랩 바인딩 및 `BP_Bonfire` 레벨 배치/검증 완료 |
 | 해결 (2026-10-22) | 스탯창 잔여 UI | `StatusWindowWidget`에 `TextBlock_RequiredSouls` 연결 및 코드 통합 완료 |
+| 해결 (2026-10-22) | 레벨업 시 HP/FP 리셋 방지 | `UpdateCharacterStat`에서 `LoadCharacterStat()` 제거 및 `Clamp` 처리로 레벨업/로드 시 풀피 초기화 현상 해결 |
 | 보통 | 몬스터 스포너 시스템 | `OnBonfireRest` 델리게이트를 수신하여 사망 몬스터 재생성 처리 |
-| 보통 | 레벨업 시 HP/FP 회복 정책 | `UpgradeStat` ➔ `UpdateCharacterStat` 호출 시 `CurrentHP/FP`가 기본 최대치로 리셋되는 현상. 증가분만 가산할지 완전 회복할지 정책 결정 |
 | 해결 (2026-10-22) | 화톳불 메뉴 UI 및 리팩토링 | `UBonfireMenuWidget` C++ 베이스 위젯, `WBP_StatusWindow` 임베딩, `ABonfire` 명명 및 `EditAnywhere` 속성 통일 완료 |
 | 보통 | 화톳불 시각 연출 | `BP_Bonfire`에 불꽃 파티클(Particle/Niagara) 부착하여 `Lit` 시 점화 연출 |
-| 진행 중 (2026-10-22) | 화톳불 레벨업 서브 메뉴 | `ULevelUpWidget` C++ 골격 완료. `CharacterStatComponent::GetPreviewStats` 내부 로직, `LevelUpWidget.cpp` 함수 본체 구현, UMG `WBP_LevelUpWidget` 제작 및 `BonfireMenuWidget` 연동 대기 |
+| 진행 중 (2026-10-22) | 화톳불 레벨업 서브 메뉴 | `CalculateDerivedStats`, `GetTotalRequiredSouls`, `ApplyLevelUp` 구현 완료. `LevelUpWidget.cpp` UI 연동 로직(포인트 가감/RefreshUI/모달) 구현 및 UMG `WBP_LevelUpWidget` 제작 대기 |
 | 보류 (2026-10-22) | 화톳불 텔레포트 서브 메뉴 | `UTeleportWidget` 기본 뼈대 클래스 생성 완료. 맵 및 화톳불 다수 배치 후 구현 예정 |
 | 중간 | CSV ↔ DataTable 동기화 규칙 없음 | Reimport 절차와 "어느 쪽이 원본인가"를 팀이 정할 것 |
 | 중간 | 저장소 크기 | `Content/Frank_Slash_Pack`이 약 957MB, Git LFS 미사용. 팀 합의 후 LFS 도입 또는 에셋 범위 축소 검토, 에셋 라이선스와 저장소 공개 범위 확인 |

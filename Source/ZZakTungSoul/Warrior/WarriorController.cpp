@@ -21,6 +21,7 @@
 #include <UI/PlayerHUDWidget.h>
 #include <Interface/CharacterStatInterface.h>
 #include <UI/StatusWindowWidget.h>
+#include <UI/MenuWidget.h>
 
 AWarriorController::AWarriorController()
 {
@@ -44,6 +45,10 @@ AWarriorController::AWarriorController()
 	if (ia_lockon.Succeeded()) IA_LockOn = ia_lockon.Object;
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_changelockon(TEXT("/Game/Input/IA_ChangeLockOn.IA_ChangeLockOn"));
 	if (ia_changelockon.Succeeded()) IA_ChangeLockOn = ia_changelockon.Object;
+
+	// 상호작용 키
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_interact(TEXT("/Game/Input/IA_Interact.IA_Interact"));
+	if (ia_interact.Succeeded()) IA_Interact = ia_interact.Object;
 
 	// 세이브/로드 테스트
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_save(TEXT("/Game/Input/IA_Save.IA_Save"));
@@ -90,6 +95,15 @@ AWarriorController::AWarriorController()
 	{
 		StatusWindowWidgetClass = StatusWindowClassRef.Class;
 	}
+
+
+	static ConstructorHelpers::FClassFinder<UMenuWidget> MenuWidgetClassRef(
+		TEXT("/Game/Blueprints/UI/WBP_Menu.WBP_Menu_C")
+	);
+	if (MenuWidgetClassRef.Succeeded())
+	{
+		MenuWidgetClass = MenuWidgetClassRef.Class;
+	}
 }
 
 void AWarriorController::BeginPlay()
@@ -111,10 +125,6 @@ void AWarriorController::BeginPlay()
 	else UE_LOG(LogTemp, Log, TEXT("No PlayerCameraManager"));
 
 
-
-
-
-
 	// [HUD 위젯]
 	if (PlayerHUDWidgetClass)
 	{
@@ -122,6 +132,14 @@ void AWarriorController::BeginPlay()
 		if (PlayerHUDWidget)
 		{
 			PlayerHUDWidget->AddToViewport();
+		}
+	}
+	if (MenuWidgetClass)
+	{
+		MenuWidget = CreateWidget<UMenuWidget>(this, MenuWidgetClass);
+		if (MenuWidget)
+		{
+			MenuWidget->AddToViewport();
 		}
 	}
 }
@@ -159,6 +177,7 @@ void AWarriorController::SetupInputComponent()
 	EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Started, this, &AWarriorController::Attack);
 	EnhancedInput->BindAction(IA_LockOn, ETriggerEvent::Completed, this, &AWarriorController::LockOn);
 	EnhancedInput->BindAction(IA_ChangeLockOn, ETriggerEvent::Triggered, this, &AWarriorController::ChangeLockOn);
+	EnhancedInput->BindAction(IA_Interact, ETriggerEvent::Completed, this, &AWarriorController::Interact);
 
 	//---------------------------------------------------------------
 	// 디버그 용 바인드
@@ -345,6 +364,14 @@ void AWarriorController::ActionReleased()
 	}
 }
 
+void AWarriorController::Interact()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->Interact();
+	}
+}
+
 void AWarriorController::Save()
 {
 	AZTSGameMode* GameMode = Cast<AZTSGameMode>(GetWorld()->GetAuthGameMode());
@@ -425,7 +452,6 @@ void AWarriorController::TriggerDebugNum3()
 		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("플레이어 오버레이 상태: 양손"));
 	}
 }
-
 
 
 

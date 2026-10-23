@@ -9,6 +9,8 @@
 // [전방 선언].
 class UPlayerHUDWidget;
 class UStatusWindowWidget;
+class UMenuWidget;
+class UInputAction;
 
 /**
  * 
@@ -32,21 +34,23 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputMappingContext* IMC_Warrior;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* IA_Move;
+	UInputAction* IA_Move;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* IA_Look;
+	UInputAction* IA_Look;
 	//UPROPERTY(EditDefaultsOnly, Category = "Input")
-	//class UInputAction* IA_Jump;
+	//UInputAction* IA_Jump;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* IA_DodgeDash;
+	UInputAction* IA_DodgeDash;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* IA_Block;
+	UInputAction* IA_Block;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* IA_Attack;
+	UInputAction* IA_Attack;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* IA_LockOn;
+	UInputAction* IA_LockOn;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* IA_ChangeLockOn;
+	UInputAction* IA_ChangeLockOn;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* IA_Interact;
 
 	// 세이브 로드 테스트용
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -102,6 +106,8 @@ private:
 	void ActionPressed();
 	void ActionReleased();
 	
+	// 상호 작용 함수
+	void Interact();
 
 	// 세이브/로드 함수
 	void Save();
@@ -138,4 +144,8 @@ private:
 	UPROPERTY()
 	TObjectPtr<UStatusWindowWidget> StatusWindowWidget;
 
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UMenuWidget> MenuWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UMenuWidget> MenuWidget;
 };

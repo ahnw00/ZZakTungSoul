@@ -3,17 +3,22 @@
 
 #include "Warrior/Warrior.h"
 
-//Camera
+// Camera
 #include "GameFrameWork/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFrameWork/CharacterMovementComponent.h"
 
 #include "Components/ArrowComponent.h"
 
-//DataTable
+// DataTable
 //#include "Data/CharacterStatData.h"
 #include <Warrior/WarriorPlayerState.h>
 #include <Character/CharacterStatComponent.h>
+
+// Item
+#include <ItemData/WeaponDataAsset.h>
+#include <Component/EquipmentComponent.h>
+#include <Component/InventoryComponent.h>
 
 #include "Anim/WarriorAnimInstance.h"
 #include "Enemy/WarriorAIController.h"
@@ -69,8 +74,17 @@ AWarrior::AWarrior()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	bUseControllerRotationYaw = false;
 
+	// 무기
+	// 스켈레탈 메시 컴포넌트 생성
+	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon"));
+	Weapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket"));
+
 	// [스탯 컴포넌트].
 	CharacterStatComponent = CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStatComponent"));
+	// [장비 컴포넌트]
+	Equipment = CreateDefaultSubobject<UEquipmentComponent>(TEXT("Equipment"));
+	// [인벤토리 컴포넌트]
+	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	
 
 	// Player가 소유하지 않으면 AI가 소유해
@@ -94,6 +108,11 @@ void AWarrior::PostInitializeComponents()
 	{
 		AnimInstance->OnMontageEnded.AddDynamic(this, &AWarrior::OnActionMontageEnded);
 	}
+
+	//if (Inventory)
+	//{
+	//	Inventory->OnItemObtained.BindUObject(this, &AWarrior::ObtainItem);
+	//}
 }
 
 void AWarrior::Tick(float DeltaTime)
@@ -576,6 +595,27 @@ bool AWarrior::GetOverlaps()
 	return bResult;
 }
 
+void AWarrior::Interact()
+{
+	if (DetectedActors.Num() == 0)
+		return;
+
+	int32 lastIndex = DetectedActors.Num() - 1;
+	AActor* Target = DetectedActors[lastIndex].Get();
+	// WeakObjectPtr이라서 유효성 검사
+	if (!IsValid(Target))
+	{
+		DetectedActors.RemoveAt(lastIndex);
+		return;
+	}
+
+	IInteractableInterface* Interactable = Cast<IInteractableInterface>(Target);
+	if (!Interactable)
+		return;
+
+	Interactable->Interact(this);
+}
+
 void AWarrior::SetLockOnTarget(ACharacter* Target)
 {
 	bLockOn = true;
@@ -621,4 +661,42 @@ const FWarriorSaveData* AWarrior::GetSaveData() const
 		return &WarriorPlayerState->GetSaveData();
 	}
 	return nullptr;
+}
+
+void AWarrior::EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot)
+{
+	if (!InItem)
+		return;
+
+	Equipment->EquipItem(InItem->InstanceID, Slot);
+
+	UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(InItem);
+	if (!InItem)
+		return;
+
+	// 아직 로드되지 않았다면
+	if (WeaponData->WeaponMesh.IsPending())
+	{
+		// 동기 로딩
+		WeaponData->WeaponMesh.LoadSynchronous();
+	}
+
+	Weapon->SetSkeletalMesh(WeaponData->WeaponMesh.Get());
+
+	// Todo: 무기 스탯 연동해주기
+}
+
+void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
+{
+	if (DetectedActors.Num() == 0)
+		return;
+
+	// 마지막으로 추가된걸 상호작용
+	int32 lastIndex = DetectedActors.Num() - 1;
+	AItemObject* ItemData = Cast<AItemObject>(DetectedActors[lastIndex].Get());
+	if (!ItemData)
+		return;
+
+	// 인벤토리에 추가
+	Inventory->AddItem(ItemData->GetItemData());
 }

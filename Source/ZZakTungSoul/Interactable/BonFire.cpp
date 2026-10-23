@@ -92,7 +92,7 @@ void ABonfire::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedCo
 	// 들어온 대상이 플레이어면 상호작용 대상에 화톳불 등록.
 	if (AWarrior* Warrior = Cast<AWarrior>(OtherActor))
 	{
-		Warrior->SetCurrentInteractable(this);
+		//Warrior->SetCurrentInteractable(this);
 
 		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[화톳불] 화톳불 영역에 진입. 상호작용 대상 등록."));
 	}
@@ -104,10 +104,10 @@ void ABonfire::OnInteractionSphereEndOverlap(UPrimitiveComponent* OverlappedComp
 	// 나간 대상이 플레이어라면 상호작용 대상 해제.
 	if (AWarrior* Warrior = Cast<AWarrior>(OtherActor))
 	{
-		if (Warrior->GetCurrentInteractable() == this)
-		{
-			Warrior->SetCurrentInteractable(nullptr);
-		}
+		//if (Warrior->GetCurrentInteractable() == this)
+		//{
+		//	Warrior->SetCurrentInteractable(nullptr);
+		//}
 
 		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[화톳불] 화톳불 영역에 떠남. 상호작용 대상 해제."));
 	}

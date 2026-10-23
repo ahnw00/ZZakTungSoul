@@ -655,13 +655,13 @@ void AWarrior::SetOverlayState(EOverlayState NewState)
 	OverlayState = NewState;
 }
 
-void AWarrior::Interact()
-{
-	if (CurrentInteractable)
-	{
-		CurrentInteractable->Interact(this);
-	}
-}
+//void AWarrior::Interact()
+//{
+//	//if (CurrentInteractable)
+//	//{
+//	//	CurrentInteractable->Interact(this);
+//	//}
+//}
 
 const FWarriorSaveData* AWarrior::GetSaveData() const
 {

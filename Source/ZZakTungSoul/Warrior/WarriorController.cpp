@@ -104,8 +104,6 @@ AWarriorController::AWarriorController()
 	{
 		BonfireMenuWidgetClass = BonfireMenuWidgetClassRef.Class;
 	}
-}
-
 
 	static ConstructorHelpers::FClassFinder<UMenuWidget> MenuWidgetClassRef(
 		TEXT("/Game/Blueprints/UI/WBP_Menu.WBP_Menu_C")
@@ -541,14 +539,5 @@ void AWarriorController::CloseBonfireMenu()
 		BonfireMenuWidget->RemoveFromParent();
 		bShowMouseCursor = false;
 		SetInputMode(FInputModeGameOnly());
-	}
-}
-
-// 상호작용.
-void AWarriorController::Interact()
-{
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->Interact();
 	}
 }

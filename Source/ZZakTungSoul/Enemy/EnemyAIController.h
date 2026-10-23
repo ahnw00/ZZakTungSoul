@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "AIController.h"
 #include <Perception/AIPerceptionTypes.h>
+#include <Enemy/EnemyStates.h>
 #include "EnemyAIController.generated.h"
 
 /**
@@ -18,8 +19,14 @@ class ZZAKTUNGSOUL_API AEnemyAIController : public AAIController
 public:
 	AEnemyAIController();
 
+public:
+	// 컨트롤 하고 있는 Enemy의 상태에 따라 컨트롤러의 Focus를 관리하는 함수
+	void UpdateAIFocus(EEnemyState PreviousState, EEnemyState NewState);
+
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
+
+	void ToggleFocus();
 
 	// 타겟 인식 정보 갱신 함수
 	UFUNCTION()

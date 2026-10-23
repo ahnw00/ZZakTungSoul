@@ -44,4 +44,22 @@ public:
 	// Strafe Speed
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Strafe")
 	float StrafeMovementSpeed;
+
+	// Search Speed
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Search")
+	float SearchMovementSpeed;
+
+////// Distance / Range Section
+public:
+	// 전투 상황 인지 범위
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range|Combat")
+	float CombatRange;
+
+	// 공격 가능 범위
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range|Attack")
+	float AttackRange;
+
+	// 최소 유지 거리
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range|MaintainDistance")
+	float MinMaintainDistance;
 };

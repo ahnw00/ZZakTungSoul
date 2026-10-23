@@ -59,6 +59,47 @@ AEnemyAIController::AEnemyAIController()
 	EnemyPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AEnemyAIController::OnTargetPerceptionUpdated);
 }
 
+void AEnemyAIController::UpdateAIFocus(EEnemyState PreviousState, EEnemyState NewState)
+{
+	switch (NewState)
+	{
+	case EEnemyState::Idle:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Patrol:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Chase:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Strafe:
+		ToggleFocus();
+		break;
+
+	case EEnemyState::Attack:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Search:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Hit:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	case EEnemyState::Dead:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+
+	default:
+		break;
+	}
+}
+
 void AEnemyAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
@@ -70,6 +111,7 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 		return;
 	}
 
+	// DataAsset 가져오기
 	const UEnemyAIData* AIData = Enemy->GetEnemyAIData();
 	if (nullptr == AIData || nullptr == AIData->MainBT)
 	{
@@ -85,18 +127,40 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 
 	// Blackboard 컴포넌트 가져오기
 	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
-
-	// 사용할 블랙보드 지정
-	if (UseBlackboard(BlackboardAsset, BlackboardComponent))
+	// Blackboard 검사
+	if (nullptr == BlackboardAsset || !UseBlackboard(BlackboardAsset, BlackboardComponent))		// 사용할 블랙보드 지정
 	{
-		// Blackboard 상태 설정
-		BlackboardComponent->ClearValue(BBKEY_TARGETACTOR);
-		BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
-		BlackboardComponent->SetValueAsVector(BBKEY_HOMELOCATION, Enemy->GetActorLocation());
+		return;
 	}
+
+	// Blackboard 상태 설정
+	BlackboardComponent->ClearValue(BBKEY_TARGETACTOR);
+	BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
+	BlackboardComponent->SetValueAsVector(BBKEY_HOMELOCATION, Enemy->GetActorLocation());
 
 	// Behavior Tree 실행
 	RunBehaviorTree(BehaviorTreeAsset);
+}
+
+void AEnemyAIController::ToggleFocus()
+{
+	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
+
+	if (nullptr == BlackboardComp)
+	{
+		ClearFocus(EAIFocusPriority::Gameplay);
+		return;
+	}
+
+	AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(BBKEY_TARGETACTOR));
+	if (IsValid(TargetActor))
+	{
+		SetFocus(TargetActor);
+	}
+	else
+	{
+		ClearFocus(EAIFocusPriority::Gameplay);
+	}
 }
 
 void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)

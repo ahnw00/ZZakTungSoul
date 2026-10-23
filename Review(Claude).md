@@ -8,7 +8,7 @@
 ## 열린 항목 한눈에 (2026-10-22 기준, 맨 위에서 이것만 보면 된다)
 
 > 이 아래의 번호 섹션(0~9)은 **시간순 기록**이다. 현재 무엇이 남았는지는 이 표를 기준으로 하고, 항목 번호로 해당 섹션의 상세 근거를 찾는다. 항목이 해결되면 이 표에서 지우고 해당 섹션에 `[x]`를 단다(체크 표시는 리뷰어가 코드를 확인한 뒤에만 한다).
-> 기준 코드: `main` = `Ahn` = `2fabce4`, `Bae` = `ef6c899`(10-20 `434331e` 화톳불, 10-21 `f05fe14`, 10-22 `4f7ca23`, `ef6c899`: 화톳불 메뉴와 에셋 포함) + 미커밋 작업 트리(`CalculateDerivedStats`/`FStatPreview`, `ApplyLevelUp`, `GetTotalRequiredSouls`; 이 작업은 섹션 17에서 리뷰, `LevelUpWidget.*`/`TeleportWidget.*`는 커밋 `223d76f`), `Kang` = `0308a1e`. 빌드/실행은 리뷰어가 하지 않았다.
+> 기준 코드(2026-10-23 갱신): `main` = `2fabce4`, `Bae` = `origin/Bae` = `153836a`(10-20 ~ 10-22 작업이 모두 커밋됨: 화톳불, 화톳불 메뉴, `CalculateDerivedStats`/`FStatPreview`, `ApplyLevelUp`, `GetTotalRequiredSouls`, `LevelUpWidget.*`/`TeleportWidget.*` 골격), `Kang` = `fd4de7f`, `Ahn` = `fe440c5`, 새 브랜치 `Lee`(작성자 goodleeches)가 생겼다. 위 `Bae`의 미커밋이던 작업은 섹션 17에서 리뷰했다. 빌드/실행은 리뷰어가 하지 않았다.
 
 | 우선순위 | 항목 | 내용 | 상세 |
 |---|---|---|---|
@@ -36,6 +36,8 @@
 | 낮음 | 14-5 ~ 14-9 | 주석 처리된 코드 28줄, 쓰지 않는 `OverloadedSpeed`/화톳불 getter, 생성자 테이블 로딩 3블록, 인터페이스의 두 책임, `SetNumberText`(= 13-8) | 섹션 14 |
 | 낮음 | 13-1, 13-7, 13-8, 13-14 ~ 13-16 | `int32` 함수 안의 `float` 캐스트 잔재, Pawn 없을 때 `true`, 스탯창 캐스트 14회, 사용 불가 피드백, 점화 상태 미저장, 정리 | 섹션 13 |
 | 낮음 | 1-6, 2-9~2-11, 11-7, 11-8, 12-6, 12-7, 이름·표기, 9-8~9-11, 9-13, 9-14 | 주석 처리된 코드, 변수명/표기 통일, 낡은 주석, 들여쓰기, `DA_Test` | 섹션 1, 2, 9 |
+| 중간 | 18-1 ~ 18-4 | 가이드가 코드보다 앞서 서술됨: 레벨업 "완비"(17-1~17-3 미해결), `LevelUpWidget` 동작을 구현된 것처럼 서술(본문은 전부 빈 함수), 임베딩한 스탯창 "실시간 자동 갱신"(실제로는 열 때만), 에셋에서 확인되지 않는 "검증 완료" 문구 | 섹션 18 |
+| 낮음 | 18-5 ~ 18-9 | 코드에 없는 이름 `GetPreviewStats`, 낡은 헤더 문구(브랜치/커밋), 리뷰 번호 직접 인용, `CanInteracBonfire` 오타, "Safe Fallback" 교훈이 17-2 문제를 장점으로 서술, Git 파일명 통일 서술 | 섹션 18 |
 
 **2026-10-22 (후속 점검)**
 - 해소: 15-6(`ef6c899`에서 코드와 에셋이 함께 커밋됨). 새 항목은 섹션 16(16-1 ~ 16-12). 새로 추가된 `GetPreviewStats`, `LevelUpWidget`, `TeleportWidget`은 모두 골격 단계(본문이 비어 있음)라서 구현 전에 정할 설계를 중심으로 리뷰했다.
@@ -1201,3 +1203,56 @@ float UCharacterStatComponent::CalculateGrowthValue(const FName& InStatID, const
 4. 17-5(`Super::` 호출)는 위젯 본문을 쓰기 전에 넣는다.
 5. 17-6의 시작/로드 경로와 사망 정책은 `OnDeath`와 `LoadGame`을 만들 때 같이 정한다.
 6. `StatGrowth.csv` 확장은 5-1의 포인트 기준으로 쓴다. 17-7(가이드 문구)은 `main` 병합 전에 정정한다.
+
+---
+
+## 18. 갱신된 md 파일 확인 (2026-10-23, `Bae` `153836a` 기준)
+
+**대상**: 10-20 ~ 10-22에 갱신된 `PROJECT_GUIDE.md`(0장 상태 표, 12장 문제 해결 기록 9~16번, 13장 화톳불, 14장 이슈 표)와 이 문서의 상단 표·섹션 13~17. 서술을 현재 코드와 하나씩 대조했다. 빌드와 실행은 하지 않았고 코드·에셋 문자열 읽기와 `git` 조회만 했다. 코드와 가이드는 수정하지 않았다.
+
+**총평**: 사실로 확인된 서술이 대부분이다. 다만 **구현이 끝나지 않은 부분이 "완료/완비"로 적힌 곳이 있고**, 존재하지 않는 이름과 낡은 문구가 남아 있다.
+
+### 1) 코드와 일치하는 것 (확인됨)
+
+- `GetRequiredSouls`의 조건 반전 수정(`CharacterStatComponent.cpp:193` `!LevelRequiredSoulsTable || Level <= 0`)과 12장 9번의 설명.
+- `UpdateCharacterStat`이 `LoadCharacterStat()`을 더 이상 부르지 않고 `CalculateDerivedStats`/`FStatPreview`로 계산(`CharacterStatComponent.cpp:107-148`, `226-245`), `GetStatInitialValue`가 `int32` 반환(`:46`)이며 `UpdateCharacterStat`의 형변환이 사라진 것(12장 10번).
+- 화톳불: `InteractionSphere` 반경 200(`Bonfire.cpp:26`), `EnemyCheckRadius = 1500.f`(`Bonfire.h:70`), 락온 중 차단과 `ECC_Pawn` 오버랩으로 주변의 살아 있는 적 차단(`Bonfire.cpp:43-88`), 오버랩 바인딩(`:39-40`), `E` 키 → `Warrior::Interact()` → `CurrentInteractable->Interact(this)`(`WarriorController.cpp:160`, `Warrior.cpp:542-546`), 휴식 시 `SetCurrent*` 전체 회복, `OpenBonfireMenu()`, `OnBonfireRest` 방송(`Bonfire.cpp:136-155`).
+- `BonfireMenuWidget`의 `NativeOnInitialized`에서 버튼 바인딩(`BonfireMenuWidget.cpp:8-26`), 12장 12번의 설명.
+- `BP_Bonfire` 에셋이 있고(`Content/Blueprints/Interactable/BP_Bonfire.uasset`) `TestMap.umap`에서 참조됨. `WBP_BonfireMenuWidget`의 부모가 `BonfireMenuWidget`.
+- 0장·14장의 "적 데미지/피격 미구현"은 `Bae` 기준으로 맞다(`ApplyDamage`/`UseFP` 호출처 없음). 단 아래 18-10.
+
+### 2) 가이드가 코드보다 앞선 곳 (정정 필요)
+
+- [ ] **18-1. 레벨업이 "완비"로 적혀 있다.** (`PROJECT_GUIDE.md:28`, `:879`)
+  "`ApplyLevelUp`(일괄 승인) 완비, 소울 부족 검증 및 원자적 갱신". 소울 부족 검증과 한 번에 반영하는 구조는 맞지만, 섹션 17의 문제가 그대로 남아 있다: 음수 `PendingPoints`를 막지 않고 합계만 본다(`WarriorPlayerState.cpp:50-62`), 레벨 표(`Level1~10`)에 없는 11레벨 이상은 비용 0이다(`CharacterStatComponent.cpp:208`, `GetTotalRequiredSouls`가 이를 합산), `MaxValue` 확인이 없다. "✅ 구현" 대신 "🟡 계산 엔진 구현, 입력 검증 보완 필요"로 표시할 것.
+- [ ] **18-2. `LevelUpWidget`의 동작이 구현된 것처럼 서술되어 있다.** (`PROJECT_GUIDE.md:880-887`, `:805-807`)
+  가상 장바구니, `CanAddPoint` 사전 차단, `[-]` 환불, 확인 모달, `NativeOnInitialized`에서의 영구 바인딩을 현재 시제로 설명한다. 실제 `LevelUpWidget.cpp:6-49`는 **모든 함수 본문이 비어 있고** `CanAddPoint`는 `false`만 반환한다. `NativeOnInitialized`/`NativeConstruct`는 `Super::`도 부르지 않는다(17-5). 0장(`:31`)과 14장(`:911`)의 "진행 중"과도 모순이다. 13장 8절 제목의 "(진행 중)"에 맞춰 "설계 의도(구현 전)"를 항목마다 붙일 것.
+- [ ] **18-3. 임베딩한 스탯창이 "실시간으로 자동 갱신"된다고 적혀 있다.** (`PROJECT_GUIDE.md:866`)
+  `StatusWindowWidget::RefreshStatus()`는 `NativeConstruct`(`StatusWindowWidget.cpp:11-17`)와 `ToggleStatusWindow()`에서만 불린다. 메뉴 위젯 안에 임베딩한 인스턴스는 메뉴가 처음 생성될 때 한 번만 갱신되고, 이후 레벨업해도 다시 불리지 않는다(16-11과 같은 문제). 그리고 `UBonfireMenuWidget::OnLevelUpClicked`는 임베딩한 창이 아니라 별도의 `ToggleStatusWindow()`를 호출한다(`BonfireMenuWidget.cpp:28-35`). "열 때만 갱신, 임베딩 인스턴스는 자동 갱신되지 않음"으로 고칠 것.
+- [ ] **18-4. 에셋에서 확인되지 않는 "검증 완료" 문구.** (`PROJECT_GUIDE.md:29`, `:30`, `:905`, `:909`)
+  "`BP_Bonfire` 레벨 배치 및 인게임 작동 검증 완료", "`WBP_StatusWindow` 임베딩 검증 완료"를 사실로 적었다. 에셋 문자열 검색에서 `BP_Bonfire`는 `TestMap`에 있지만, `WBP_BonfireMenuWidget.uasset`(커밋 `ef6c899`)에는 `Button_LevelUp`/`Button_Teleport`/`Button_Leave`와 `WBP_StatusWindow`라는 이름이 **나타나지 않았다**(스탯창 위젯 에셋에서는 같은 방식으로 `TextBlock_*` 이름이 모두 확인된다). 이 버튼들은 `BindWidgetOptional`이라 이름이 다르면 **조용히 null이 되고** 클릭이 동작하지 않는다. 에디터에서 위젯 이름과 임베딩 여부를 확인한 뒤, 확인 전에는 "검증 완료"를 지울 것(15-11과 같은 지적).
+
+### 3) 코드에 없는 이름과 낡은 문구
+
+- [ ] **18-5. `GetPreviewStats`는 코드에 없다.** (`PROJECT_GUIDE.md:808-810`, 12장 16번)
+  `Source/`에 이 이름이 없다. 실제 함수는 `CalculateDerivedStats(const FWarriorAttributeData&) const`가 `FStatPreview`를 반환하는 형태이다(`CharacterStatComponent.cpp:226`). 그리고 "UI는 합성된 가상 속성만 넘겨 받아 출력하도록 설계하여 완벽한 책임 분리를 달성함"은 위젯이 비어 있어 아직 달성된 것이 아니다. 이름을 고치고 "달성"을 "설계 방향"으로 낮출 것.
+- [ ] **18-6. 헤더 문구가 낡았다.** (`PROJECT_GUIDE.md:6`)
+  "`Bae` (`main`과 같은 커밋 `2fabce4`에서 갱신)"인데 지금 `Bae`는 `main`보다 앞선 `153836a`이다. 커밋 번호를 적지 말고 "`Bae` 브랜치 기준"으로만 쓰거나 최신 번호로 바꿀 것. 같은 이유로 0장 "미구현"의 피격/데미지 항목은 "(`Bae` 기준. `Kang` 브랜치에는 적의 무기 판정과 데미지 임시 구현이 있고 아직 병합되지 않음)"처럼 브랜치 범위를 붙이면 팀원이 읽을 때 혼동이 없다.
+- [ ] **18-7. 리뷰 번호를 직접 인용한다.** (`PROJECT_GUIDE.md:874`, `:876`, `:878`, `:879`)
+  "Claude Review 16-1, 16-2 해결", "Review 13-2, 14-4 해결", "Review 16-5 전반부/후반부 해결". 이 문서 자신의 체크리스트(14장 5번)와 어긋나고, 리뷰 문서의 번호가 바뀌면 깨진다. 설명 문장으로 풀어 쓸 것.
+- [ ] **18-8. `CanInteracBonfire` 오타.** (`PROJECT_GUIDE.md:835`, `:794`) 실제 함수는 `CanInteractBonfire`(`Bonfire.cpp:43`)이다.
+- [ ] **18-9. 두 서술이 사실을 흐린다.**
+  - 12장 9번의 "존재하지 않는 행이 요청되면 기본값 0으로 흘려보내는 2중 안전장치(Safe Fallback)"는 장점이 아니라 17-2의 원인이다(비용 0 = 무료 레벨업). "행이 없으면 0"이 아니라 "비용 없음/최대 레벨"을 구분해야 한다고 고칠 것.
+  - 14장(`:907`)의 "레벨업/로드 시 풀피 초기화 해결"은 레벨업 경로만 맞다. 시작/로드 때는 `LoadCharacterStat()`이 현재값을 초기 최대치로 정한 뒤 `Clamp`만 하므로 성장을 적용한 저장 데이터로 시작하면 현재 HP가 `MaxHP`보다 낮고(`CharacterStatComponent.cpp:127-134`), `CurrentHP <= 0`이면 부활하는 경로가 남아 있다(17-6).
+  - 12장 14번의 "`ABonfire`로 완전 일괄 통일"은 소스 이름만 맞다. Git이 추적하는 파일명은 아직 `Interactable/BonFire.cpp/.h`이고 디스크 이름은 `Bonfire.*`이다(15-5). 대소문자를 구분하는 환경에서는 `#include "Interactable/Bonfire.h"`가 실패한다.
+
+### 4) 그 밖의 확인
+
+- [ ] **18-10. 상태 표의 범위가 브랜치마다 다르다.** `Kang`(`4c4eee4` 적 무기 설정·데미지 판정 임시 구현, `fd4de7f` 일반 공격 BTTask)과 `Lee`(`d749a2e` 맨손 콤보 리타게팅·몽타주)는 아직 `main`에 병합되지 않았다. 0장의 "❌ 미구현" 항목은 병합되는 순간 틀리게 된다. 표에 "기준 브랜치"를 한 줄 적어 둘 것.
+- 9-1(`PlayAttackMontage()` 빈 함수 `WarriorAnimInstance.cpp:130-132`)은 `Bae` 기준으로 그대로이다. `Lee`의 공격 콤보 작업이 병합되면 다시 확인한다.
+
+### 5) 우선순위
+
+1. 18-1, 18-2, 18-4는 팀원이 가이드를 읽고 판단할 때 오해를 만드는 항목이라 먼저 정정한다. 이 문서의 17-7과 같은 주제이다.
+2. 18-3과 18-5는 한 문장씩 고치면 된다. 18-6 ~ 18-8은 오타와 문구 정리이다.
+3. 18-4의 에셋 확인(위젯 이름, 임베딩)은 에디터에서만 가능하다. 확인된 뒤에 "검증 완료"를 다시 적는다.

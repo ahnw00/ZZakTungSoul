@@ -41,11 +41,8 @@ void UBonfireMenuWidget::OnTeleportClicked()
 
 void UBonfireMenuWidget::OnLeaveClicked()
 {
-	RemoveFromParent();
-
-	if (APlayerController* PC = GetOwningPlayer())
+	if (AWarriorController* PC = Cast<AWarriorController>(GetOwningPlayer()))
 	{
-		PC->bShowMouseCursor = false;
-		PC->SetInputMode(FInputModeGameOnly());
+		PC->CloseBonfireMenu();
 	}
 }

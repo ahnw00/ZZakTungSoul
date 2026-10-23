@@ -158,6 +158,8 @@ void AWarriorController::SetupInputComponent()
 	// [UI]
 	InputComponent->BindKey(EKeys::C, IE_Pressed, this, &AWarriorController::ToggleStatusWindow);
 	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &AWarriorController::Interact);
+	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
+	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
 }
 
 void AWarriorController::Move(const FInputActionValue& InputValue)

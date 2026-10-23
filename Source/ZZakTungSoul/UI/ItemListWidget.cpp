@@ -3,6 +3,8 @@
 
 #include "UI/ItemListWidget.h"
 #include "ItemButtonWidget.h"
+#include <Component/InventoryComponent.h>
+#include <Components/UniformGridPanel.h>
 
 
 UItemListWidget::UItemListWidget(const FObjectInitializer& ObjectInitializer)
@@ -23,6 +25,27 @@ void UItemListWidget::InitializeItemList(EItemListMode InMode, EItemListFilter I
 
 void UItemListWidget::ListItemsByType(EItemType InType)
 {
+    TArray<FInventoryItem> Items = Inventory->GetItems();
+
+    int Count = Items.Num();
+    int Index = 0;
+    for (const auto& Item : Items)
+    {
+        UItemDataAsset* ItemData = Item.ItemData;
+        if (!ItemData)
+        {
+            continue;
+        }
+
+        // 나열하려는 타입의 아이템이 아니면 넘어가기
+        if (ItemData->ItemType != InType)
+        {
+            continue;
+        }
+
+        AddItemButton(ItemData, Index);
+        ++Index;
+    }
 }
 
 void UItemListWidget::ListItemsBySlot(EEquipmentSlot InSlot)
@@ -71,5 +94,16 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
         return;
     }
 
-    ItemButtons.Add(CreateWidget<UItemButtonWidget>(this, ItemButtonClass));
+    UItemButtonWidget* ItemButton = CreateWidget<UItemButtonWidget>(this, ItemButtonClass);
+    if (!ItemButton)
+    {
+        return;
+    }
+
+    ItemButton->SetItemData(InItemData);
+
+    const int32 Row = Index / ContainerWidth;
+    const int32 Column = Index % ContainerWidth;
+
+    ItemContainer->AddChildToUniformGrid(ItemButton, Row, Column);
 }

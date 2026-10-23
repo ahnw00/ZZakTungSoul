@@ -80,6 +80,8 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UUniformGridPanel> ItemContainer;
 
+	const int32 ContainerWidth = 5;
+
 	UPROPERTY()
 	TSubclassOf<class UItemButtonWidget> ItemButtonClass;
 

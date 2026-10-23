@@ -44,7 +44,7 @@ class ZZAKTUNGSOUL_API UItemListWidget : public UUserWidget
 	GENERATED_BODY()
 	
 public:
-	void UItemListWidget(const FObjectInitializer& ObjectInitializer);
+	UItemListWidget(const FObjectInitializer& ObjectInitializer);
 
 	FORCEINLINE void SetInventory(UInventoryComponent* InInventory) { Inventory = InInventory; }
 
@@ -82,4 +82,7 @@ private:
 
 	UPROPERTY()
 	TSubclassOf<class UItemButtonWidget> ItemButtonClass;
+
+	UPROPERTY()
+	TArray<TObjectPtr<class UItemButtonWidget>> ItemButtons;
 };

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "UI/ItemListWidget.h"
@@ -71,5 +71,5 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
         return;
     }
 
-
+    ItemButtons.Add(CreateWidget<UItemButtonWidget>(this, ItemButtonClass));
 }

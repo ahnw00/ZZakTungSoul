@@ -7,9 +7,20 @@
 #include "Animation/AnimInstance.h"
 #include "WarriorAnimInstance.generated.h"
 
-/**
- * 
- */
+//---------------------------------------------------------------
+// TMap에서 Value값으로 TArray 사용 불가. -> 직렬화 관련 이유.
+// Wrapper를 통해서 TArray 사용 불가 우회.
+// 
+//---------------------------------------------------------------
+USTRUCT(BlueprintType)
+struct FAnimMontageArrayWrapper
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<TObjectPtr<UAnimMontage>> Entries;
+};
+
 UCLASS()
 class ZZAKTUNGSOUL_API UWarriorAnimInstance : public UAnimInstance
 {
@@ -24,8 +35,9 @@ private:
 	UAnimMontage* RollMontage;
 	UPROPERTY()
 	UAnimMontage* BackStepMontage;
+	//UPROPERTY()
 	UPROPERTY()
-	UAnimMontage* AttackMontage;
+	TMap<EOverlayState, FAnimMontageArrayWrapper> AttackMontage;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
@@ -46,7 +58,7 @@ public:
 	void AnimNotify_ComboCheck();
 
 	void PlayMontage(const EActionState CurrentActionState);
-	void PlayActionMontage();
+	bool PlayActionMontage();
 
 	void PlayRollMontage();
 	void PlayBackStepMontage();

@@ -19,6 +19,7 @@
 #include "Enemy/WarriorAIController.h"
 #include "Engine/OverlapResult.h"
 
+
 AWarrior::AWarrior()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -101,6 +102,8 @@ void AWarrior::Tick(float DeltaTime)
 
 	const float Speed = GetVelocity().Size2D();
 
+	//UE_LOG(LogTemp, Log, TEXT("Speed: %f"), Speed);
+
 	if (Speed < 10.f)
 	{
 		MoveState = EMoveState::Idle;
@@ -113,6 +116,7 @@ void AWarrior::Tick(float DeltaTime)
 	{
 		MoveState = EMoveState::Walk;
 	}
+
 
 	// 락온 상태
 	if (bLockOn)
@@ -138,7 +142,7 @@ void AWarrior::UpdateLockOnCamera(float DeltaTime)
 {
 	// 락온 컴포넌트 아직 없어서 일단은 그냥 캐릭터 생성하면 붙어있는 Arrow 컴포넌트로 한거
 	// Todo: 나중에 LockOn 컴포넌트 만들어서 UI로도 보여주게 해야할거 같아요
-	if (!LockOnTarget->GetArrowComponent())
+	if (LockOnTarget && !LockOnTarget->GetArrowComponent())
 		return;
 	//else UE_LOG(LogTemp, Log, TEXT("ArrowExists"));
 
@@ -254,12 +258,21 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 	//if (Montage == AnimInstance->GetBlockMontage())
 	//	return;
 
-	if (bIsAttacking)
-	{
-		bIsAttacking = false;
-		AttackCombo = 0;
-	}
-	SetActionState(EActionState::None);
+	//if (bIsAttacking)
+	//{
+	//	AttackCombo = 0;
+	//	bIsAttacking = false;
+	//	bComboQueued = false;
+	//	bCanComboInput = false;
+	//}
+	
+	if(ActionState != EActionState::Attack)
+		SetActionState(EActionState::None);
+
+	//if (ActionState == EActionState::Attack)
+	//{
+	//	SetMoveState(EMoveState::Idle);
+	//}
 }
 
 void AWarrior::UpdateCharacterStats()
@@ -343,19 +356,80 @@ void AWarrior::BlockEnd()
 
 void AWarrior::Attack()
 {
-	if (!bIsAttacking)
-		bIsAttacking = true;
-	else // if (bIsAttacking)
-		AttackCombo++;
+	//UE_LOG(LogTemp, Warning, TEXT("Attack()== Start"));
+	if (ActionState == EActionState::Attack)
+	{
+		if (bCanComboInput)
+		{
+			bComboQueued = true;
+			//UE_LOG(LogTemp, Warning, TEXT("Attack()== ComboQueued : %d"), bComboQueued);
+			return;
+		}
+	}
 
 	if (ActionState != EActionState::None)
 		return;
+
 	if (OverlayState != EOverlayState::None)
 		BlockEnd();
 
-	//ActionState = EActionState::Attack;
+	AttackCombo = 0;
+	bIsAttacking = true;
+	bCanComboInput = false;
+	bComboQueued = false;
+
 	SetActionState(EActionState::Attack);
-	AnimInstance->PlayAttackMontage();
+	if (!AnimInstance || !AnimInstance->PlayActionMontage())
+	{
+		FinishAttack();
+	}
+}
+
+void AWarrior::FinishAttack()
+{
+	if (ActionState == EActionState::Attack)
+	{
+		AttackCombo = 0;
+		bIsAttacking = false;
+		bComboQueued = false;
+		bCanComboInput = false;
+
+		
+		//SetMoveState(EMoveState::Idle);
+		SetActionState(EActionState::None);
+	}
+}
+
+void AWarrior::SetComboWindow(bool bOpen)
+{
+	bCanComboInput = bOpen && ActionState == EActionState::Attack && !bComboQueued;
+	//UE_LOG(
+	//	LogTemp,
+	//	Warning,
+	//	TEXT("SetComboWindow()== CanComboInput: %d"), bCanComboInput);
+}
+
+void AWarrior::OnComboTransition()
+{
+	if (ActionState != EActionState::Attack || !bComboQueued)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("Can not Combo"));
+		FinishAttack();
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("ComboQueued: %d"), bComboQueued);
+
+	bCanComboInput = false;
+	bComboQueued = false;
+
+	AttackCombo++;
+	//UE_LOG(LogTemp, Warning, TEXT("===========================AttackCombo: %d"), AttackCombo);
+
+	if (!AnimInstance || !AnimInstance->PlayActionMontage())
+	{
+		FinishAttack();
+	}
 }
 
 // 이때 당시에 애니메이션 애셋이 이상해서 위치를 직접 조정해주었는데

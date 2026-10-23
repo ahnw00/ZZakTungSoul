@@ -424,7 +424,7 @@ void AWarrior::OnComboTransition()
 	bComboQueued = false;
 
 	AttackCombo++;
-	UE_LOG(LogTemp, Warning, TEXT("===========================AttackCombo: %d"), AttackCombo);
+	//UE_LOG(LogTemp, Warning, TEXT("===========================AttackCombo: %d"), AttackCombo);
 
 	if (!AnimInstance || !AnimInstance->PlayActionMontage())
 	{

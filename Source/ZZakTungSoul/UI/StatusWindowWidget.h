@@ -31,6 +31,9 @@ protected:
 	TObjectPtr<UTextBlock> TextBlock_Level;
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> TextBlock_Souls;
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TextBlock_RequiredSouls;
+	
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> TextBlock_HP;

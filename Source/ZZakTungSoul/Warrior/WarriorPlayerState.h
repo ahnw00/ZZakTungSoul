@@ -22,6 +22,12 @@ public:
 	FORCEINLINE const FWarriorSaveData& GetSaveData() const { return SaveData; }
 	FORCEINLINE void LoadSaveDataFrom(const FWarriorSaveData& NewSaveData) { SaveData = NewSaveData; }
 
+	UFUNCTION(BlueprintCallable, Category = "PlayerState|Stat")
+	bool UpgradeStat(const FName& StatName, int32 RequiredSouls);
+
+	// 가상 포인트 검증 및 일괄 적용 함수.
+	UFUNCTION(BlueprintCallable, Category = "PlayerState|Stat")
+	bool ApplyLevelUp(const struct FWarriorAttributeData& PendingPoints);
 private:
 	// 실제 게임 플레이 중 값을 변화하게할 대상
 	UPROPERTY()

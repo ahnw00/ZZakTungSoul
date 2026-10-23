@@ -36,38 +36,43 @@ void UStatusWindowWidget::RefreshStatus()
 	// [인터페이스 단일 창구 조회].
 	if (ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(OwningPawn))
 	{
-		// [스탯].
-		// GetSaveData 활용.
-		if(const FWarriorSaveData* SaveData = StatOwner->GetSaveData())
+		const FWarriorSaveData* SaveData = StatOwner->GetSaveData();
+		UCharacterStatComponent* StatComp = StatOwner->GetCharacterStatComponent();
+
+		if (!SaveData || !StatComp)
 		{
-			SetNumberText(TextBlock_Level, SaveData->Level);
-			SetNumberText(TextBlock_Souls, SaveData->Souls);
-			
-			SetNumberText(TextBlock_Vigor, SaveData->Attributes.Vigor);
-			SetNumberText(TextBlock_Attunement, SaveData->Attributes.Attunement);
-			SetNumberText(TextBlock_Endurance, SaveData->Attributes.Endurance);
-			SetNumberText(TextBlock_Vitality, SaveData->Attributes.Vitality);
-			SetNumberText(TextBlock_Strength, SaveData->Attributes.Strength);
-			SetNumberText(TextBlock_Dexterity, SaveData->Attributes.Dexterity);
+			return;
 		}
 
+		// [스탯].
+		// GetSaveData 활용.
+		SetNumberText(TextBlock_Level, SaveData->Level);
+		SetNumberText(TextBlock_Souls, SaveData->Souls);
+		SetNumberText(TextBlock_RequiredSouls, StatComp->GetRequiredSouls(SaveData->Level));
 
 		// [전투 스탯].
 		// CharacterStatComponent 활용.
-		if (UCharacterStatComponent* StatComp = StatOwner->GetCharacterStatComponent())
-		{
-			// [Pool]
-			SetNumberText(TextBlock_HP, static_cast<int32>(StatComp->GetMaxHP()));
-			SetNumberText(TextBlock_FP, static_cast<int32>(StatComp->GetMaxFP()));
-			SetNumberText(TextBlock_Stamina, static_cast<int32>(StatComp->GetMaxStamina()));
+		// [스탯]
+		SetNumberText(TextBlock_Vigor, static_cast<int32>(StatComp->GetVigor()));
+		SetNumberText(TextBlock_Attunement, static_cast<int32>(StatComp->GetAttunement()));
+		SetNumberText(TextBlock_Endurance, static_cast<int32>(StatComp->GetEndurance()));
+		SetNumberText(TextBlock_Vitality, static_cast<int32>(StatComp->GetVitality()));
+		SetNumberText(TextBlock_Strength, static_cast<int32>(StatComp->GetStrength()));
+		SetNumberText(TextBlock_Dexterity, static_cast<int32>(StatComp->GetDexterity()));
 
-			// [전투]
-			SetNumberText(TextBlock_AttackPower, static_cast<int32>(StatComp->GetAttackPower()));
-			SetNumberText(TextBlock_Defense, static_cast<int32>(StatComp->GetDefense()));
-			SetNumberText(TextBlock_Poise, static_cast<int32>(StatComp->GetPoise()));
-			SetNumberText(TextBlock_EquipLoad, static_cast<int32>(StatComp->GetEquipLoad()));
-			SetNumberText(TextBlock_Resistance, static_cast<int32>(StatComp->GetResistance()));
-		}
+		// [Pool]
+		SetNumberText(TextBlock_HP, static_cast<int32>(StatComp->GetMaxHP()));
+		SetNumberText(TextBlock_FP, static_cast<int32>(StatComp->GetMaxFP()));
+		SetNumberText(TextBlock_Stamina, static_cast<int32>(StatComp->GetMaxStamina()));
+
+		// [전투]
+		SetNumberText(TextBlock_AttackPower, static_cast<int32>(StatComp->GetAttackPower()));
+		SetNumberText(TextBlock_Defense, static_cast<int32>(StatComp->GetDefense()));
+		SetNumberText(TextBlock_Poise, static_cast<int32>(StatComp->GetPoise()));
+		SetNumberText(TextBlock_EquipLoad, static_cast<int32>(StatComp->GetEquipLoad()));
+		SetNumberText(TextBlock_Resistance, static_cast<int32>(StatComp->GetResistance()));
+
 	}
 }
+
 

@@ -4,6 +4,7 @@
 #include "Character/CharacterStatComponent.h"
 
 #include <Data/StatDefine.h>
+#include <Data/LevelRequiredSouls.h>
 #include <Data/StatGrowth.h>
 #include <SaveData/WarriorSaveData.h>
 
@@ -13,20 +14,25 @@ UCharacterStatComponent::UCharacterStatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// 스탯 정의 데이터 테이블 불러오기
-	// 스탯 정의에는 초기값 및 min, max 값 있음
+	// 스탯 정의 데이터 테이블 불러오기.
 	static ConstructorHelpers::FObjectFinder<UDataTable> StatDefineTableAsset(
-		TEXT("/Game/Blueprints/Data/DT_StatDefine.DT_StatDefine")
+		TEXT("/Game/Data/DT_StatDefine.DT_StatDefine")
 	);
 	if (StatDefineTableAsset.Succeeded())
 	{
 		StatDefineTable = StatDefineTableAsset.Object;
 	}
-
-	// 스탯 성장 데이터 테이블 불러오기
-	// 스탯 성장에는 레벨 별 증가치가 있음
+	// 스탯 성장에 필요한 소울 데이터 테이블 불러오기.
+	static ConstructorHelpers::FObjectFinder<UDataTable> LevelRequiredSoulsTableAsset(
+		TEXT("/Game/Data/DT_LevelRequiredSouls.DT_LevelRequiredSouls")
+	);
+	if (LevelRequiredSoulsTableAsset.Succeeded())
+	{
+		LevelRequiredSoulsTable = LevelRequiredSoulsTableAsset.Object;
+	}
+	// 스탯 성장 데이터 테이블 불러오기.
 	static ConstructorHelpers::FObjectFinder<UDataTable> StatGrowthTableAsset(
-		TEXT("/Game/Blueprints/Data/DT_StatGrowth.DT_StatGrowth")
+		TEXT("/Game/Data/DT_StatGrowth.DT_StatGrowth")
 	);
 	if (StatGrowthTableAsset.Succeeded())
 	{
@@ -34,13 +40,89 @@ UCharacterStatComponent::UCharacterStatComponent()
 	}
 }
 
+// [UI]
+// 스탯 계산
+// 기본값.
+int32 UCharacterStatComponent::GetStatInitialValue(const FName& StatName) const
+{
+	if (!StatDefineTable)
+	{
+		return 0.f;
+	}
+
+	static const FString ContextString(TEXT("GetStatInitialValue"));
+	// GetAllRows는 모든 행을 순서 없는 배열로 한꺼번에 긁어온다.
+	// FindRow는 행 순서와 무관하게 데이터를 이름으로 정확히 조회할 수 있다.
+	if (const FStatDefine* Row 
+		= StatDefineTable->FindRow<FStatDefine>(StatName, ContextString)) 
+	{
+		return static_cast<float>(Row->InitialValue);
+	}
+
+	UE_LOG(
+		LogTemp, 
+		Warning, 
+		TEXT("[%s] StatDefineTable에서 행을 찾지 못함: %s"), 
+		*GetName(), *StatName.ToString()
+	);
+	
+	return 0.f;
+}
+// 투자 포인트로 성장값 계산.
+int32 UCharacterStatComponent::CalculateGrowthValue(
+	const FName& InStatID, 
+	const FName& InTarget, 
+	int32 AddedPoints) const
+{
+	if (!StatGrowthTable || AddedPoints <= 0)
+	{
+		return 0.f;
+	}
+
+	static const FString ContextString(TEXT("CalculateGrowthValue"));
+	TArray<FStatGrowth*> Rows;
+	StatGrowthTable->GetAllRows<FStatGrowth>(ContextString, Rows);
+
+	int32 TotalBonus = 0;
+
+	for (const FStatGrowth* GrowthRow : Rows)
+	{
+		if (GrowthRow->StatID != InStatID 
+			|| GrowthRow->Target != InTarget 
+			|| AddedPoints < GrowthRow->MinLevel)
+		{
+			continue;
+		}
+
+		const int32 EffectivePoints 
+			= FMath::Min(AddedPoints, GrowthRow->MaxLevel) 
+			- GrowthRow->MinLevel + 1;
+		TotalBonus += EffectivePoints * GrowthRow->Value;
+	}
+
+
+	return static_cast<float>(TotalBonus);
+}
+// 최종 스탯 결과값.
 void UCharacterStatComponent::UpdateCharacterStat(const FWarriorAttributeData& Attributes)
 {
-	LoadCharacterStat();
-
-	// Todo: 초기값에서 InSaveData의 Attribute 값과
-	// 스탯 성장의 레벨 별 증가치를 계산해서 각 변수에 넣어주기
-	// ex) MaxHp += InSaveData.Vigor * 10.f;
+	// Attribute 기본 수치 갱신.
+	Vigor = GetStatInitialValue(VigorKey) + Attributes.Vigor;
+	Attunement = GetStatInitialValue(AttunementKey) + Attributes.Attunement;
+	Endurance = GetStatInitialValue(EnduranceKey) + Attributes.Endurance;
+	Vitality = GetStatInitialValue(VitalityKey) + Attributes.Vitality;
+	Strength = GetStatInitialValue(StrengthKey) + Attributes.Strength;
+	Dexterity = GetStatInitialValue(DexterityKey) + Attributes.Dexterity;
+	// Pool 최종값 계산.
+	const FStatPreview NewStats = CalculateDerivedStats(Attributes);
+	MaxHP = NewStats.MaxHP;
+	MaxFP = NewStats.MaxFP;
+	MaxStamina = NewStats.MaxStamina;
+	// Stat 최종값 계산.
+	Defense = NewStats.Defense;
+	EquipLoad = NewStats.EquipLoad;
+	Resistance = NewStats.Resistance;
+	AttackPower = NewStats.AttackPower;
 
 	if (CurrentHP <= 0.f)
 	{
@@ -78,30 +160,6 @@ void UCharacterStatComponent::BeginPlay()
 	BroadcastAllStats();
 }
 
-float UCharacterStatComponent::GetStatInitialValue(const FName& StatName) const
-{
-	if (!StatDefineTable)
-	{
-		return 0.f;
-	}
-
-	static const FString ContextString(TEXT("GetStatInitialValue"));
-	// GetAllRows는 모든 행을 순서 없는 배열로 한꺼번에 긁어온다.
-	// FindRow는 행 순서와 무관하게 데이터를 이름으로 정확히 조회할 수 있다.
-	if (const FStatDefine* Row = StatDefineTable->FindRow<FStatDefine>(StatName, ContextString)) 
-	{
-		return static_cast<float>(Row->InitialValue);
-	}
-
-	UE_LOG(
-		LogTemp, 
-		Warning, 
-		TEXT("[%s] StatDefineTable에서 행을 찾지 못함: %s"), 
-		*GetName(), *StatName.ToString()
-	);
-	
-	return 0.f;
-}
 
 // 기본 스탯 로딩.
 void UCharacterStatComponent::LoadCharacterStat()
@@ -130,6 +188,61 @@ void UCharacterStatComponent::LoadCharacterStat()
 	OverloadedSpeed = GetStatInitialValue(OverloadedSpeedKey);
 }
 
+int32 UCharacterStatComponent::GetRequiredSouls(int32 Level) const
+{
+	if (!LevelRequiredSoulsTable || Level <= 0)
+	{
+		return 0;
+	}
+
+	const FName RowName = FName(*FString::Printf(TEXT("Level%d"), Level));
+	static const FString ContextString(TEXT("GetRequiredSouls"));
+
+	if (
+		const FLevelRequiredSouls* Row 
+		= LevelRequiredSoulsTable->FindRow<FLevelRequiredSouls>(RowName, ContextString))
+	{
+		return Row->RequiredSouls;
+	}
+
+	return 0;
+}
+
+int32 UCharacterStatComponent::GetTotalRequiredSouls(int32 FromLevel, int32 ToLevel) const
+{
+	if (FromLevel >= ToLevel)
+	{
+		return 0;
+	}
+
+	int32 TotalSouls = 0;
+	for (int32 L = FromLevel; L < ToLevel; ++L)
+	{
+		TotalSouls += GetRequiredSouls(L);
+	}
+	return TotalSouls;
+}
+
+FStatPreview UCharacterStatComponent::CalculateDerivedStats(const FWarriorAttributeData& InAttributes) const
+{
+	FStatPreview OutPreview;
+
+	// 1. Pool 스탯 가상 계산.
+	OutPreview.MaxHP = GetStatInitialValue(HpKey) + CalculateGrowthValue(VigorKey, HpKey, InAttributes.Vigor);
+	OutPreview.MaxFP = GetStatInitialValue(FpKey) + CalculateGrowthValue(AttunementKey, FpKey, InAttributes.Attunement);
+	OutPreview.MaxStamina = GetStatInitialValue(StaminaKey) + CalculateGrowthValue(EnduranceKey, StaminaKey, InAttributes.Endurance);
+
+	// 2. 전투 스탯 가상 계산.
+	OutPreview.Defense = GetStatInitialValue(DefenseKey) + CalculateGrowthValue(EnduranceKey, DefenseKey, InAttributes.Endurance);
+	OutPreview.EquipLoad = GetStatInitialValue(EquipLoadKey) + CalculateGrowthValue(VitalityKey, EquipLoadKey, InAttributes.Vitality);
+	OutPreview.Resistance = GetStatInitialValue(ResistanceKey) + CalculateGrowthValue(VitalityKey, ResistanceKey, InAttributes.Vitality);
+
+	// 3. 공격 가상 계산.
+	OutPreview.AttackPower = GetStatInitialValue(AttackPowerKey) + CalculateGrowthValue(StrengthKey, AttackPowerKey, InAttributes.Strength)
+		+ CalculateGrowthValue(DexterityKey, AttackPowerKey, InAttributes.Dexterity);
+
+	return OutPreview;
+}
 
 
 
@@ -141,6 +254,7 @@ void UCharacterStatComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	// 매 프레임 스테미너 자연 회복 체크.
 	RegenerateStamina(DeltaTime);
 }
+
 
 // [스탯 제어 함수]
 	// 범위 제한.

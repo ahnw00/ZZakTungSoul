@@ -22,6 +22,7 @@
 #include <Interface/CharacterStatInterface.h>
 #include <UI/StatusWindowWidget.h>
 #include <UI/MenuWidget.h>
+#include <UI/BonfireMenuWidget.h>
 
 AWarriorController::AWarriorController()
 {
@@ -87,7 +88,7 @@ AWarriorController::AWarriorController()
 	{
 		PlayerHUDWidgetClass = PlayerHUDClassRef.Class;
 	}
-	// [스탯창] Todo: 경로.
+	// [스탯창]
 	static ConstructorHelpers::FClassFinder<UStatusWindowWidget> StatusWindowClassRef(
 		TEXT("/Game/UI/WBP_StatusWindow.WBP_StatusWindow_C") 
 	);
@@ -95,6 +96,15 @@ AWarriorController::AWarriorController()
 	{
 		StatusWindowWidgetClass = StatusWindowClassRef.Class;
 	}
+	// [화톳불]
+	static ConstructorHelpers::FClassFinder<UBonfireMenuWidget> BonfireMenuWidgetClassRef(
+		TEXT("/Game/UI/WBP_BonfireMenuWidget.WBP_BonfireMenuWidget_C")
+	);
+	if (BonfireMenuWidgetClassRef.Succeeded())
+	{
+		BonfireMenuWidgetClass = BonfireMenuWidgetClassRef.Class;
+	}
+}
 
 
 	static ConstructorHelpers::FClassFinder<UMenuWidget> MenuWidgetClassRef(
@@ -196,6 +206,9 @@ void AWarriorController::SetupInputComponent()
 
 	// [UI]
 	InputComponent->BindKey(EKeys::C, IE_Pressed, this, &AWarriorController::ToggleStatusWindow);
+	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &AWarriorController::Interact);
+	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
+	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
 }
 
 void AWarriorController::Move(const FInputActionValue& InputValue)
@@ -455,6 +468,8 @@ void AWarriorController::TriggerDebugNum3()
 
 
 
+
+
 // [UI].
 // 사망, 리스폰 상황 때문에 미리 만들었음.
 void AWarriorController::OnPossess(APawn* InPawn)
@@ -501,6 +516,39 @@ void AWarriorController::ToggleStatusWindow()
 		bShowMouseCursor = true;
 		SetInputMode(FInputModeGameAndUI());
 	}
+}
 
+void AWarriorController::OpenBonfireMenu()
+{
+	// 검사.
+	if (!BonfireMenuWidget && BonfireMenuWidgetClass)
+	{
+		BonfireMenuWidget = CreateWidget<UBonfireMenuWidget>(this, BonfireMenuWidgetClass);
+	}
+	// 조작모드 전환
+	if (BonfireMenuWidget && !BonfireMenuWidget->IsInViewport())
+	{
+		BonfireMenuWidget->AddToViewport(10);
+		bShowMouseCursor = true;
+		SetInputMode(FInputModeGameAndUI());
+	}
+}
 
+void AWarriorController::CloseBonfireMenu()
+{
+	if (BonfireMenuWidget && BonfireMenuWidget->IsInViewport())
+	{
+		BonfireMenuWidget->RemoveFromParent();
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly());
+	}
+}
+
+// 상호작용.
+void AWarriorController::Interact()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->Interact();
+	}
 }

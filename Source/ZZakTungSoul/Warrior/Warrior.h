@@ -12,6 +12,10 @@
 #include "Warrior.generated.h"
 
 
+// [전방 선언].
+class UCharacterStatComponent;
+class IInteractionInterface;
+
 /**
  * 
  */
@@ -142,6 +146,10 @@ public:
 
 	//FORCEINLINE UArrowComponent GetLockOnPoint() { return LockOnPoint; }
 
+private:
+	class IInteractionInterface* CurrentInteractable = nullptr;
+
+public:
 	// [캐릭터 스탯].
 	virtual UCharacterStatComponent* GetCharacterStatComponent() const override { return CharacterStatComponent; }
 	// [세이브 데이터].

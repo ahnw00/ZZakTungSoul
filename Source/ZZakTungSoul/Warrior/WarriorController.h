@@ -11,6 +11,7 @@ class UPlayerHUDWidget;
 class UStatusWindowWidget;
 class UMenuWidget;
 class UInputAction;
+class UBonfireMenuWidget;
 
 /**
  * 
@@ -122,23 +123,30 @@ private:
 	void TriggerDebugNum2();
 	void TriggerDebugNum3();
 
-
 	// [UI]
 public:
 	// [스탯 창 토글 함수].
 	UFUNCTION(BlueprintCallable, Category = "UI|Status")
 	void ToggleStatusWindow();
 
+	// [화톳불 메뉴]
+	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
+	void OpenBonfireMenu();
+	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
+	void CloseBonfireMenu();
+
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 
 
 private:
+	// [플레이어 HUD]
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UPlayerHUDWidget> PlayerHUDWidgetClass;
 	UPROPERTY()
 	TObjectPtr<UPlayerHUDWidget> PlayerHUDWidget;
 
+	// [스탯창]
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UStatusWindowWidget> StatusWindowWidgetClass;
 	UPROPERTY()
@@ -148,4 +156,10 @@ private:
 	TSubclassOf<UMenuWidget> MenuWidgetClass;
 	UPROPERTY()
 	TObjectPtr<UMenuWidget> MenuWidget;
+	// [화톳불]
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UBonfireMenuWidget> BonfireMenuWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UBonfireMenuWidget> BonfireMenuWidget;
+
 };

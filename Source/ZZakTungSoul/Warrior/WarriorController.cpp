@@ -57,6 +57,10 @@ AWarriorController::AWarriorController()
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_load(TEXT("/Game/Input/IA_Load.IA_Load"));
 	if (ia_load.Succeeded()) IA_Load = ia_load.Object;
 
+	// 메뉴 열고 닫기
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_menu(TEXT("/Game/Input/IA_Menu.IA_Menu"));
+	if (ia_menu.Succeeded()) IA_Menu = ia_menu.Object;
+
 	//---------------------------------------------------------------
 	// 디버그 용
 	// 
@@ -145,10 +149,10 @@ void AWarriorController::BeginPlay()
 	if (MenuWidgetClass)
 	{
 		MenuWidget = CreateWidget<UMenuWidget>(this, MenuWidgetClass);
-		if (MenuWidget)
-		{
-			MenuWidget->AddToViewport();
-		}
+		//if (MenuWidget)
+		//{
+		//	MenuWidget->AddToViewport();
+		//}
 	}
 }
 
@@ -201,6 +205,9 @@ void AWarriorController::SetupInputComponent()
 	// 세이브/로드 바인드
 	EnhancedInput->BindAction(IA_Save, ETriggerEvent::Completed, this, &AWarriorController::Save);
 	EnhancedInput->BindAction(IA_Load, ETriggerEvent::Completed, this, &AWarriorController::Load);
+
+	// 메뉴 열고 닫기
+	EnhancedInput->BindAction(IA_Menu, ETriggerEvent::Completed, this, &AWarriorController::ToggleMenuWindow);
 
 	// [UI]
 	InputComponent->BindKey(EKeys::C, IE_Pressed, this, &AWarriorController::ToggleStatusWindow);
@@ -539,5 +546,31 @@ void AWarriorController::CloseBonfireMenu()
 		BonfireMenuWidget->RemoveFromParent();
 		bShowMouseCursor = false;
 		SetInputMode(FInputModeGameOnly());
+	}
+}
+
+void AWarriorController::ToggleMenuWindow()
+{
+	if (!MenuWidget)
+	{
+		return;
+	}
+
+	if (!MenuWidget->IsInViewport())
+	{
+		MenuWidget->AddToViewport();
+	}
+
+	if (MenuWidget->GetVisibility() == ESlateVisibility::Visible)
+	{
+		MenuWidget->SetVisibility(ESlateVisibility::Collapsed);
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly());
+	}
+	else
+	{
+		MenuWidget->SetVisibility(ESlateVisibility::Visible);
+		bShowMouseCursor = true;
+		SetInputMode(FInputModeGameAndUI());
 	}
 }

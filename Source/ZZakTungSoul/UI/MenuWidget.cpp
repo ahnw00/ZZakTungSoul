@@ -7,38 +7,24 @@ void UMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-    InventoryButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
+    // 제일 윗줄 버튼들
+    InventoryButton->SetParentWidget(this);
+    StatButton->SetParentWidget(this);
+    SettingButton->SetParentWidget(this);
 
-    StatButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
+    // 두번째 줄 버튼들
+    RightWeaponButton->SetParentWidget(this);
+    LeftWeaponButton->SetParentWidget(this);
 
-    SettingButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
+    // 세번째 줄 버튼들
+    HeadButton->SetParentWidget(this);
+    ChestButton->SetParentWidget(this);
+    ArmsButton->SetParentWidget(this);
+    LegsButton->SetParentWidget(this);
 
-    RightWeaponButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
-
-    LeftWeaponButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
-
-    HeadButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
-
-    ChestButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
-
-    ArmsButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
-
-    LegsButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
-
-    UpperBeltButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
-
-    LowerBeltButton->OnMenuClicked.AddUniqueDynamic(
-        this, &UMenuWidget::OpenMenu);
+    // 네번째 줄 버튼들
+    UpperBeltButton->SetParentWidget(this);
+    LowerBeltButton->SetParentWidget(this);
 }
 
 void UMenuWidget::OpenMenu(EMenuType MenuType)
@@ -46,5 +32,17 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
     int32 MenuIndex = static_cast<int32>(MenuType);
 
     // 위젯에 Switcher 아래에 있는 위젯들의 순서가 enum이랑 순서가 같아야함
-    MenuSwitcher->SetActiveWidgetIndex(MenuIndex);
+    PanelSwitcher->SetActiveWidgetIndex(MenuIndex);
+
+    UWidget* ActiveWidget = PanelSwitcher->GetActiveWidget();
+
+    if (ActiveWidget)
+    {
+        UE_LOG(LogTemp, Warning,
+            TEXT("Active: %s | Visibility: %d | IsVisible: %d"),
+            *ActiveWidget->GetName(),
+            static_cast<int32>(ActiveWidget->GetVisibility()),
+            ActiveWidget->IsVisible()
+        );
+    }
 }

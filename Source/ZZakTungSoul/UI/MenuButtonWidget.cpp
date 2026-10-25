@@ -2,6 +2,7 @@
 
 
 #include "UI/MenuButtonWidget.h"
+#include <UI/MenuWidget.h>
 #include <Components/Button.h>
 
 
@@ -10,12 +11,16 @@ void UMenuButtonWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	MenuButton->OnClicked.AddUniqueDynamic(
-		this, &UMenuButtonWidget::HandleClicked
+		this, &UMenuButtonWidget::OnButtonClicked
 	);
 }
 
-void UMenuButtonWidget::HandleClicked()
+void UMenuButtonWidget::OnButtonClicked()
 {
 	UE_LOG(LogTemp, Log, TEXT("MenuBtn Clicked"));
-	OnMenuClicked.Broadcast(MenuType);
+	
+	if (UMenuWidget* MenuWidget = Cast<UMenuWidget>(ParentWidget))
+	{
+		MenuWidget->OpenMenu(MenuType);
+	}
 }

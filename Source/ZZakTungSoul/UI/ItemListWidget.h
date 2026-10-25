@@ -58,6 +58,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ListItemsBySlot(EEquipmentSlot InSlot);
 
+	//void ToggleItemListWidget();
+
 private:
 	// 필터 버튼들 생성 함수
 	// 장비 변경 버튼을 눌렀느냐, 인벤토리 버튼을 눌렀느냐에 따라

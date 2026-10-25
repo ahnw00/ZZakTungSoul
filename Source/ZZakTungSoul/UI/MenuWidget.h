@@ -8,6 +8,7 @@
 #include <Components/WidgetSwitcher.h>
 #include "MenuWidget.generated.h"
 
+DECLARE_DELEGATE_OneParam(FOnMenuBtnClickedDelegate, EMenuType /*MenuWidgetType*/);
 
 /**
  * 
@@ -20,13 +21,12 @@ class ZZAKTUNGSOUL_API UMenuWidget : public UUserWidget
 protected:
 	virtual void NativeConstruct() override;
 
+public:
 	UFUNCTION()
 	void OpenMenu(EMenuType MenuType);
 
 	// BindWidget 하면 블루프린트에 있는 위젯이랑 변수 이름이 똑같아야 Bind 돼요!
-	//UPROPERTY(meta = (BindWidget))
-	//TObjectPtr<UMenuButtonWidget> EquipmentButton;
-
+protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UMenuButtonWidget> InventoryButton;
 
@@ -61,7 +61,7 @@ protected:
 	TObjectPtr<UMenuButtonWidget> LowerBeltButton;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidgetSwitcher> MenuSwitcher;
+	TObjectPtr<UWidgetSwitcher> PanelSwitcher;
 
 	//// 메뉴 타입별 위젯 클래스
 	//UPROPERTY(EditDefaultsOnly, Category = "Menu")

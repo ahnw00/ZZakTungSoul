@@ -11,7 +11,7 @@ UItemListWidget::UItemListWidget(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
 {
     static ConstructorHelpers::FClassFinder<UItemButtonWidget> ItemButtonClassRef(
-        TEXT("/Game/Blueprints/UI/WBP_ItemButton.WBP_ItemButton")
+        TEXT("/Game/Blueprints/UI/WBP_ItemButton.WBP_ItemButton_C")
     );
     if (ItemButtonClassRef.Succeeded())
     {
@@ -51,6 +51,27 @@ void UItemListWidget::ListItemsByType(EItemType InType)
 void UItemListWidget::ListItemsBySlot(EEquipmentSlot InSlot)
 {
 }
+
+//void UItemListWidget::ToggleItemListWidget()
+//{
+//    if (!IsInViewport())
+//    {
+//        AddToViewport();
+//    }
+//
+//    if (GetVisibility() == ESlateVisibility::Visible)
+//    {
+//        SetVisibility(ESlateVisibility::Collapsed);
+//        //bShowMouseCursor = false;
+//        //SetInputMode(FInputModeGameOnly());
+//    }
+//    else
+//    {
+//        SetVisibility(ESlateVisibility::Visible);
+//        //bShowMouseCursor = true;
+//        //SetInputMode(FInputModeGameAndUI());
+//    }
+//}
 
 void UItemListWidget::CreateFilterButtons()
 {

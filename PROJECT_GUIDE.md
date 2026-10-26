@@ -1038,12 +1038,11 @@ flowchart TD
 
 | 우선순위 | 작업/이슈 | 위치 및 상세 설명 |
 |---|---|---|
-| 🔥 1순위 (긴급/블로커) | 화톳불 상호작용 마이그레이션 | **상호작용 단절 복구**: Ahn의 `IInteractableInterface` 상속 및 `ABonfire.cpp` 오버랩 시 `AddDetectedObject(this)` / `RemoveDetectedObject(this)` 연동 (13-10 상세 계획 참조) |
-| 🔥 2순위 (핵심 기능) | 화톳불 최초 점화 & 텔레포트 목록 등록 | **점화 조건 연동**: 최초 상호작용 시 불 밝힘(`Unlit` ➔ `Lit`). 점화된 화톳불 ID(`LitBonfireIDs`)를 PlayerState/SaveGame에 영구 등록하여 텔레포트 가능 대상으로 필터링 |
-| 🟡 3순위 (서브메뉴 완성) | 화톳불 레벨업 서브 메뉴 (`LevelUpWidget`) | **UI 연동 완성**: `LevelUpWidget.cpp` 내부 장바구니/스탯 시뮬레이션 로직 구현(`InitializedLevelUp`, `AddPoint`, `SubPoint`, `CommitLevelUp`, `RefreshUI`) 및 UMG `WBP_LevelUpWidget` 제작/검증 |
-| 🟢 4순위 (안전성) | 락온 중 크래시 방어 | `Warrior.cpp`의 락온 후보 탐색 시 `GetController()` null 검사 및 `LockOnTarget` 유효성(TWeakObjectPtr 등) 방어 코드 보강 |
-| 🟢 5순위 (월드 연동) | 화톳불 시각 연출 & 몬스터 리스폰 | `BP_Bonfire`에 불꽃 파티클 부착(`Unlit` 시 꺼짐, `Lit` 시 점화). `OnBonfireRest` 델리게이트를 수신하여 사망 몬스터 재생성 처리 |
-| ⚪ 6순위 (코드 정리) | 레거시 인터페이스 삭제 | 구버전 `Source/ZZakTungSoul/Interface/InteractionInterface.h`, `.cpp` 완전 제거 |
+| 🔥 1순위 (핵심 기능) | 화톳불 최초 점화 & 텔레포트 목록 등록 | **점화 조건 연동**: 최초 상호작용 시 불 밝힘(`Unlit` ➔ `Lit`). 점화된 화톳불 ID(`LitBonfireIDs`)를 PlayerState/SaveGame에 영구 등록하여 텔레포트 가능 대상으로 필터링 |
+| 🟡 2순위 (서브메뉴 완성) | 화톳불 레벨업 서브 메뉴 (`LevelUpWidget`) | **UI 연동 완성**: `LevelUpWidget.cpp` 내부 장바구니/스탯 시뮬레이션 로직 구현(`InitializedLevelUp`, `AddPoint`, `SubPoint`, `CommitLevelUp`, `RefreshUI`) 및 UMG `WBP_LevelUpWidget` 제작/검증 |
+| 🟢 3순위 (안전성) | 락온 중 크래시 방어 | `Warrior.cpp`의 락온 후보 탐색 시 `GetController()` null 검사 및 `LockOnTarget` 유효성(TWeakObjectPtr 등) 방어 코드 보강 |
+| 🟢 4순위 (월드 연동) | 화톳불 시각 연출 & 몬스터 리스폰 | `BP_Bonfire`에 불꽃 파티클 부착(`Unlit` 시 꺼짐, `Lit` 시 점화). `OnBonfireRest` 델리게이트를 수신하여 사망 몬스터 재생성 처리 |
+| 해결 (2026-10-26) | 화톳불 상호작용 마이그레이션 | Ahn의 `IInteractableInterface` 상속, `ABonfire.cpp` 오버랩 `AddDetectedObject`/`RemoveDetectedObject` 연동 및 구형 인터페이스 삭제 완료. 인게임 E키 휴식/메뉴 열기 검증 완료 |
 | 해결 (2026-10-23) | 락온 감지 채널 오류 | Ahn이 `Warrior.cpp` `GetOverlaps()`에서 `ECC_GameTraceChannel2` ➔ `ECC_Pawn`으로 변경하여 감지 복구 완료 (커밋 `f1051b3`) |
 | 해결 (2026-10-23 머지) | 공격 애니메이션 및 콤보 고착 | Lee의 콤보 윈도우 시스템(`AnimNotifyState_ComboAttack`, `FAnimMontageArrayWrapper`, `OnComboTransition`, 1~4타 콤보) 및 디버그 모드(`IMC_Debug`) 도입으로 공격 고착 해결 |
 | 해결 (2026-10-23 머지) | 머지 충돌 오타 및 중복 정리 | `WarriorController.cpp` 생성자의 잘못된 닫는 괄호 `}` 제거 및 중복 정의된 `void AWarriorController::Interact()` 정리 완료 |

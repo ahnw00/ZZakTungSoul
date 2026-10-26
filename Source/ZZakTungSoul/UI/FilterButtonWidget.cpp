@@ -26,6 +26,15 @@ void UFilterButtonWidget::OnButtonClicked()
 		//{
 		//	
 		//}
+		if (ListMode == EItemListMode::Inventory)
+		{
+
+		}
+		else
+		{
+
+		}
+
 		if (FilterType == EItemListFilter::All)
 		{
 			ItemList->ListAllItems();

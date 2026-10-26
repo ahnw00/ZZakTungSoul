@@ -36,7 +36,7 @@
 | 사망/리스폰 | ❌ 미구현 | `OnDeath` 없음, 적의 `Dead` 상태에 진입하는 코드 없음 |
 | 적의 스탯/체력 | ❌ 미구현 | `AEnemyBase`는 스탯 컴포넌트와 인터페이스가 없음 |
 | 장비 및 인벤토리/아이템 | ✅ 구현 (2026-10-23 머지) | Ahn의 아이템 시스템 통합 완료. `UEquipmentComponent`, `UInventoryComponent`, `AItemObject`, `UItemDataAsset`, 메뉴 UI(`WBP_Menu`, `WBP_ItemListWidget`, `WBP_Equipment`) |
-| 상호작용 인터페이스 및 화톳불 액터 | 🟡 마이그레이션 예정 (2026-10-23 설계 확정) | Ahn의 `IInteractableInterface` 및 `DetectedActors` 스택 체계 채택 확정. `ABonfire` 상속 전환 및 오버랩 감지 스택(`AddDetectedObject`) 연동 작업 계획 수립 완료 (코드 수정 대기) |
+| 상호작용 인터페이스 및 화톳불 액터 | ✅ 구현 (완료 / 2026-10-26 검증) | Ahn의 `IInteractableInterface` 및 `DetectedActors` 스택 체계 통합 완료. `ABonfire` 상속 전환, 오버랩 `AddDetectedObject`/`RemoveDetectedObject` 연동 및 레거시 인터페이스 삭제 완료. 인게임 E키 휴식/메뉴 열기 검증 완료 |
 | 레벨업/소울 소모 & 스탯 업그레이드 | ✅ 구현 (2026-10-22 갱신) | 컴포넌트의 `GetRequiredSouls`/`GetTotalRequiredSouls`(다중 레벨 비용 계산), `AWarriorPlayerState::UpgradeStat`(단일) 및 `ApplyLevelUp`(일괄 승인) 완비. 소울 부족 검증 및 원자적(Atomic) 갱신 |
 | 화톳불 메뉴 UI (`WBP_BonfireMenuWidget`) & 메뉴 닫기 | ✅ 구현 (완료) | `UBonfireMenuWidget` C++ 베이스 위젯, `Escape`/`Q` 닫기 바인딩 단일화(`CloseBonfireMenu`), `WBP_StatusWindow` 임베딩 검증 완료 |
 | 화톳불 레벨업 서브 메뉴 (`ULevelUpWidget`) & 시뮬레이션 | 🟡 구현 중 (계산 엔진 완비) | `FStatPreview` 및 `CharacterStatComponent::CalculateDerivedStats` 공통 계산 엔진, `ApplyLevelUp` 일괄 결제 완비. `LevelUpWidget.h` 선언 및 `cpp` 내부 장바구니/UI 갱신 연동 진행 중 |

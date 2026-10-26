@@ -42,6 +42,9 @@ UCLASS()
 class ZZAKTUNGSOUL_API UItemListWidget : public UUserWidget
 {
 	GENERATED_BODY()
+
+protected:
+	virtual void NativeConstruct() override;
 	
 public:
 	UItemListWidget(const FObjectInitializer& ObjectInitializer);
@@ -58,6 +61,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ListItemsBySlot(EEquipmentSlot InSlot);
 
+	// 테스트용
+	void ListAllItems();
+
 	//void ToggleItemListWidget();
 
 private:
@@ -68,6 +74,8 @@ private:
 	
 	// 리스트 창에 띄워질 아이템 버튼 생성 함수
 	void AddItemButton(UItemDataAsset* InItemData, int32 Index);
+
+	UItemDataAsset* LoadItemData(const struct FInventoryItem& Item);
 
 private:
 	UPROPERTY()

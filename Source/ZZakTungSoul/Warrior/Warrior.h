@@ -82,6 +82,7 @@ private:
 
 	int32 AttackCombo = 0;
 
+	UPROPERTY()
 	class UWarriorAnimInstance* AnimInstance;
 
 	UFUNCTION()
@@ -154,7 +155,8 @@ public:
 	virtual UCharacterStatComponent* GetCharacterStatComponent() const override { return CharacterStatComponent; }
 	// [세이브 데이터].
 	virtual const struct FWarriorSaveData* GetSaveData() const override;
-
+	// [인벤토리]
+	FORCEINLINE UInventoryComponent* GetInventory() const { return Inventory; }
 
 	
 

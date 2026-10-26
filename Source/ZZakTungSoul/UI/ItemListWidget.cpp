@@ -6,6 +6,15 @@
 #include <Component/InventoryComponent.h>
 #include <Components/UniformGridPanel.h>
 
+#include <Engine/AssetManager.h>
+
+
+void UItemListWidget::NativeConstruct()
+{
+    Super::NativeConstruct();
+
+    ListAllItems();
+}
 
 UItemListWidget::UItemListWidget(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -27,11 +36,11 @@ void UItemListWidget::ListItemsByType(EItemType InType)
 {
     TArray<FInventoryItem> Items = Inventory->GetItems();
 
-    int Count = Items.Num();
-    int Index = 0;
+    int32 Count = Items.Num();
+    int32 Index = 0;
     for (const auto& Item : Items)
     {
-        UItemDataAsset* ItemData = Item.ItemData;
+        UItemDataAsset* ItemData = LoadItemData(Item);
         if (!ItemData)
         {
             continue;
@@ -127,4 +136,42 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
     const int32 Column = Index % ContainerWidth;
 
     ItemContainer->AddChildToUniformGrid(ItemButton, Row, Column);
+}
+
+void UItemListWidget::ListAllItems()
+{
+    if (!Inventory)
+    {
+        return;
+    }
+
+    const TArray<FInventoryItem>& Items = Inventory->GetItems();
+    int32 Count = Items.Num();
+
+    for (int i = 0; i < Count; ++i)
+    {
+        UItemDataAsset* ItemData = LoadItemData(Items[i]);
+        AddItemButton(ItemData, i);
+    }
+}
+
+UItemDataAsset* UItemListWidget::LoadItemData(const FInventoryItem& Item)
+{
+    // 아이템 구조체를 통해 PrimaryAssetId 가져오기
+    FPrimaryAssetId AssetId = Item.AssetID;
+
+    UAssetManager& Manager = UAssetManager::Get();
+
+    // AssetId 통해서 SoftObjectPtr(경로) 가져오기
+    FSoftObjectPtr AssetPtr(Manager.GetPrimaryAssetPath(AssetId));
+
+    // 아직 로드되지 않았다면
+    if (AssetPtr.IsPending())
+    {
+        // 동기화로 로드
+        AssetPtr.LoadSynchronous();
+    }
+
+    UItemDataAsset* ItemData = Cast<UItemDataAsset>(AssetPtr.Get());
+    return ItemData;
 }

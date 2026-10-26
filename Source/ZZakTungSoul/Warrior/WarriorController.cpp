@@ -149,10 +149,11 @@ void AWarriorController::BeginPlay()
 	if (MenuWidgetClass)
 	{
 		MenuWidget = CreateWidget<UMenuWidget>(this, MenuWidgetClass);
-		//if (MenuWidget)
-		//{
-		//	MenuWidget->AddToViewport();
-		//}
+
+		if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+		{
+			MenuWidget->SetInventory(Warrior->GetInventory());
+		}
 	}
 }
 
@@ -563,9 +564,12 @@ void AWarriorController::ToggleMenuWindow()
 
 	if (MenuWidget->GetVisibility() == ESlateVisibility::Visible)
 	{
-		MenuWidget->SetVisibility(ESlateVisibility::Collapsed);
-		bShowMouseCursor = false;
-		SetInputMode(FInputModeGameOnly());
+		if (MenuWidget->ResetMenuWidget())
+		{
+			MenuWidget->SetVisibility(ESlateVisibility::Collapsed);
+			bShowMouseCursor = false;
+			SetInputMode(FInputModeGameOnly());
+		}
 	}
 	else
 	{

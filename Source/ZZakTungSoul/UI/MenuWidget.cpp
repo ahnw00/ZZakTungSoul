@@ -2,6 +2,9 @@
 
 
 #include "UI/MenuWidget.h"
+#include <UI/ItemListWidget.h>
+#include <Component/InventoryComponent.h>
+
 
 void UMenuWidget::NativeConstruct()
 {
@@ -25,6 +28,8 @@ void UMenuWidget::NativeConstruct()
     // 네번째 줄 버튼들
     UpperBeltButton->SetParentWidget(this);
     LowerBeltButton->SetParentWidget(this);
+
+    
 }
 
 void UMenuWidget::OpenMenu(EMenuType MenuType)
@@ -34,15 +39,24 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
     // 위젯에 Switcher 아래에 있는 위젯들의 순서가 enum이랑 순서가 같아야함
     PanelSwitcher->SetActiveWidgetIndex(MenuIndex);
 
-    UWidget* ActiveWidget = PanelSwitcher->GetActiveWidget();
-
-    if (ActiveWidget)
+    if (MenuType == EMenuType::Inventory)
     {
-        UE_LOG(LogTemp, Warning,
-            TEXT("Active: %s | Visibility: %d | IsVisible: %d"),
-            *ActiveWidget->GetName(),
-            static_cast<int32>(ActiveWidget->GetVisibility()),
-            ActiveWidget->IsVisible()
-        );
+        WBP_ItemListWidget->ListAllItems();
     }
+}
+
+void UMenuWidget::SetInventory(UInventoryComponent* InInventory)
+{
+    WBP_ItemListWidget->SetInventory(InInventory);
+}
+
+bool UMenuWidget::ResetMenuWidget()
+{
+    if (PanelSwitcher->GetActiveWidgetIndex() != 0)
+    {
+        PanelSwitcher->SetActiveWidgetIndex(0);
+        return false;
+    }
+
+    return true;
 }

@@ -18,7 +18,7 @@ struct FInventoryItem
 	FGuid InstanceID;
 
 	UPROPERTY()
-	TObjectPtr<UItemDataAsset> ItemData = nullptr;
+	FPrimaryAssetId AssetID;
 
 	UPROPERTY()
 	int32 Quantity = 1;
@@ -41,7 +41,7 @@ public:
 	FORCEINLINE const TArray<FInventoryItem>& GetItems() const { return Items; }
 	void AddItem(UItemDataAsset* ItemData);
 
-	FORCEINLINE UItemDataAsset* GetItemData(const FInventoryItem& item) const { return item.ItemData; };
+	UItemDataAsset* GetItemData(const FInventoryItem& Item) const;
 
 protected:
 	// Called when the game starts

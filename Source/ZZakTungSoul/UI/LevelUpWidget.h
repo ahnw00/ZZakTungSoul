@@ -43,11 +43,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LevelUp")
 	void CancelLevelUp();
 
-	// 모달 팝업 열기/닫기.
-	UFUNCTION(BlueprintCallable, Category = "LevelUp")
-	void OpenConfirmModal();
-	UFUNCTION(BlueprintCallable, Category = "LevelUp")
-	void CloseConfirmModal();
+	
 
 protected:
 	// 화면의 모든 텍스트를 최신 가상 수치로 갱신.
@@ -119,14 +115,4 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_Cancel;
 
-	// 확인 팝업 패널 및 예/아니오 버튼.
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UWidget> Panel_ConfirmModal;
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_ModalYes;
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_ModalNo;
-
-
-
-};
+	};

@@ -10,7 +10,7 @@
 
 void UStatusWindowWidget::NativeConstruct()
 {
-	Super::NativeConstruct(); // OnPossess는 Controller에만 있는 함수.
+	Super::NativeConstruct(); 
 
 	// 창을 열 때 최신 스탯으로 새로 고침.
 	RefreshStatus();
@@ -50,8 +50,7 @@ void UStatusWindowWidget::RefreshStatus()
 		SetNumberText(TextBlock_Souls, SaveData->Souls);
 		SetNumberText(TextBlock_RequiredSouls, StatComp->GetRequiredSouls(SaveData->Level));
 
-		// [전투 스탯].
-		// CharacterStatComponent 활용.
+		// [전투 스탯]. CharacterStatComponent 활용.
 		// [스탯]
 		SetNumberText(TextBlock_Vigor, static_cast<int32>(StatComp->GetVigor()));
 		SetNumberText(TextBlock_Attunement, static_cast<int32>(StatComp->GetAttunement()));

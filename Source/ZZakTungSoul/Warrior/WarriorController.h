@@ -134,6 +134,8 @@ public:
 	void OpenBonfireMenu();
 	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
 	void CloseBonfireMenu();
+	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
+	bool TeleportToBonfire(const FName& TargetBonfireID);
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

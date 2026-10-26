@@ -101,3 +101,31 @@ bool AWarriorPlayerState::ApplyLevelUp(const FWarriorAttributeData& PendingPoint
 	
 	return true;
 }
+
+// 화톳불 활성화 확인.
+bool AWarriorPlayerState::IsBonfireLit(const FName& BonfireID) const
+{
+	if (BonfireID.IsNone())
+	{
+		return false;
+	}
+	return SaveData.LitBonfireIDs.Contains(BonfireID);
+}
+
+// 화톳불 등록.
+bool AWarriorPlayerState::RegisterLitBonfire(const FName& BonfireID)
+{
+	if (BonfireID.IsNone())
+	{
+		return false;
+	}
+
+	if(SaveData.LitBonfireIDs.Contains(BonfireID))
+	{
+		return false;
+	}
+
+	SaveData.LitBonfireIDs.Add(BonfireID);
+	return true;
+}
+

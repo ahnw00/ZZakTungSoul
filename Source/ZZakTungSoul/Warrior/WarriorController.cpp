@@ -4,6 +4,8 @@
 #include "Warrior/WarriorController.h"
 #include "Warrior.h"
 
+#include <EngineUtils.h>
+
 #include <InputMappingContext.h>
 #include <InputAction.h>
 
@@ -23,6 +25,7 @@
 #include <UI/StatusWindowWidget.h>
 #include <UI/MenuWidget.h>
 #include <UI/BonfireMenuWidget.h>
+#include <Interactable/BonFire.h>
 
 AWarriorController::AWarriorController()
 {
@@ -540,4 +543,52 @@ void AWarriorController::CloseBonfireMenu()
 		bShowMouseCursor = false;
 		SetInputMode(FInputModeGameOnly());
 	}
+}
+
+bool AWarriorController::TeleportToBonfire(const FName& TargetBonfireID)
+{
+	if (TargetBonfireID.IsNone())
+	{
+		return false;
+	}
+	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
+	if (!Warrior)
+	{
+		return false;
+	}
+
+	// 1. ID 가진 화톳불 검색.
+	ABonfire* TargetBonfire = nullptr;
+	for (TActorIterator<ABonfire> It(GetWorld()); It; ++It)
+	{
+		if (It->GetBonfireID() == TargetBonfireID)
+		{
+			TargetBonfire = *It;
+			break;
+		}
+	}
+	if (!TargetBonfire)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Teleport] 대상 화톳불을 찾을 수 없음: %s"), *TargetBonfireID.ToString());
+		return false;
+	}
+
+	// 2. 화톳불 착지점 획득.
+	const FTransform TargetTransform = TargetBonfire->GetTeleportTransform();
+	const FVector TargetLocation = TargetTransform.GetLocation();
+	const FRotator TargetRotation = TargetTransform.GetRotation().Rotator();
+
+	// 3. 캐릭터 위치 및 회전 순간이동.
+	Warrior->TeleportTo(TargetLocation, TargetRotation);
+
+	// 4. 컨트롤러 카메라 시선 정렬.
+	SetControlRotation(TargetRotation);
+
+	// 5. 열려 있던 화톳불 메뉴 닫기 및 게임 입력 복구.
+	CloseBonfireMenu();
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, FString::Printf(TEXT("[Teleport] %s (으)로 이동 완료"), *TargetBonfire->GetBonfireDisplayName().ToString()));
+
+	return true;
+
 }

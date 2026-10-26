@@ -9,7 +9,8 @@
 
 // 전방선언.
 class AWarrior;
-
+class USphereComponent;
+class UArrowComponent;
 
 // 화톳불 상태.
 UENUM(BlueprintType)
@@ -41,6 +42,8 @@ public:
 	FORCEINLINE EBonfireState GetBonfireState() const { return BonfireState; }
 	FORCEINLINE FName GetBonfireID() const { return BonfireID; }
 	FORCEINLINE FText GetBonfireDisplayName() const { return BonfireDisplayName; }
+	FORCEINLINE UArrowComponent* GetTeleportPoint() const { return TeleportPoint; }
+	FTransform GetTeleportTransform() const;
 
 protected:
 	// Called when the game starts or when spawned
@@ -63,7 +66,7 @@ protected:
 
 	// 플레이어 감지용 상호작용 구체.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
-	TObjectPtr<class USphereComponent> InteractionSphere;
+	TObjectPtr<USphereComponent> InteractionSphere;
 	
 	// 화톳불 사용 방해 적 감지 범위.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
@@ -77,7 +80,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
 	FText BonfireDisplayName;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
+	TObjectPtr<UArrowComponent> TeleportPoint;
+
 	// 현재 화톳불 상태.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|State")
 	EBonfireState BonfireState = EBonfireState::Unlit;
+
+
 };

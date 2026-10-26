@@ -39,8 +39,10 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
     // 위젯에 Switcher 아래에 있는 위젯들의 순서가 enum이랑 순서가 같아야함
     PanelSwitcher->SetActiveWidgetIndex(MenuIndex);
 
+    // @Todo: 인벤토리 창 말고도 다른 창들도 여기서 열어줘야해
     if (MenuType == EMenuType::Inventory)
     {
+        WBP_ItemListWidget->SetListMode(EItemListMode::Inventory);
         WBP_ItemListWidget->ListAllItems();
     }
 }

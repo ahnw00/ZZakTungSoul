@@ -3,6 +3,7 @@
 
 #include "UI/ItemListWidget.h"
 #include "ItemButtonWidget.h"
+#include "FilterButtonWidget.h"
 #include <Component/InventoryComponent.h>
 #include <Components/UniformGridPanel.h>
 
@@ -26,10 +27,40 @@ UItemListWidget::UItemListWidget(const FObjectInitializer& ObjectInitializer)
     {
         ItemButtonClass = ItemButtonClassRef.Class;
     }
+
+    static ConstructorHelpers::FClassFinder<UFilterButtonWidget> FilterButtonClassRef(
+        TEXT("/Game/Blueprints/UI/WBP_FilterButton.WBP_FilterButton_C")
+    );
+    if (FilterButtonClassRef.Succeeded())
+    {
+        FilterButtonClass = FilterButtonClassRef.Class;
+    }
 }
 
-void UItemListWidget::InitializeItemList(EItemListMode InMode, EItemListFilter InInitialFilter)
+void UItemListWidget::InitializeItemList(EItemListFilter InInitialFilter)
 {
+    CreateFilterButtons();
+
+    if (ListMode == EItemListMode::Inventory)
+    {
+
+    }
+    else
+    {
+
+    }
+}
+
+void UItemListWidget::ListItemsByFilter(EItemListFilter InFilter)
+{
+    TArray<FInventoryItem> Items = Inventory->GetItems();
+
+    int32 Count = Items.Num();
+    int32 Index = 0;
+    for (const auto& Item : Items)
+    {
+
+    }
 }
 
 void UItemListWidget::ListItemsByType(EItemType InType)
@@ -59,6 +90,27 @@ void UItemListWidget::ListItemsByType(EItemType InType)
 
 void UItemListWidget::ListItemsBySlot(EEquipmentSlot InSlot)
 {
+    TArray<FInventoryItem> Items = Inventory->GetItems();
+
+    int32 Count = Items.Num();
+    int32 Index = 0;
+    for (const auto& Item : Items)
+    {
+        UItemDataAsset* ItemData = LoadItemData(Item);
+        if (!ItemData)
+        {
+            continue;
+        }
+
+        // 나열하려는 슬롯의 아이템이 아니면 넘어가기
+        if (ItemData->AllowedSlots.Find(InSlot) == INDEX_NONE)
+        {
+            continue;
+        }
+
+        AddItemButton(ItemData, Index);
+        ++Index;
+    }
 }
 
 //void UItemListWidget::ToggleItemListWidget()
@@ -93,7 +145,7 @@ void UItemListWidget::CreateFilterButtons()
         Filters = {
             EItemListFilter::LeftHand,
             EItemListFilter::RightHand,
-            EItemListFilter::Helmet,
+            EItemListFilter::Head,
             EItemListFilter::Chest,
             EItemListFilter::Arms,
             EItemListFilter::Legs
@@ -109,11 +161,21 @@ void UItemListWidget::CreateFilterButtons()
         };
     }
 
+    int32 Column = 0;
     for (EItemListFilter Filter : Filters)
     {
         // 필터 버튼 위젯 생성
         // Filter 값을 버튼에 전달
         // FilterContainer에 추가
+        UFilterButtonWidget* FilterButton = CreateWidget<UFilterButtonWidget>(this, FilterButtonClass);
+        if (!FilterButton)
+        {
+            continue;
+        }
+
+        FilterButton->SetFilterType(Filter);
+        FilterContainer->AddChildToUniformGrid(FilterButton, 0, Column);
+        ++Column;
     }
 }
 

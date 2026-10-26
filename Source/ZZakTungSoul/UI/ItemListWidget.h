@@ -26,7 +26,7 @@ enum class EItemListFilter : uint8
 	// 장비를 열었을 때 뜨는 필터들
 	RightHand,
 	LeftHand,
-	Helmet,
+	Head,
 	Chest,
 	Arms,
 	Legs
@@ -34,6 +34,7 @@ enum class EItemListFilter : uint8
 
 // 전방 선언
 class UInventoryComponent;
+class UUniformGridPanel;
 
 /**
  * 
@@ -51,15 +52,21 @@ public:
 
 	FORCEINLINE void SetInventory(UInventoryComponent* InInventory) { Inventory = InInventory; }
 
-	void InitializeItemList(
-		EItemListMode InMode,
-		EItemListFilter InInitialFilter);
+	void InitializeItemList(EItemListFilter InInitialFilter);
+
+	UFUNCTION(BlueprintCallable)
+	void ListItemsByFilter(EItemListFilter InFilter);
 
 	UFUNCTION(BlueprintCallable)
 	void ListItemsByType(EItemType InType);
 
 	UFUNCTION(BlueprintCallable)
 	void ListItemsBySlot(EEquipmentSlot InSlot);
+
+	FORCEINLINE void SetListMode(EItemListMode InMode)
+	{
+		ListMode = InMode;
+	}
 
 	// 테스트용
 	void ListAllItems();
@@ -77,10 +84,12 @@ private:
 
 	UItemDataAsset* LoadItemData(const struct FInventoryItem& Item);
 
+
 private:
 	UPROPERTY()
 	TObjectPtr<class UInventoryComponent> Inventory;
 
+	// 필터 버튼 관련
 	UPROPERTY()
 	EItemListMode ListMode;
 
@@ -88,7 +97,14 @@ private:
 	EItemListFilter CurrentFilter;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UUniformGridPanel> ItemContainer;
+	TObjectPtr<UUniformGridPanel> FilterContainer;
+
+	UPROPERTY()
+	TSubclassOf<class UFilterButtonWidget> FilterButtonClass;
+
+	// 아이템 버튼 관련
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UUniformGridPanel> ItemContainer;
 
 	const int32 ContainerWidth = 5;
 

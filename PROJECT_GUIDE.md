@@ -1,9 +1,9 @@
 # 🎮 ZZakTungSoul (짝퉁 소울) 프로젝트 분석 및 개발 가이드북
 
-> **작성일**: 2026-10-12 (최종 갱신: 2026-10-22)  
+> **작성일**: 2026-10-12 (최종 갱신: 2026-10-26)  
 > **프로젝트**: ZZakTungSoul (Unreal Engine 5)  
 > **작성자**: Antigravity & Bae (2026-10-19·20 사실 확인·정정: Claude 코드 리뷰어)  
-> **브랜치**: `Bae` (최신 커밋 `e97f4ee` — Lee, Kang, Ahn, Bae 대규모 통합 머지 완료)
+> **브랜치**: `Bae` (최신 커밋 `6eed7f1` — 발표자료 커밋 및 main 머지 완료)
 
 ---
 
@@ -17,7 +17,7 @@
 
 ---
 
-## 0. 현재 구현 상태 요약 (2026-10-23 갱신) — 이 문서를 읽는 AI와 팀원은 먼저 읽을 것
+## 0. 현재 구현 상태 요약 (2026-10-26 갱신) — 이 문서를 읽는 AI와 팀원은 먼저 읽을 것
 
 > ⚠️ **읽는 규칙**: 아래 12장의 Q&A와 5~11장의 서술은 **"왜 이렇게 설계했는가"를 설명하는 학습 노트**입니다. 어떤 기능이 *실제로 구현되어 있는지*는 이 표를 기준으로 판단하세요. 코드가 바뀌면 이 표를 먼저 갱신하고, 문서에 새 사실을 쓰기 전에 **반드시 소스에서 확인**하세요(코드 조각을 문서에 복사하지 말고 파일 링크로 대체). 코드 리뷰의 근거와 열린 이슈는 루트의 `Review(Claude).md`에 있습니다.
 
@@ -1032,25 +1032,25 @@ flowchart TD
 
 ---
 
-## 14. 알려진 이슈와 다음 작업 (2026-10-23 갱신)
+## 14. 알려진 이슈와 다음 작업 (2026-10-26 갱신)
 
-> 근거와 상세 위치(파일, 행 번호)는 루트의 `Review(Claude).md` 마지막 섹션에 있습니다. 여기서는 **다음에 이 문서를 고치거나 기능을 추가할 때 알아야 할 사실**만 요약합니다.
+> 근거와 상세 위치(파일, 행 번호)는 루트의 `Review(Claude).md` 마지막 섹션에 있습니다. 여기서는 **Bae 개발자가 다음에 진행해야 할 작업 우선순위와 계획**을 정리합니다.
 
-| 우선순위 | 이슈 | 위치/설명 |
+| 우선순위 | 작업/이슈 | 위치 및 상세 설명 |
 |---|---|---|
-| 🔥 최우선 (다음 작업) | 화톳불 상호작용 마이그레이션 | Ahn의 `IInteractableInterface` 체계 채택 확정. `ABonfire.h` 상속 전환 및 `ABonfire.cpp`의 `AddDetectedObject`/`RemoveDetectedObject` 연동 코드 작업 대기 (13-10 계획 참조) |
-| 높음 | 락온 중 크래시 가능 | `Warrior.cpp`의 락온 후보 탐색 두 곳에서 `GetController()`를 null 검사 없이 사용. `LockOnTarget`도 일반 포인터라 대상이 파괴되면 dangling |
-| 중간 | 전투 루프 없음 | `ApplyDamage`/`UseFP` 호출처가 없고 적에게 스탯 컴포넌트와 인터페이스가 없다. 피격/사망/리스폰 설계 필요. 컴포넌트를 `ACharacterBase`로 옮기는 안과 함께 결정 |
-| 중간 | 이동 속도 출처 4곳 | `StatDefine.csv`, `Warrior.cpp` 하드코딩, 컴포넌트 `MaxWalkSpeed`(미사용), `EnemyAIData` |
-| 중간 | 적 데이터 안전성 | `EnemyAIData`의 속도 `float`에 기본값이 없고, `EnemyBase::UpdateMovementSpeed`는 데이터가 없으면 로그 없이 return |
-| 중간 | AI 경로 2개 | `AWarriorAIController`(레거시)와 `AEnemyAIController` 중 정식 경로를 정하고 정리 |
+| 🔥 1순위 (긴급/블로커) | 화톳불 상호작용 마이그레이션 | **상호작용 단절 복구**: Ahn의 `IInteractableInterface` 상속 및 `ABonfire.cpp` 오버랩 시 `AddDetectedObject(this)` / `RemoveDetectedObject(this)` 연동 (13-10 상세 계획 참조) |
+| 🔥 2순위 (핵심 기능) | 화톳불 최초 점화 & 텔레포트 목록 등록 | **점화 조건 연동**: 최초 상호작용 시 불 밝힘(`Unlit` ➔ `Lit`). 점화된 화톳불 ID(`LitBonfireIDs`)를 PlayerState/SaveGame에 영구 등록하여 텔레포트 가능 대상으로 필터링 |
+| 🟡 3순위 (서브메뉴 완성) | 화톳불 레벨업 서브 메뉴 (`LevelUpWidget`) | **UI 연동 완성**: `LevelUpWidget.cpp` 내부 장바구니/스탯 시뮬레이션 로직 구현(`InitializedLevelUp`, `AddPoint`, `SubPoint`, `CommitLevelUp`, `RefreshUI`) 및 UMG `WBP_LevelUpWidget` 제작/검증 |
+| 🟢 4순위 (안전성) | 락온 중 크래시 방어 | `Warrior.cpp`의 락온 후보 탐색 시 `GetController()` null 검사 및 `LockOnTarget` 유효성(TWeakObjectPtr 등) 방어 코드 보강 |
+| 🟢 5순위 (월드 연동) | 화톳불 시각 연출 & 몬스터 리스폰 | `BP_Bonfire`에 불꽃 파티클 부착(`Unlit` 시 꺼짐, `Lit` 시 점화). `OnBonfireRest` 델리게이트를 수신하여 사망 몬스터 재생성 처리 |
+| ⚪ 6순위 (코드 정리) | 레거시 인터페이스 삭제 | 구버전 `Source/ZZakTungSoul/Interface/InteractionInterface.h`, `.cpp` 완전 제거 |
+| 해결 (2026-10-23) | 락온 감지 채널 오류 | Ahn이 `Warrior.cpp` `GetOverlaps()`에서 `ECC_GameTraceChannel2` ➔ `ECC_Pawn`으로 변경하여 감지 복구 완료 (커밋 `f1051b3`) |
 | 해결 (2026-10-23 머지) | 공격 애니메이션 및 콤보 고착 | Lee의 콤보 윈도우 시스템(`AnimNotifyState_ComboAttack`, `FAnimMontageArrayWrapper`, `OnComboTransition`, 1~4타 콤보) 및 디버그 모드(`IMC_Debug`) 도입으로 공격 고착 해결 |
 | 해결 (2026-10-23 머지) | 머지 충돌 오타 및 중복 정리 | `WarriorController.cpp` 생성자의 잘못된 닫는 괄호 `}` 제거 및 중복 정의된 `void AWarriorController::Interact()` 정리 완료 |
 | 해결 (2026-10-23) | 화톳불 메뉴 닫기 바인딩 | `AWarriorController`에 `Escape`/`Q` 키 바인딩 추가 및 `UBonfireMenuWidget::OnLeaveClicked` 호출 경로 단일화 |
-| 진행 중 (2026-10-22) | 화톳불 레벨업 서브 메뉴 | `CalculateDerivedStats`, `GetTotalRequiredSouls`, `ApplyLevelUp` 구현 완료. `LevelUpWidget.cpp` UI 연동 로직(포인트 가감/RefreshUI/모달) 구현 및 UMG `WBP_LevelUpWidget` 제작 대기 |
-| 보류 (2026-10-23) | 화톳불 텔레포트 서브 메뉴 | `UTeleportWidget` 골격 완료. 점화된 화톳불 목록(`LitBonfireIDs`) 세이브 저장 및 텔레포트 대상 필터링 설계 반영 (맵/화톳불 다수 배치 후 구현) |
-| 보통 | 몬스터 스포너 시스템 | `OnBonfireRest` 델리게이트를 수신하여 사망 몬스터 재생성 처리 |
-| 보통 | 화톳불 시각 연출 | `BP_Bonfire`에 불꽃 파티클(Particle/Niagara) 부착하여 `Lit` 시 점화 연출 |
+| 중간 | 이동 속도 출처 4곳 | `StatDefine.csv`, `Warrior.cpp` 하드코딩, 컴포넌트 `MaxWalkSpeed`(미사용), `EnemyAIData` |
+| 중간 | 적 데이터 안전성 | `EnemyAIData`의 속도 `float`에 기본값이 없고, `EnemyBase::UpdateMovementSpeed`는 데이터가 없으면 로그 없이 return |
+| 중간 | AI 경로 2개 | `AWarriorAIController`(레거시)와 `AEnemyAIController` 중 정식 경로를 정하고 정리 |
 | 중간 | CSV ↔ DataTable 동기화 규칙 없음 | Reimport 절차와 "어느 쪽이 원본인가"를 팀이 정할 것 |
 | 중간 | 저장소 크기 | `Content/Frank_Slash_Pack`이 약 957MB, Git LFS 미사용. 팀 합의 후 LFS 도입 또는 에셋 범위 축소 검토, 에셋 라이선스와 저장소 공개 범위 확인 |
 | 낮음 | include 스타일 혼재 | 프로젝트 헤더는 따옴표(`"Warrior/Warrior.h"`)로 통일하기로 하고 `Enemy`, `Warrior`, `Character` 폴더의 각괄호 include를 정리 |

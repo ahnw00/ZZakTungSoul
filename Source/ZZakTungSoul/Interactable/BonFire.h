@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Interface/InteractionInterface.h"
+#include "Interface/InteractableInterface.h"
 #include "Bonfire.generated.h"
 
 // 전방선언.
@@ -24,7 +24,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBonfireRestDelegate);
 UCLASS()
 class ZZAKTUNGSOUL_API ABonfire
 	: public AActor,
-	public IInteractionInterface
+	public IInteractableInterface
 {
 	GENERATED_BODY()
 
@@ -33,7 +33,7 @@ public:
 	ABonfire();
 
 	// 상호작용 인터페이스.
-	virtual void Interact(AWarrior* Interactor) override;
+	virtual void Interact(AActor* detectedActor) override;
 	// 휴식 이벤트 델리게이트.
 	UPROPERTY(BlueprintAssignable, Category = "Bonfire|Events")
 	FOnBonfireRestDelegate OnBonfireRest;

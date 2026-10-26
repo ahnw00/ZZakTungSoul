@@ -93,6 +93,7 @@ void ABonfire::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedCo
 	if (AWarrior* Warrior = Cast<AWarrior>(OtherActor))
 	{
 		//Warrior->SetCurrentInteractable(this);
+		Warrior->AddDetectedObject(this);
 
 		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[화톳불] 화톳불 영역에 진입. 상호작용 대상 등록."));
 	}
@@ -108,16 +109,18 @@ void ABonfire::OnInteractionSphereEndOverlap(UPrimitiveComponent* OverlappedComp
 		//{
 		//	Warrior->SetCurrentInteractable(nullptr);
 		//}
+		Warrior->RemoveDetectedObject(this);
 
 		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[화톳불] 화톳불 영역에 떠남. 상호작용 대상 해제."));
 	}
 
 }
 
-void ABonfire::Interact(AWarrior* Interactor)
+void ABonfire::Interact(AActor* detectedActor)
 {
 	// 검사.
-	if (!CanInteractBonfire(Interactor))
+	AWarrior* Interactor = Cast<AWarrior>(detectedActor);
+	if (!Interactor || !CanInteractBonfire(Interactor))
 	{
 		return;
 	}

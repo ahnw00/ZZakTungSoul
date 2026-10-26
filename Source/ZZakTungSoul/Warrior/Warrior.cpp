@@ -23,7 +23,7 @@
 #include "Anim/WarriorAnimInstance.h"
 #include "Enemy/WarriorAIController.h"
 #include "Engine/OverlapResult.h"
-#include "Interface/InteractionInterface.h"
+#include "Interface/InteractableInterface.h"
 
 
 AWarrior::AWarrior()

@@ -69,6 +69,7 @@ protected:
 	TWeakObjectPtr<UCharacterStatComponent> TargetStatComp;
 
 	// Enemy Stat Component
+	UPROPERTY()
 	TObjectPtr<class UEnemyStatComponent> EnemyStatComponet;
 
 protected:

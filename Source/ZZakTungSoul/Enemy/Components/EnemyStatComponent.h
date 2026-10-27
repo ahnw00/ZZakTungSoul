@@ -60,13 +60,9 @@ public:
 
 	// 데이터 테이블 Row 지정 변수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DataTable|RowName")
-	FDataTableRowHandle EnemyRowName;
+	FDataTableRowHandle EnemyStatRow;
 
 private:
-	// EnemyStatDataTable
-	UPROPERTY()
-	TObjectPtr<UDataTable> EnemyStatTable;
-
 	// 상태 판단 플래그
 	uint32 bIsPoiseOver : 1 = false;
 	uint32 bIsStanceOver : 1 = false;

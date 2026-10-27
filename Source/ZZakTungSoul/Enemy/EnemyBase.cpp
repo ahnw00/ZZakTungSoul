@@ -77,6 +77,7 @@ void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& 
 	// 방어 하는 중이고 가드불가공격이 아닐때 데미지 X
 	if (bIsGuard && !bInIsUnBlockable)
 	{
+		// 데미지 안주고 그로기 수치만 보내고 싶으면 DamageInfo에서 StanceDamage 수치만 보내면 됨
 		return;
 	}
 
@@ -86,7 +87,7 @@ void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& 
 void AEnemyBase::UpdateMovementSpeed()
 {
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
-	if (!Movement || !EnemyAIData)
+	if (!Movement || !EnemyStatComponet)
 	{
 		return;
 	}
@@ -98,15 +99,15 @@ void AEnemyBase::UpdateMovementSpeed()
 		break;
 
 	case EEnemyState::Patrol:
-		Movement->MaxWalkSpeed = EnemyAIData->PatrolMovementSpeed;
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
 		break;
 
 	case EEnemyState::Chase:
-		Movement->MaxWalkSpeed = EnemyAIData->ChaseMovementSpeed;
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetChaseSpeed();
 		break;
 
 	case EEnemyState::Strafe:
-		Movement->MaxWalkSpeed = EnemyAIData->StrafeMovementSpeed;
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetStrafeSpeed();
 		break;
 
 	case EEnemyState::Attack:
@@ -114,7 +115,7 @@ void AEnemyBase::UpdateMovementSpeed()
 		break;
 
 	case EEnemyState::Search:
-		Movement->MaxWalkSpeed = EnemyAIData->SearchMovementSpeed;
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
 		break;
 
 	case EEnemyState::Hit:

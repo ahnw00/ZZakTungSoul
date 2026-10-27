@@ -9,13 +9,6 @@
 UEnemyStatComponent::UEnemyStatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// 데이터 테이블 설정
-	static ConstructorHelpers::FObjectFinder<UDataTable> EnemyStatTableAsset(TEXT("/Game/Data/DT_EnemyStat.DT_EnemyStat"));
-	if (EnemyStatTableAsset.Succeeded())
-	{
-		EnemyStatTable = EnemyStatTableAsset.Object;
-	}
 }
 
 
@@ -54,7 +47,7 @@ void UEnemyStatComponent::ApplyDamage(const FDamageInfo& DamageInfo)
 	float InDamage = DamageInfo.AttackDamage;
 	float InPoiseDamage = DamageInfo.PoiseDamage;
 	float InStanceDamage = DamageInfo.StanceDamage;
-	if (InDamage <= 0.0f || InPoiseDamage < 0.0f || InStanceDamage < 0.0f)
+	if (InDamage < 0.0f || InPoiseDamage < 0.0f || InStanceDamage < 0.0f)
 	{
 		return;
 	}
@@ -68,13 +61,8 @@ void UEnemyStatComponent::ApplyDamage(const FDamageInfo& DamageInfo)
 
 void UEnemyStatComponent::InitializeEnemyStat()
 {
-	// 유효성 검사
-	if (nullptr == EnemyStatTable)
-	{
-		return;
-	}
-
-	const FEnemyStat* Row = EnemyStatTable->FindRow<FEnemyStat>(EnemyRowName.RowName, TEXT("No Enemy Row Name!!!"));
+	// Enemy Stat DataTable Row 가져오기
+	const FEnemyStat* Row = EnemyStatRow.GetRow<FEnemyStat>(TEXT("EnemyStat"));
 	if (nullptr == Row)
 	{
 		return;

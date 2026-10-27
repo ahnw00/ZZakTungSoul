@@ -32,10 +32,10 @@ protected:
 
 protected:
 	// 현재 가드 상태 플래그
-	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
+	UPROPERTY(VisibleAnywhere, Category = "State|Combat")
 	uint32 bIsGuard : 1 = false;
 
-	// 현재 가드 상태 플래그
-	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
+	// 현재 무적 상태 플래그
+	UPROPERTY(VisibleAnywhere, Category = "State|Combat")
 	uint32 bIsInvincibility : 1 = false;
 };

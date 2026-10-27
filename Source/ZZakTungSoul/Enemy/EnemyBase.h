@@ -26,6 +26,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	// 데미지 처리 판정
+	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit) override;
+
 	// 상태에 따라 이동속도 변경 함수
 	void UpdateMovementSpeed();
 
@@ -65,6 +68,9 @@ protected:
 	UPROPERTY()
 	TWeakObjectPtr<UCharacterStatComponent> TargetStatComp;
 
+	// Enemy Stat Component
+	TObjectPtr<class UEnemyStatComponent> EnemyStatComponet;
+
 protected:
 	// 적의 현재 상태
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|State")
@@ -94,9 +100,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
 	TObjectPtr<class UAttackTraceComponent> AttackTraceComponent;
 
-	// 현재 전투 상태 플래그
-	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
-	uint32 bIsCombat : 1 = false;
+	
 
 	// Strafe 여부 플래그
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")

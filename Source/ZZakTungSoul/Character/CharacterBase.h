@@ -26,6 +26,16 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+protected:
+	// 데미지 받았을 때 처리 함수
+	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit);
 
+protected:
+	// 현재 가드 상태 플래그
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
+	uint32 bIsGuard : 1 = false;
 
+	// 현재 가드 상태 플래그
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
+	uint32 bIsInvincibility : 1 = false;
 };

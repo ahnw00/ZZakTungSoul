@@ -5,8 +5,10 @@
 #include <Enemy/EnemyAIController.h>
 #include <Enemy/Data/EnemyAIData.h>
 #include <Enemy/Components/AttackTraceComponent.h>
+#include <Enemy/Components/EnemyStatComponent.h>
 #include <Character/CharacterStatComponent.h>
 #include <Interface/CharacterStatInterface.h>
+#include <Data/DamageInfo.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
 #include <Components/StaticMeshComponent.h>
@@ -32,6 +34,9 @@ AEnemyBase::AEnemyBase()
 
 	// Trace Component 설정
 	AttackTraceComponent = CreateDefaultSubobject<UAttackTraceComponent>(TEXT("AttackTraceComponent"));
+
+	// Stat Component 설정
+	EnemyStatComponet = CreateDefaultSubobject<UEnemyStatComponent>(TEXT("EnemyStatComponent"));
 }
 
 void AEnemyBase::BeginPlay()
@@ -49,6 +54,33 @@ void AEnemyBase::BeginPlay()
 	{
 		AttackTraceComponent->OnTraceHit.AddUObject(this, &AEnemyBase::HandleAttackTraceHit);
 	}
+}
+
+void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
+{
+	Super::ReceiveDamage(DamageInfo, Hit);
+
+	if (nullptr == EnemyStatComponet)
+	{
+		return;
+	}
+
+	bool bInIsUnBlockable = DamageInfo.bUnblockable;
+	bool bInIsIgnoreInvincibility = DamageInfo.bIgnoreInvincibility;
+
+	// 무적 상태이고 무적무시공격이 아닐때 데미지 X
+	if (bIsInvincibility && !bInIsIgnoreInvincibility)
+	{
+		return;
+	}
+
+	// 방어 하는 중이고 가드불가공격이 아닐때 데미지 X
+	if (bIsGuard && !bInIsUnBlockable)
+	{
+		return;
+	}
+
+	EnemyStatComponet->ApplyDamage(DamageInfo);
 }
 
 void AEnemyBase::UpdateMovementSpeed()

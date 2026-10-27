@@ -32,3 +32,7 @@ void ACharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 }
 
+void ACharacterBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
+{
+
+}

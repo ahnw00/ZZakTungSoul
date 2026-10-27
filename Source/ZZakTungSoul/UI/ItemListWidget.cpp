@@ -7,6 +7,8 @@
 #include <Component/InventoryComponent.h>
 #include <Components/UniformGridPanel.h>
 #include <Components/TextBlock.h>
+#include <Components/CanvasPanel.h>
+#include <Components/Image.h>
 
 #include <Engine/AssetManager.h>
 
@@ -97,6 +99,7 @@ void UItemListWidget::CreateFilterButtons()
     }
 
     int32 Column = 0;
+    const UEnum* Enum = StaticEnum<EItemListFilter>();
     for (EItemListFilter Filter : Filters)
     {
         // 필터 버튼 위젯 생성
@@ -108,8 +111,12 @@ void UItemListWidget::CreateFilterButtons()
             continue;
         }
         FilterButton->OnFilterSelected.BindUObject(this, &UItemListWidget::ListItemsByFilter);
-
+        FilterButton->OnFilterClicked.BindUObject(this, &UItemListWidget::ResetInfo);
         FilterButton->SetFilterType(Filter);
+        FilterButton->SetFilterText(Enum->GetDisplayNameTextByValue(static_cast<int64>(Filter)));
+
+        FilterButton->OnFilterSelected.BindUObject(this, &UItemListWidget::SetEquipmentSlotByFilter);
+        
         FilterContainer->AddChildToUniformGrid(FilterButton, 0, Column);
         ++Column;
     }
@@ -130,6 +137,14 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
 
     // 델리게이트에 ShowInfo 바인드해주기
     ItemButton->OnItemSelected.BindUObject(this, &UItemListWidget::ShowInfo);
+
+    if (ListMode == EItemListMode::EquipmentSlot)
+    {
+        ItemButton->SetEquipSlot(CurrentEquipSlot);
+
+        // OnItemClicked에 장비 착용 바인드해주기
+        ItemButton->OnItemClicked.BindUObject(this, &UItemListWidget::EquipItem);
+    }
 
     ItemButton->SetItemData(InItemData);
 
@@ -153,6 +168,26 @@ void UItemListWidget::ListAllItems()
     {
         UItemDataAsset* ItemData = LoadItemData(Items[i]);
         AddItemButton(ItemData, i);
+    }
+}
+
+void UItemListWidget::ResetInfo()
+{
+    for (int32 i = 0; i < InfoWindow->GetChildrenCount(); ++i)
+    {
+        UWidget* Child = InfoWindow->GetChildAt(i);
+
+        if (UTextBlock* TextBlock = Cast<UTextBlock>(Child))
+        {
+            if (TextBlock->GetName().StartsWith(TEXT("Txt_")))
+            {
+                TextBlock->SetText(FText::FromString(TEXT("--")));
+            }
+        }
+        else if (UImage* Icon = Cast<UImage>(Child))
+        {
+            Icon->SetBrush(FSlateBrush());
+        }
     }
 }
 
@@ -256,8 +291,11 @@ bool UItemListWidget::IsAllowed(EItemListFilter InFilterType, UItemDataAsset* It
 
 void UItemListWidget::ShowInfo(UItemDataAsset* ItemData)
 {
+    // 정보 초기화
+    ResetInfo();
+
     // 정보로 표시할 변수들 이름값으로 가져와
-    for (TFieldIterator<FNumericProperty> PropIt(ItemData->StaticClass()); PropIt; ++PropIt)
+    for (TFieldIterator<FProperty> PropIt(ItemData->GetClass()); PropIt; ++PropIt)
     {
         // 속성의 이름 값
         const FName PropName(PropIt->GetName());
@@ -270,9 +308,62 @@ void UItemListWidget::ShowInfo(UItemDataAsset* ItemData)
             continue;
         }
 
-        float InfoData = 0.f;
-        PropIt->GetValue_InContainer(ItemData, &InfoData);
-        //FText InText = 
-        //InfoTextBlock->SetText()
+        FText InfoText;
+        
+        if (FTextProperty* TextProperty = CastField<FTextProperty>(*PropIt))
+        {
+            // FText 프로퍼티 값 가져오기
+            InfoText = TextProperty->GetPropertyValue_InContainer(ItemData);
+        }
+        else if (FFloatProperty* NumProperty = CastField<FFloatProperty>(*PropIt))
+        {
+            // float 프로퍼티 값 가져오기
+            float InfoFloat = 0.f;
+            InfoFloat = NumProperty->GetPropertyValue_InContainer(ItemData);
+
+            InfoText = FText::FromString(FString::SanitizeFloat(InfoFloat));
+        }
+
+        InfoTextBlock->SetText(InfoText);
     }
+}
+
+void UItemListWidget::SetEquipmentSlotByFilter(EItemListFilter InFilter)
+{
+    switch (InFilter)
+    {
+    case EItemListFilter::RightHand:
+        CurrentEquipSlot = EEquipmentSlot::RightHand;
+        break;
+    case EItemListFilter::LeftHand:
+        CurrentEquipSlot = EEquipmentSlot::LeftHand;
+        break;
+    case EItemListFilter::Head:
+        CurrentEquipSlot = EEquipmentSlot::Head;
+        break;
+    case EItemListFilter::Chest:
+        CurrentEquipSlot = EEquipmentSlot::Chest;
+        break;
+    case EItemListFilter::Arms:
+        CurrentEquipSlot = EEquipmentSlot::Arms;
+        break;
+    case EItemListFilter::Legs:
+        CurrentEquipSlot = EEquipmentSlot::Legs;
+        break;
+    case EItemListFilter::UpperBelt:
+        CurrentEquipSlot = EEquipmentSlot::UpperBelt;
+        break;
+    case EItemListFilter::LowerBelt:
+        CurrentEquipSlot = EEquipmentSlot::LowerBelt;
+        break;
+    default:
+        CurrentEquipSlot = EEquipmentSlot::None;
+        break;
+    }
+}
+
+void UItemListWidget::EquipItem(UItemDataAsset* ItemData)
+{
+    //equipmentcomponent->EquipItem(ItemData->InstanceID, CurrentEquipSlot);
+    UE_LOG(LogTemp, Log, TEXT("Equip Item"));
 }

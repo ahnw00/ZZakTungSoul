@@ -10,9 +10,15 @@ void UItemButtonWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	ItemButton->OnHovered.AddDynamic(this, &UItemButtonWidget::OnButtonHovered);
+	ItemButton->OnClicked.AddDynamic(this, &UItemButtonWidget::OnButtonClicked);
 }
 
 void UItemButtonWidget::OnButtonHovered()
 {
 	OnItemSelected.ExecuteIfBound(ItemData);
+}
+
+void UItemButtonWidget::OnButtonClicked()
+{
+	OnItemClicked.ExecuteIfBound(ItemData);
 }

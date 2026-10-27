@@ -46,6 +46,8 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
     case EMenuType::Inventory:
         WBP_ItemListWidget->SetListMode(EItemListMode::Inventory);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::All);
+        WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::None);
+        WBP_ItemListWidget->ResetInfo();
         break;
 
     case EMenuType::Stat:
@@ -57,41 +59,57 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
     case EMenuType::RightHand:
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::RightHand);
+        WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::RightHand);
+        WBP_ItemListWidget->ResetInfo();
         break;
 
     case EMenuType::LeftHand:
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::LeftHand);
+        WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::LeftHand);
+        WBP_ItemListWidget->ResetInfo();
         break;
 
     case EMenuType::Head:
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::Head);
+        WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::Head);
+        WBP_ItemListWidget->ResetInfo();
         break;
 
     case EMenuType::Chest:
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::Chest);
+        WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::Chest);
+        WBP_ItemListWidget->ResetInfo();
         break;
 
     case EMenuType::Arms:
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::Arms);
+        WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::Arms);
+        WBP_ItemListWidget->ResetInfo();
         break;
 
     case EMenuType::Legs:
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::Legs);
+        WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::Legs);
+        WBP_ItemListWidget->ResetInfo();
         break;
 
     case EMenuType::UpperBelt:
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::UpperBelt);
+        WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::UpperBelt);
+        WBP_ItemListWidget->ResetInfo();
         break;
 
     case EMenuType::LowerBelt:
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::LowerBelt);
+        WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::LowerBelt);
+        WBP_ItemListWidget->ResetInfo();
         break;
 
     default:

@@ -8,6 +8,7 @@
 #include "FilterButtonWidget.generated.h"
 
 DECLARE_DELEGATE_OneParam(FOnFilterSelected, EItemListFilter /*FilterType*/);
+DECLARE_DELEGATE(FOnFilterClicked);
 
 /**
  * 
@@ -24,6 +25,9 @@ protected:
 	void OnButtonClicked();
 
 public:
+	void SetFilterText(FText InText);
+
+public:
 	FORCEINLINE void SetParent(UUserWidget* InWidget)
 	{
 		ParentWidget = InWidget;
@@ -36,6 +40,7 @@ public:
 
 public:
 	FOnFilterSelected OnFilterSelected;
+	FOnFilterClicked OnFilterClicked;
 	
 private:
 	UPROPERTY(EditAnywhere, Category = "ItemListWidget")
@@ -43,6 +48,9 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UButton> FilterButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UTextBlock> FilterText;
 
 	UPROPERTY()
 	EItemListFilter FilterType;

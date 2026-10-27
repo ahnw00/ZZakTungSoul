@@ -17,8 +17,6 @@ void UMenuButtonWidget::NativeConstruct()
 
 void UMenuButtonWidget::OnButtonClicked()
 {
-	UE_LOG(LogTemp, Log, TEXT("MenuBtn Clicked"));
-	
 	if (UMenuWidget* MenuWidget = Cast<UMenuWidget>(ParentWidget))
 	{
 		MenuWidget->OpenMenu(MenuType);

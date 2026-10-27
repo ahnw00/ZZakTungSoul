@@ -7,7 +7,8 @@
 #include <ItemData/ItemDataAsset.h>
 #include "ItemButtonWidget.generated.h"
 
-DECLARE_DELEGATE_OneParam(FOnItemSelected, UItemDataAsset* /*Showed Item data*/)
+DECLARE_DELEGATE_OneParam(FOnItemSelected, UItemDataAsset* /*Showed Item Data*/)
+DECLARE_DELEGATE_OneParam(FOnItemClicked, UItemDataAsset* /*Equip Item Data*/)
 
 /**
  * 
@@ -23,11 +24,17 @@ protected:
 public:
 	FORCEINLINE void SetItemData(UItemDataAsset* InItemData) { ItemData = InItemData; }
 
-	UFUNCTION(BlueprintCallable)
+	FORCEINLINE void SetEquipSlot(EEquipmentSlot InSlot) { EquipSlot = InSlot; }
+
+	UFUNCTION()
 	void OnButtonHovered();
+
+	UFUNCTION()
+	void OnButtonClicked();
 
 public:
 	FOnItemSelected OnItemSelected;
+	FOnItemClicked OnItemClicked;
 
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -36,4 +43,7 @@ protected:
 private:
 	UPROPERTY()
 	TObjectPtr<UItemDataAsset> ItemData;
+
+	UPROPERTY()
+	EEquipmentSlot EquipSlot = EEquipmentSlot::None;
 };

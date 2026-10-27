@@ -3,6 +3,7 @@
 
 #include "UI/FilterButtonWidget.h"
 #include <Components/Button.h>
+#include <Components/TextBlock.h>
 
 
 void UFilterButtonWidget::NativeConstruct()
@@ -15,4 +16,10 @@ void UFilterButtonWidget::NativeConstruct()
 void UFilterButtonWidget::OnButtonClicked()
 {
 	OnFilterSelected.ExecuteIfBound(FilterType);
+	OnFilterClicked.ExecuteIfBound();
+}
+
+void UFilterButtonWidget::SetFilterText(FText InText)
+{
+	FilterText->SetText(InText);
 }

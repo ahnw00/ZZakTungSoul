@@ -40,6 +40,8 @@ enum class EItemListFilter : uint8
 class UInventoryComponent;
 class UUniformGridPanel;
 
+
+
 /**
  * 
  */
@@ -69,6 +71,8 @@ public:
 	// 테스트용
 	void ListAllItems();
 
+	void ResetInfo();
+
 
 private:
 	// 필터 버튼들 생성 함수
@@ -86,6 +90,13 @@ private:
 	// 정보 표시
 	void ShowInfo(UItemDataAsset* ItemData);
 
+	void SetEquipmentSlotByFilter(EItemListFilter InFilter);
+
+	void EquipItem(UItemDataAsset* ItemData);
+
+public:
+	FORCEINLINE void SetEquipSlot(EEquipmentSlot InSlot) { CurrentEquipSlot = InSlot; }
+
 
 private:
 	UPROPERTY()
@@ -99,7 +110,7 @@ private:
 
 	// 리스트 위젯 열 때 초기화해줘야할 변수
 	UPROPERTY()
-	EItemListFilter CurrentFilter;
+	EEquipmentSlot CurrentEquipSlot;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UUniformGridPanel> FilterContainer;
@@ -118,4 +129,8 @@ private:
 
 	UPROPERTY()
 	TArray<TObjectPtr<class UItemButtonWidget>> ItemButtons;
+
+	// 아이템 정보 창
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UCanvasPanel> InfoWindow;
 };

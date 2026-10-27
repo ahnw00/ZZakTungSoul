@@ -4,8 +4,10 @@
 #include "Interactable/Bonfire.h"
 #include <Components/StaticMeshComponent.h>
 #include <Components/SphereComponent.h>
+#include <Components/ArrowComponent.h>
 #include <Warrior/Warrior.h>
 #include <Warrior/WarriorController.h>
+#include <Warrior/WarriorPlayerState.h>
 #include <Enemy/EnemyBase.h>
 #include <Engine/OverlapResult.h>
 #include <Interface/CharacterStatInterface.h>
@@ -28,7 +30,20 @@ ABonfire::ABonfire()
 	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	InteractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	// 전송 착지 지점.(현재: 화톳불 앞 120cm, 화톳불 바라보는 방향).
+	TeleportPoint = CreateDefaultSubobject<UArrowComponent>(TEXT("TeleportPoint"));
+	TeleportPoint->SetupAttachment(RootComponent);
+	TeleportPoint->SetRelativeLocation(FVector(120.f, 0.f, 0.f));
+	TeleportPoint->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
 
+}
+FTransform ABonfire::GetTeleportTransform() const
+{
+	if (TeleportPoint)
+	{
+		return TeleportPoint->GetComponentTransform();
+	}
+	return GetActorTransform(); // 착지점 미설정시 화톳불 자체 지점 반환.
 }
 // Called when the game starts or when spawned
 void ABonfire::BeginPlay()
@@ -38,7 +53,15 @@ void ABonfire::BeginPlay()
 	// 감지구체 오버랩 콜백 함수 바인딩.
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &ABonfire::OnInteractionSphereBeginOverlap);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &ABonfire::OnInteractionSphereEndOverlap);
+
+	// Bonfire ID 검사.
+	if (BonfireID.IsNone() || BonfireID == TEXT("Bonfire_Default"))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Bonfire] %s: BonfireID가 기본값입니다. 고유 ID 지정 필요."), *GetName());
+	}
 }
+
+
 
 bool ABonfire::CanInteractBonfire(AWarrior* Interactor) const
 {
@@ -87,13 +110,25 @@ bool ABonfire::CanInteractBonfire(AWarrior* Interactor) const
 	return true;
 }
 
+void ABonfire::SyncLitState(const AWarriorPlayerState* PS)
+{
+	if (BonfireState == EBonfireState::Unlit && PS && PS->IsBonfireLit(BonfireID))
+	{
+		BonfireState = EBonfireState::Lit;
+
+		// TODO: 활성화 효과 등은 여기서 활성화 예정.
+	}
+}
+
 void ABonfire::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	// 들어온 대상이 플레이어면 상호작용 대상에 화톳불 등록.
 	if (AWarrior* Warrior = Cast<AWarrior>(OtherActor))
 	{
-		//Warrior->SetCurrentInteractable(this);
 		Warrior->AddDetectedObject(this);
+
+		// 접근 시 세이브 활성화 상태 동기화.
+		SyncLitState(Warrior->GetPlayerState<AWarriorPlayerState>());
 
 		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[화톳불] 화톳불 영역에 진입. 상호작용 대상 등록."));
 	}
@@ -105,12 +140,9 @@ void ABonfire::OnInteractionSphereEndOverlap(UPrimitiveComponent* OverlappedComp
 	// 나간 대상이 플레이어라면 상호작용 대상 해제.
 	if (AWarrior* Warrior = Cast<AWarrior>(OtherActor))
 	{
-		//if (Warrior->GetCurrentInteractable() == this)
-		//{
-		//	Warrior->SetCurrentInteractable(nullptr);
-		//}
 		Warrior->RemoveDetectedObject(this);
 
+		// 디버깅용 메세지.
 		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[화톳불] 화톳불 영역에 떠남. 상호작용 대상 해제."));
 	}
 
@@ -124,11 +156,22 @@ void ABonfire::Interact(AActor* detectedActor)
 	{
 		return;
 	}
+
+	// 상호작용 직전 세이브 기반 활성화 상태 재확인.
+	SyncLitState(Interactor->GetPlayerState<AWarriorPlayerState>());
+
 	// 최초 상호작용.
 	if (BonfireState == EBonfireState::Unlit)
 	{
 		BonfireState = EBonfireState::Lit;
 
+		// PlayerState에 활성화한 화톳불로 등록.
+		if (AWarriorPlayerState* PS = Interactor->GetPlayerState<AWarriorPlayerState>())
+		{
+			PS->RegisterLitBonfire(BonfireID);
+		}
+
+		// 디버깅용 메세지.
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("[화톳불] 화톳불 불을 밝힘."));
 		return;
 	
@@ -146,6 +189,7 @@ void ABonfire::Interact(AActor* detectedActor)
 			}
 		}
 
+		// 디버깅용 메세지.
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("[화톳불] 화톳불 휴식 + 스탯 업그레이드 창"));
 
 		// 화톳불 메뉴 요청.

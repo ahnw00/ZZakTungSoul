@@ -112,17 +112,17 @@ public:
 	FStatPreview CalculateDerivedStats(const struct FWarriorAttributeData& InAttributes) const;
 	// Attributes
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetVigor() const { return Vigor; }
+	FORCEINLINE int32 GetVigor() const { return Vigor; }
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetAttunement() const { return Attunement; }
+	FORCEINLINE int32 GetAttunement() const { return Attunement; }
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetEndurance() const { return Endurance; }
+	FORCEINLINE int32 GetEndurance() const { return Endurance; }
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetVitality() const { return Vitality; }
+	FORCEINLINE int32 GetVitality() const { return Vitality; }
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetStrength() const { return Strength; }
+	FORCEINLINE int32 GetStrength() const { return Strength; }
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetDexterity() const { return Dexterity; }
+	FORCEINLINE int32 GetDexterity() const { return Dexterity; }
 
 	// [비율 Getter].
 	UFUNCTION(BlueprintPure, Category = "Stat")
@@ -186,17 +186,17 @@ private:
 
 	// Attribute
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Vigor = 10.f;
+	int32 Vigor = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Attunement= 10.f;
+	int32 Attunement= 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Endurance = 10.f;
+	int32 Endurance = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Vitality = 10.f;
+	int32 Vitality = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Strength = 10.f;
+	int32 Strength = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Dexterity= 10.f;
+	int32 Dexterity= 10;
 
 	// 계산된 전투 스탯
 	UPROPERTY(VisibleAnywhere, Category = "Stat")

@@ -31,6 +31,9 @@ protected:
 	virtual void SetupInputComponent() override;
 	//virtual void Tick(float DeltaTime) override;
 
+	// [디버그] 소울 지급 함수.
+	void DebugAddSouls();
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputMappingContext* IMC_Warrior;
@@ -134,6 +137,8 @@ public:
 	void OpenBonfireMenu();
 	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
 	void CloseBonfireMenu();
+	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
+	bool TeleportToBonfire(const FName& TargetBonfireID);
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

@@ -14,7 +14,12 @@ enum class EMenuType : uint8
 	Inventory,
 	Stat,
 	Settings,
-	Equipment,
+	RightHand,
+	LeftHand,
+	Head,
+	Chest,
+	Arms,
+	Legs,
 	UpperBelt,
 	LowerBelt
 };

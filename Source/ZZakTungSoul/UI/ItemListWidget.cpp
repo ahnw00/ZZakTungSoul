@@ -6,6 +6,7 @@
 #include "FilterButtonWidget.h"
 #include <Component/InventoryComponent.h>
 #include <Components/UniformGridPanel.h>
+#include <Components/TextBlock.h>
 
 #include <Engine/AssetManager.h>
 
@@ -14,7 +15,7 @@ void UItemListWidget::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    ListAllItems();
+    //ListAllItems();
 }
 
 UItemListWidget::UItemListWidget(const FObjectInitializer& ObjectInitializer)
@@ -40,31 +41,13 @@ UItemListWidget::UItemListWidget(const FObjectInitializer& ObjectInitializer)
 void UItemListWidget::InitializeItemList(EItemListFilter InInitialFilter)
 {
     CreateFilterButtons();
-
-    if (ListMode == EItemListMode::Inventory)
-    {
-
-    }
-    else
-    {
-
-    }
+    ListItemsByFilter(InInitialFilter);
 }
 
 void UItemListWidget::ListItemsByFilter(EItemListFilter InFilter)
 {
-    TArray<FInventoryItem> Items = Inventory->GetItems();
+    ItemContainer->ClearChildren();
 
-    int32 Count = Items.Num();
-    int32 Index = 0;
-    for (const auto& Item : Items)
-    {
-
-    }
-}
-
-void UItemListWidget::ListItemsByType(EItemType InType)
-{
     TArray<FInventoryItem> Items = Inventory->GetItems();
 
     int32 Count = Items.Num();
@@ -77,66 +60,18 @@ void UItemListWidget::ListItemsByType(EItemType InType)
             continue;
         }
 
-        // 나열하려는 타입의 아이템이 아니면 넘어가기
-        if (ItemData->ItemType != InType)
+        if (IsAllowed(InFilter, ItemData))
         {
-            continue;
+            AddItemButton(ItemData, Index);
+            ++Index;
         }
-
-        AddItemButton(ItemData, Index);
-        ++Index;
     }
 }
-
-void UItemListWidget::ListItemsBySlot(EEquipmentSlot InSlot)
-{
-    TArray<FInventoryItem> Items = Inventory->GetItems();
-
-    int32 Count = Items.Num();
-    int32 Index = 0;
-    for (const auto& Item : Items)
-    {
-        UItemDataAsset* ItemData = LoadItemData(Item);
-        if (!ItemData)
-        {
-            continue;
-        }
-
-        // 나열하려는 슬롯의 아이템이 아니면 넘어가기
-        if (ItemData->AllowedSlots.Find(InSlot) == INDEX_NONE)
-        {
-            continue;
-        }
-
-        AddItemButton(ItemData, Index);
-        ++Index;
-    }
-}
-
-//void UItemListWidget::ToggleItemListWidget()
-//{
-//    if (!IsInViewport())
-//    {
-//        AddToViewport();
-//    }
-//
-//    if (GetVisibility() == ESlateVisibility::Visible)
-//    {
-//        SetVisibility(ESlateVisibility::Collapsed);
-//        //bShowMouseCursor = false;
-//        //SetInputMode(FInputModeGameOnly());
-//    }
-//    else
-//    {
-//        SetVisibility(ESlateVisibility::Visible);
-//        //bShowMouseCursor = true;
-//        //SetInputMode(FInputModeGameAndUI());
-//    }
-//}
 
 void UItemListWidget::CreateFilterButtons()
 {
     // Todo: 필터 버튼 담을 컨테이너 초기화
+    FilterContainer->ClearChildren();
 
     TArray<EItemListFilter> Filters;
 
@@ -172,6 +107,7 @@ void UItemListWidget::CreateFilterButtons()
         {
             continue;
         }
+        FilterButton->OnFilterSelected.BindUObject(this, &UItemListWidget::ListItemsByFilter);
 
         FilterButton->SetFilterType(Filter);
         FilterContainer->AddChildToUniformGrid(FilterButton, 0, Column);
@@ -191,6 +127,9 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
     {
         return;
     }
+
+    // 델리게이트에 ShowInfo 바인드해주기
+    ItemButton->OnItemSelected.BindUObject(this, &UItemListWidget::ShowInfo);
 
     ItemButton->SetItemData(InItemData);
 
@@ -236,4 +175,104 @@ UItemDataAsset* UItemListWidget::LoadItemData(const FInventoryItem& Item)
 
     UItemDataAsset* ItemData = Cast<UItemDataAsset>(AssetPtr.Get());
     return ItemData;
+}
+
+bool UItemListWidget::IsAllowed(EItemListFilter InFilterType, UItemDataAsset* ItemData)
+{
+    switch (InFilterType)
+    {
+    case EItemListFilter::All:
+        return true;
+        
+    case EItemListFilter::Consumable:
+        if (ItemData->ItemType == EItemType::Consumable)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::Weapon:
+        if (ItemData->ItemType == EItemType::Weapon)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::Armor:
+        if (ItemData->ItemType == EItemType::Armor)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::RightHand:
+        if (ItemData->ItemType != EItemType::Armor)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::LeftHand:
+        if (ItemData->ItemType != EItemType::Armor)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::Head:
+        if (ItemData->AllowedSlots.Find(EEquipmentSlot::Head) != INDEX_NONE)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::Chest:
+        if (ItemData->AllowedSlots.Find(EEquipmentSlot::Chest) != INDEX_NONE)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::Arms:
+        if (ItemData->AllowedSlots.Find(EEquipmentSlot::Arms) != INDEX_NONE)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::Legs:
+        if (ItemData->AllowedSlots.Find(EEquipmentSlot::Legs) != INDEX_NONE)
+        {
+            return true;
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    return false;
+}
+
+void UItemListWidget::ShowInfo(UItemDataAsset* ItemData)
+{
+    // 정보로 표시할 변수들 이름값으로 가져와
+    for (TFieldIterator<FNumericProperty> PropIt(ItemData->StaticClass()); PropIt; ++PropIt)
+    {
+        // 속성의 이름 값
+        const FName PropName(PropIt->GetName());
+
+        const FName TextControlName = *FString::Printf(TEXT("Txt_%s"), *PropIt->GetName());
+
+        UTextBlock* InfoTextBlock = Cast<UTextBlock>(GetWidgetFromName(TextControlName));
+        if (!InfoTextBlock)
+        {
+            continue;
+        }
+
+        float InfoData = 0.f;
+        PropIt->GetValue_InContainer(ItemData, &InfoData);
+        //FText InText = 
+        //InfoTextBlock->SetText()
+    }
 }

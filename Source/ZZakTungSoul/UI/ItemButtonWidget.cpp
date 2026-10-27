@@ -2,8 +2,17 @@
 
 
 #include "UI/ItemButtonWidget.h"
+#include <Components/Button.h>
 
 
-void UItemButtonWidget::ShowInfo()
+void UItemButtonWidget::NativeConstruct()
 {
+	Super::NativeConstruct();
+
+	ItemButton->OnHovered.AddDynamic(this, &UItemButtonWidget::OnButtonHovered);
+}
+
+void UItemButtonWidget::OnButtonHovered()
+{
+	OnItemSelected.ExecuteIfBound(ItemData);
 }

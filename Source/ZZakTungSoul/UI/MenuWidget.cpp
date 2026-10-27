@@ -28,22 +28,74 @@ void UMenuWidget::NativeConstruct()
     // 네번째 줄 버튼들
     UpperBeltButton->SetParentWidget(this);
     LowerBeltButton->SetParentWidget(this);
-
-    
 }
 
 void UMenuWidget::OpenMenu(EMenuType MenuType)
 {
-    int32 MenuIndex = static_cast<int32>(MenuType);
+    int32 MenuIndex = GetMenuIndex(MenuType);
 
     // 위젯에 Switcher 아래에 있는 위젯들의 순서가 enum이랑 순서가 같아야함
     PanelSwitcher->SetActiveWidgetIndex(MenuIndex);
 
     // @Todo: 인벤토리 창 말고도 다른 창들도 여기서 열어줘야해
-    if (MenuType == EMenuType::Inventory)
+    switch (MenuType)
     {
+    case EMenuType::Menu:
+        break;
+
+    case EMenuType::Inventory:
         WBP_ItemListWidget->SetListMode(EItemListMode::Inventory);
-        WBP_ItemListWidget->ListAllItems();
+        WBP_ItemListWidget->InitializeItemList(EItemListFilter::All);
+        break;
+
+    case EMenuType::Stat:
+        break;
+
+    case EMenuType::Settings:
+        break;
+
+    case EMenuType::RightHand:
+        WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
+        WBP_ItemListWidget->InitializeItemList(EItemListFilter::RightHand);
+        break;
+
+    case EMenuType::LeftHand:
+        WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
+        WBP_ItemListWidget->InitializeItemList(EItemListFilter::LeftHand);
+        break;
+
+    case EMenuType::Head:
+        WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
+        WBP_ItemListWidget->InitializeItemList(EItemListFilter::Head);
+        break;
+
+    case EMenuType::Chest:
+        WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
+        WBP_ItemListWidget->InitializeItemList(EItemListFilter::Chest);
+        break;
+
+    case EMenuType::Arms:
+        WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
+        WBP_ItemListWidget->InitializeItemList(EItemListFilter::Arms);
+        break;
+
+    case EMenuType::Legs:
+        WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
+        WBP_ItemListWidget->InitializeItemList(EItemListFilter::Legs);
+        break;
+
+    case EMenuType::UpperBelt:
+        WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
+        WBP_ItemListWidget->InitializeItemList(EItemListFilter::UpperBelt);
+        break;
+
+    case EMenuType::LowerBelt:
+        WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
+        WBP_ItemListWidget->InitializeItemList(EItemListFilter::LowerBelt);
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -61,4 +113,23 @@ bool UMenuWidget::ResetMenuWidget()
     }
 
     return true;
+}
+
+int32 UMenuWidget::GetMenuIndex(EMenuType InType)
+{
+    switch (InType)
+    {
+    case EMenuType::Menu:
+        return 0;
+    case EMenuType::Inventory:
+        return 1;
+    case EMenuType::Stat:
+        return 2;
+    case EMenuType::Settings:
+        break;
+    default:
+        return 1;;
+    }
+
+    return 0;
 }

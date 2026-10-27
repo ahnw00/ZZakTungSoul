@@ -7,6 +7,8 @@
 #include <UI/ItemListWidget.h>
 #include "FilterButtonWidget.generated.h"
 
+DECLARE_DELEGATE_OneParam(FOnFilterSelected, EItemListFilter /*FilterType*/);
+
 /**
  * 
  */
@@ -31,6 +33,9 @@ public:
 	{
 		FilterType = InType;
 	}
+
+public:
+	FOnFilterSelected OnFilterSelected;
 	
 private:
 	UPROPERTY(EditAnywhere, Category = "ItemListWidget")

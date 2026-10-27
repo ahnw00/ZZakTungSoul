@@ -32,6 +32,9 @@ public:
 	// 다시 메뉴위젯으로 돌아와줘야해
 	bool ResetMenuWidget();
 
+private:
+	int32 GetMenuIndex(EMenuType InType);
+
 	// BindWidget 하면 블루프린트에 있는 위젯이랑 변수 이름이 똑같아야 Bind 돼요!
 protected:
 	// 버튼들

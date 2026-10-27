@@ -29,7 +29,11 @@ enum class EItemListFilter : uint8
 	Head,
 	Chest,
 	Arms,
-	Legs
+	Legs,
+
+	// 벨트 슬롯 필터
+	UpperBelt,
+	LowerBelt
 };
 
 // 전방 선언
@@ -57,12 +61,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ListItemsByFilter(EItemListFilter InFilter);
 
-	UFUNCTION(BlueprintCallable)
-	void ListItemsByType(EItemType InType);
-
-	UFUNCTION(BlueprintCallable)
-	void ListItemsBySlot(EEquipmentSlot InSlot);
-
 	FORCEINLINE void SetListMode(EItemListMode InMode)
 	{
 		ListMode = InMode;
@@ -71,7 +69,6 @@ public:
 	// 테스트용
 	void ListAllItems();
 
-	//void ToggleItemListWidget();
 
 private:
 	// 필터 버튼들 생성 함수
@@ -84,15 +81,23 @@ private:
 
 	UItemDataAsset* LoadItemData(const struct FInventoryItem& Item);
 
+	bool IsAllowed(EItemListFilter InFilterType, UItemDataAsset* ItemData);
+
+	// 정보 표시
+	void ShowInfo(UItemDataAsset* ItemData);
+
 
 private:
 	UPROPERTY()
 	TObjectPtr<class UInventoryComponent> Inventory;
 
 	// 필터 버튼 관련
+
+	// 리스트 위젯 열 때 초기화해줘야할 변수
 	UPROPERTY()
 	EItemListMode ListMode;
 
+	// 리스트 위젯 열 때 초기화해줘야할 변수
 	UPROPERTY()
 	EItemListFilter CurrentFilter;
 

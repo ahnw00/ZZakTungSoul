@@ -186,17 +186,17 @@ private:
 
 	// Attribute
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	int32 Vigor = 10.f;
+	int32 Vigor = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	int32 Attunement= 10.f;
+	int32 Attunement= 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	int32 Endurance = 10.f;
+	int32 Endurance = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	int32 Vitality = 10.f;
+	int32 Vitality = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	int32 Strength = 10.f;
+	int32 Strength = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	int32 Dexterity= 10.f;
+	int32 Dexterity= 10;
 
 	// 계산된 전투 스탯
 	UPROPERTY(VisibleAnywhere, Category = "Stat")

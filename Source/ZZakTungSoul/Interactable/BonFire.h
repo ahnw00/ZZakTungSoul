@@ -9,6 +9,7 @@
 
 // 전방선언.
 class AWarrior;
+class AWarriorPlayerState;
 class USphereComponent;
 class UArrowComponent;
 
@@ -52,6 +53,9 @@ protected:
 	// 작동 가능 검사.
 	bool CanInteractBonfire(AWarrior* Interactor) const;
 	
+	// 세이브 데이터화 화톳불 활성화 상태 동기화.
+	void SyncLitState(const AWarriorPlayerState* PS);
+
 	UFUNCTION()
 	void OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, 
 		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -80,7 +84,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
 	FText BonfireDisplayName;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
 	TObjectPtr<UArrowComponent> TeleportPoint;
 
 	// 현재 화톳불 상태.

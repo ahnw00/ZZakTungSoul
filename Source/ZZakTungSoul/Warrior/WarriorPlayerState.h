@@ -29,6 +29,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PlayerState|Stat")
 	bool ApplyLevelUp(const struct FWarriorAttributeData& PendingPoints);
 
+	// 소울 획득.
+	UFUNCTION(BlueprintCallable, Category = "PlayerState|Souls")
+	void AddSouls(int32 Amount);
+
 	// 화톳불 
 	UFUNCTION(BlueprintCallable, Category = "PlayerState|Bonfire")
 	bool RegisterLitBonfire(const FName & BonfireID);

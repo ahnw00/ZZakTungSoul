@@ -168,6 +168,9 @@ void ULevelUpWidget::CancelLevelUp()
 {
 	// 장바구니 임시 포인트 초기화.
 	InitializedLevelUp();
+
+	// 부모에게 취소 방송.
+	OnLevelUpCanceled.Broadcast();
 }
 
 // 화면 텍스트 갱신.

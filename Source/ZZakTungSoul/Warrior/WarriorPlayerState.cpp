@@ -46,6 +46,12 @@ bool AWarriorPlayerState::UpgradeStat(const FName& StatName, int32 RequiredSouls
 
 bool AWarriorPlayerState::ApplyLevelUp(const FWarriorAttributeData& PendingPoints)
 {
+	// 음수 포인트는 비정상.
+	if (PendingPoints.Vigor < 0 || PendingPoints.Attunement < 0 || PendingPoints.Endurance < 0 || PendingPoints.Vitality < 0 || PendingPoints.Strength < 0 || PendingPoints.Dexterity < 0)
+	{
+		return false;
+	}
+
 	// 올리려는 총 레벨 수 계산.
 	const int32 AddedLevels
 		= PendingPoints.Vigor
@@ -100,6 +106,17 @@ bool AWarriorPlayerState::ApplyLevelUp(const FWarriorAttributeData& PendingPoint
 	StatComp->UpdateCharacterStat(SaveData.Attributes);
 	
 	return true;
+}
+
+void AWarriorPlayerState::AddSouls(int32 Amount)
+{
+	if (Amount <= 0)
+	{
+		return;
+	}
+
+	SaveData.Souls += Amount;
+	UE_LOG(LogTemp, Log, TEXT("[PlayerState] 소울 획득: +%d (현재 소울: %d)"), Amount, SaveData.Souls);
 }
 
 // 화톳불 활성화 확인.

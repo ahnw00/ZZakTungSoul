@@ -52,12 +52,12 @@ void UStatusWindowWidget::RefreshStatus()
 
 		// [전투 스탯]. CharacterStatComponent 활용.
 		// [스탯]
-		SetNumberText(TextBlock_Vigor, static_cast<int32>(StatComp->GetVigor()));
-		SetNumberText(TextBlock_Attunement, static_cast<int32>(StatComp->GetAttunement()));
-		SetNumberText(TextBlock_Endurance, static_cast<int32>(StatComp->GetEndurance()));
-		SetNumberText(TextBlock_Vitality, static_cast<int32>(StatComp->GetVitality()));
-		SetNumberText(TextBlock_Strength, static_cast<int32>(StatComp->GetStrength()));
-		SetNumberText(TextBlock_Dexterity, static_cast<int32>(StatComp->GetDexterity()));
+		SetNumberText(TextBlock_Vigor, StatComp->GetVigor());
+		SetNumberText(TextBlock_Attunement, StatComp->GetAttunement());
+		SetNumberText(TextBlock_Endurance, StatComp->GetEndurance());
+		SetNumberText(TextBlock_Vitality, StatComp->GetVitality());
+		SetNumberText(TextBlock_Strength, StatComp->GetStrength());
+		SetNumberText(TextBlock_Dexterity, StatComp->GetDexterity());
 
 		// [Pool]
 		SetNumberText(TextBlock_HP, static_cast<int32>(StatComp->GetMaxHP()));

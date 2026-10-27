@@ -14,6 +14,8 @@ class UWidget;
 class AWarriorPlayerState;
 class UCharacterStatComponent;
 
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLevelUpCancelDelegate);
 /**
  * 
  */
@@ -42,6 +44,9 @@ public:
 	void CommitLevelUp();
 	UFUNCTION(BlueprintCallable, Category = "LevelUp")
 	void CancelLevelUp();
+
+	UPROPERTY(BlueprintAssignable, Category = "LevelUp|Events")
+	FOnLevelUpCancelDelegate OnLevelUpCanceled;
 
 	
 

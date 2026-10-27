@@ -31,6 +31,9 @@ protected:
 	virtual void SetupInputComponent() override;
 	//virtual void Tick(float DeltaTime) override;
 
+	// [디버그] 소울 지급 함수.
+	void DebugAddSouls();
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputMappingContext* IMC_Warrior;

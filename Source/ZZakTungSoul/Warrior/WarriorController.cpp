@@ -3,21 +3,24 @@
 
 #include "Warrior/WarriorController.h"
 #include "Warrior.h"
+#include <Warrior/WarriorPlayerState.h>
+
 
 #include <EngineUtils.h>
+#include <Components/CapsuleComponent.h>
 
 #include <InputMappingContext.h>
 #include <InputAction.h>
-
-#include <EnhancedInputSubsystems.h>
 #include <EnhancedInputComponent.h>
+#include <EnhancedInputSubsystems.h>
+#include <Blueprint/UserWidget.h>
+
 
 #include <TimerManager.h>
 #include <Engine/OverlapResult.h>
 
 #include <GamePlay/ZTSGameMode.h>
 
-#include <Blueprint/UserWidget.h>
 
 // [UI]
 #include <UI/PlayerHUDWidget.h>
@@ -210,6 +213,19 @@ void AWarriorController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &AWarriorController::Interact);
 	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
 	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
+	// [디버그] 소울 획득 키.
+	InputComponent->BindKey(EKeys::F1, IE_Pressed, this, &AWarriorController::DebugAddSouls);
+}
+
+void AWarriorController::DebugAddSouls()
+{
+#if !UE_BUILD_SHIPPING
+	if (AWarriorPlayerState* PS = GetPlayerState<AWarriorPlayerState>())
+	{
+		PS->AddSouls(5000);
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[디버그] 소울 5,000 지급."));
+	}
+#endif
 }
 
 void AWarriorController::Move(const FInputActionValue& InputValue)
@@ -551,13 +567,23 @@ bool AWarriorController::TeleportToBonfire(const FName& TargetBonfireID)
 	{
 		return false;
 	}
+
+	// 활성화 화톳불 확인.
+	AWarriorPlayerState* PS = GetPlayerState<AWarriorPlayerState>();
+	if (!PS || !PS->IsBonfireLit(TargetBonfireID))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Teleport] 점화되지 않은 화톳불: %s"), *TargetBonfireID.ToString());
+		return false;
+	}
+
 	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
 	if (!Warrior)
 	{
 		return false;
 	}
 
-	// 1. ID 가진 화톳불 검색.
+
+	// ID 가진 화톳불 검색.
 	ABonfire* TargetBonfire = nullptr;
 	for (TActorIterator<ABonfire> It(GetWorld()); It; ++It)
 	{
@@ -573,18 +599,27 @@ bool AWarriorController::TeleportToBonfire(const FName& TargetBonfireID)
 		return false;
 	}
 
-	// 2. 화톳불 착지점 획득.
+	// 화톳불 착지점 획득 및 발바닥 착지 높이 보정.
 	const FTransform TargetTransform = TargetBonfire->GetTeleportTransform();
-	const FVector TargetLocation = TargetTransform.GetLocation();
+	FVector TargetLocation = TargetTransform.GetLocation();
 	const FRotator TargetRotation = TargetTransform.GetRotation().Rotator();
 
-	// 3. 캐릭터 위치 및 회전 순간이동.
-	Warrior->TeleportTo(TargetLocation, TargetRotation);
+	if (UCapsuleComponent* Capsule = Warrior->GetCapsuleComponent())
+	{
+		TargetLocation.Z += Capsule->GetScaledCapsuleHalfHeight();
+	}
 
-	// 4. 컨트롤러 카메라 시선 정렬.
+	// 캐릭터 위치 및 회전 순간이동(실패시 중단).
+	if (!Warrior->TeleportTo(TargetLocation, TargetRotation))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Teleport] 순간이동 실패(목적지 충돌)."));
+		return false;
+	}
+
+	// 컨트롤러 카메라 시선 정렬.
 	SetControlRotation(TargetRotation);
 
-	// 5. 열려 있던 화톳불 메뉴 닫기 및 게임 입력 복구.
+	// 열려 있던 화톳불 메뉴 닫기 및 게임 입력 복구.
 	CloseBonfireMenu();
 
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, FString::Printf(TEXT("[Teleport] %s (으)로 이동 완료"), *TargetBonfire->GetBonfireDisplayName().ToString()));

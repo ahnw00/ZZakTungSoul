@@ -19,6 +19,9 @@ UAttackTraceComponent::UAttackTraceComponent()
 
 	// 필요할때 Tick 활성화
 	SetComponentTickEnabled(false);
+
+	// 컴포넌트 태그 지정
+	ComponentTags.Add(TraceComponentTagName);
 }
 
 

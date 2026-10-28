@@ -26,7 +26,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	// 데미지 처리 판정
+	// 데미지 처리 판정 -> 상위 클래스에서 인터페이스 사용함
 	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit) override;
 
 	// 상태에 따라 이동속도 변경 함수
@@ -68,10 +68,6 @@ protected:
 	UPROPERTY()
 	TWeakObjectPtr<UCharacterStatComponent> TargetStatComp;
 
-	// Enemy Stat Component
-	UPROPERTY()
-	TObjectPtr<class UEnemyStatComponent> EnemyStatComponet;
-
 protected:
 	// 적의 현재 상태
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|State")
@@ -97,11 +93,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Weapon")
 	FName WeaponAttachSocketName = TEXT("hand_rSocket");
 
+	// Enemy Stat Component
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Stat")
+	TObjectPtr<class UEnemyStatComponent> EnemyStatComponet;
+
 	// 공격 판정을 위한 Trace Component
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
 	TObjectPtr<class UAttackTraceComponent> AttackTraceComponent;
-
-	
 
 	// Strafe 여부 플래그
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")

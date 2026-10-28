@@ -59,7 +59,7 @@ public:
 	FOnEnemyHpChangedDelegate OnEnemyHpChanged;
 
 	// 데이터 테이블 Row 지정 변수
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DataTable|RowName")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|DataTable")
 	FDataTableRowHandle EnemyStatRow;
 
 private:

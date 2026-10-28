@@ -141,7 +141,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void SetCurrentHP(float NewHP);
 	UFUNCTION(BlueprintCallable, Category = "Stat")
-	void ApplyDamage(float InDamage);
+	void ApplyDamage(const struct FDamageInfo& DamageInfo);
 
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void SetCurrentFP(float NewFP);

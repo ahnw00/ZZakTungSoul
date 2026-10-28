@@ -89,4 +89,8 @@ protected:
 	// 충돌 채널
 	UPROPERTY(EditDefaultsOnly, Category = "Trace|Setting")
 	TEnumAsByte<ECollisionChannel> TraceChannel = ECC_Pawn;
+
+	// AnimNotifyState에서 찾을 수 있도록 태그이름지정 변수
+	UPROPERTY(EditDefaultsOnly, Category = "Trace|Setting")
+	FName TraceComponentTagName = TEXT("AttackTrace");
 };

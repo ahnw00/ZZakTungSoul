@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include <Interface/CombatDamageInterface.h>
 #include "CharacterBase.generated.h"
 
 UCLASS()
-class ZZAKTUNGSOUL_API ACharacterBase : public ACharacter
+class ZZAKTUNGSOUL_API ACharacterBase : public ACharacter, public ICombatDamageInterface
 {
 	GENERATED_BODY()
 
@@ -27,10 +28,6 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
-	// 데미지 받았을 때 처리 함수
-	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit);
-
-protected:
 	// 현재 가드 상태 플래그
 	UPROPERTY(VisibleAnywhere, Category = "State|Combat")
 	uint32 bIsGuard : 1 = false;
@@ -38,4 +35,8 @@ protected:
 	// 현재 무적 상태 플래그
 	UPROPERTY(VisibleAnywhere, Category = "State|Combat")
 	uint32 bIsInvincibility : 1 = false;
+
+protected:
+	// Inherited via ICombatDamageInterface
+	virtual void ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit) override;
 };

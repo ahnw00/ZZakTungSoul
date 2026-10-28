@@ -7,7 +7,7 @@
 #include <Enemy/Components/AttackTraceComponent.h>
 #include <Enemy/Components/EnemyStatComponent.h>
 #include <Character/CharacterStatComponent.h>
-#include <Interface/CharacterStatInterface.h>
+#include <Interface/CombatDamageInterface.h>
 #include <Data/DamageInfo.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
@@ -58,7 +58,7 @@ void AEnemyBase::BeginPlay()
 
 void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 {
-	Super::ReceiveDamage(DamageInfo, Hit);
+	//Super::ReceiveDamage(DamageInfo, Hit);
 
 	if (nullptr == EnemyStatComponet)
 	{
@@ -154,8 +154,8 @@ void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
 	//UE_LOG(LogTemp, Log, TEXT("Attack Hit: %s"), *HitActor->GetName());
 
 	// 인터페이스 형변환
-	ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(HitActor);
-	if (nullptr == StatOwner)
+	ICombatDamageInterface* HitTarget = Cast<ICombatDamageInterface>(HitActor);
+	if (nullptr == HitTarget)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Noooooooooo Hit!!!!!"));
 		return;
@@ -163,15 +163,24 @@ void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
 
 	UE_LOG(LogTemp, Log, TEXT("Attack Hit!!!!!@!@!@@@@@@!"));
 
-	// 스탯 컴포넌트 가져오기
-	TargetStatComp = StatOwner->GetCharacterStatComponent();
+	// 공격 데이터 설정
+	FDamageInfo DamageInfo;
+
+	// @@Todo: 나중에 수치 하드 코딩이 아니라 외부에서 데이터 설정해서 가져오도록 구현 EX: AnimNotify, AssetData 등등
+	DamageInfo.AttackDamage = 50.0f;
+
+	// 데미지 처리
+	HitTarget->ReceiveDamage(DamageInfo, Hit);
+
+	/* 스탯 컴포넌트 가져오기
+	TargetStatComp = HitTarget->GetCharacterStatComponent();
 	if (nullptr == TargetStatComp)
 	{
 		return;
 	}
 
 	// @Todo: 데미지 임시 처리
-	TargetStatComp->ApplyDamage(50.0f);
+	TargetStatComp->ApplyDamage(50.0f);		//*/
 }
 
 void AEnemyBase::InitializeWeapon()
@@ -270,6 +279,7 @@ void AEnemyBase::SetEnemyState(EEnemyState NewState)
 	}
 }
 
+// 현재 쓰이진 않지만 일단 남겨둠 -> SetStrafeMode Task에서 사용하지만 해당 Task도 사용은 안함
 void AEnemyBase::SetStrafeMode(bool bEnable)
 {
 	// 현재 Strafe 상태와 설정할 상태가 같으면 건너뜀

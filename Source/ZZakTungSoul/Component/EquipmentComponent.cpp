@@ -12,10 +12,17 @@ UEquipmentComponent::UEquipmentComponent()
 
 void UEquipmentComponent::EquipItem(FGuid InstanceID, EEquipmentSlot Slot)
 {
-	if (EquippedItems[Slot] != InstanceID)
-	{
-		EquippedItems[Slot] = InstanceID;
-	}
+    if (FGuid* EquippedID = EquippedItems.Find(Slot))
+    {
+        if (*EquippedID == InstanceID)
+        {
+            return;
+        }
+    }
+
+    EquippedItems.Add(Slot, InstanceID);
+
+    OnEquipItem.Broadcast(InstanceID, Slot);
 }
 
 void UEquipmentComponent::UnequipItem(EEquipmentSlot Slot)

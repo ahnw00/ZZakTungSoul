@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include <ItemData/ItemDataAsset.h>
 #include "WarriorController.generated.h"
 
 // [전방 선언].
@@ -30,6 +31,9 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupInputComponent() override;
 	//virtual void Tick(float DeltaTime) override;
+
+	// [디버그] 소울 지급 함수.
+	void DebugAddSouls();
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -59,6 +63,11 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* IA_Load;
 
+	// 메뉴 창(ESC랑 나중에 한번에 하도록 묶어주는 함수 만들어야 함)
+	// 화톳불 메뉴에서 ESC를 눌러도 닫고 메뉴 창을 열고 닫을 때도 ESC를 눌러야 하니까
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_Menu;
+
 	//---------------------------------------------------------------
 	// 디버그 용
 	// Insert키를 누르면 디버그 상태.
@@ -77,6 +86,18 @@ private:
 	class UInputAction* IA_DebugNum2;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* IA_DebugNum3;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum4;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum5;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum6;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum7;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum8;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum9;
 
 private:
 	void Move(const struct FInputActionValue& InputValue);
@@ -114,6 +135,9 @@ private:
 	void Save();
 	void Load();
 
+	// [메뉴 창 토글 함수]
+	void ToggleMenuWindow();
+
 	//---------------------------------------------------------------
 	// 디버그 용 토글 함수 및 숫자들 트리거 함수.
 	// 
@@ -122,6 +146,13 @@ private:
 	void TriggerDebugNum1();
 	void TriggerDebugNum2();
 	void TriggerDebugNum3();
+	void TriggerDebugNum4();
+	void TriggerDebugNum5();
+	void TriggerDebugNum6();
+	void TriggerDebugNum7();
+	void TriggerDebugNum8();
+	void TriggerDebugNum9();
+
 
 	// [UI]
 public:
@@ -134,6 +165,10 @@ public:
 	void OpenBonfireMenu();
 	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
 	void CloseBonfireMenu();
+	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
+	bool TeleportToBonfire(const FName& TargetBonfireID);
+
+	void EquipItem(UItemDataAsset* InItemData, EEquipmentSlot InSlot);
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

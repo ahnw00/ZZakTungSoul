@@ -26,14 +26,21 @@ enum class EItemListFilter : uint8
 	// 장비를 열었을 때 뜨는 필터들
 	RightHand,
 	LeftHand,
-	Helmet,
+	Head,
 	Chest,
 	Arms,
-	Legs
+	Legs,
+
+	// 벨트 슬롯 필터
+	UpperBelt,
+	LowerBelt
 };
 
 // 전방 선언
 class UInventoryComponent;
+class UUniformGridPanel;
+
+
 
 /**
  * 
@@ -42,21 +49,30 @@ UCLASS()
 class ZZAKTUNGSOUL_API UItemListWidget : public UUserWidget
 {
 	GENERATED_BODY()
+
+protected:
+	virtual void NativeConstruct() override;
 	
 public:
 	UItemListWidget(const FObjectInitializer& ObjectInitializer);
 
 	FORCEINLINE void SetInventory(UInventoryComponent* InInventory) { Inventory = InInventory; }
 
-	void InitializeItemList(
-		EItemListMode InMode,
-		EItemListFilter InInitialFilter);
+	void InitializeItemList(EItemListFilter InInitialFilter);
 
 	UFUNCTION(BlueprintCallable)
-	void ListItemsByType(EItemType InType);
+	void ListItemsByFilter(EItemListFilter InFilter);
 
-	UFUNCTION(BlueprintCallable)
-	void ListItemsBySlot(EEquipmentSlot InSlot);
+	FORCEINLINE void SetListMode(EItemListMode InMode)
+	{
+		ListMode = InMode;
+	}
+
+	// 테스트용
+	void ListAllItems();
+
+	void ResetInfo();
+
 
 private:
 	// 필터 버튼들 생성 함수
@@ -67,22 +83,54 @@ private:
 	// 리스트 창에 띄워질 아이템 버튼 생성 함수
 	void AddItemButton(UItemDataAsset* InItemData, int32 Index);
 
+	UItemDataAsset* LoadItemData(const struct FInventoryItem& Item);
+
+	bool IsAllowed(EItemListFilter InFilterType, UItemDataAsset* ItemData);
+
+	// 정보 표시
+	void ShowInfo(UItemDataAsset* ItemData);
+
+	void SetEquipmentSlotByFilter(EItemListFilter InFilter);
+
+	void EquipItem(UItemDataAsset* ItemData);
+
+public:
+	FORCEINLINE void SetEquipSlot(EEquipmentSlot InSlot) { CurrentEquipSlot = InSlot; }
+
+
 private:
 	UPROPERTY()
 	TObjectPtr<class UInventoryComponent> Inventory;
 
+	// 필터 버튼 관련
+
+	// 리스트 위젯 열 때 초기화해줘야할 변수
 	UPROPERTY()
 	EItemListMode ListMode;
 
+	// 리스트 위젯 열 때 초기화해줘야할 변수
 	UPROPERTY()
-	EItemListFilter CurrentFilter;
+	EEquipmentSlot CurrentEquipSlot;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UUniformGridPanel> ItemContainer;
+	TObjectPtr<UUniformGridPanel> FilterContainer;
+
+	UPROPERTY()
+	TSubclassOf<class UFilterButtonWidget> FilterButtonClass;
+
+	// 아이템 버튼 관련
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UUniformGridPanel> ItemContainer;
+
+	const int32 ContainerWidth = 5;
 
 	UPROPERTY()
 	TSubclassOf<class UItemButtonWidget> ItemButtonClass;
 
 	UPROPERTY()
 	TArray<TObjectPtr<class UItemButtonWidget>> ItemButtons;
+
+	// 아이템 정보 창
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UCanvasPanel> InfoWindow;
 };

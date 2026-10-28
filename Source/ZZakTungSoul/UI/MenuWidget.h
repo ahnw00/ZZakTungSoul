@@ -8,6 +8,7 @@
 #include <Components/WidgetSwitcher.h>
 #include "MenuWidget.generated.h"
 
+DECLARE_DELEGATE_OneParam(FOnMenuBtnClickedDelegate, EMenuType /*MenuWidgetType*/);
 
 /**
  * 
@@ -20,13 +21,23 @@ class ZZAKTUNGSOUL_API UMenuWidget : public UUserWidget
 protected:
 	virtual void NativeConstruct() override;
 
+public:
 	UFUNCTION()
 	void OpenMenu(EMenuType MenuType);
 
-	// BindWidget 하면 블루프린트에 있는 위젯이랑 변수 이름이 똑같아야 Bind 돼요!
-	//UPROPERTY(meta = (BindWidget))
-	//TObjectPtr<UMenuButtonWidget> EquipmentButton;
+	void SetInventory(class UInventoryComponent* InInventory);
 
+	// 반환값이 true면 메뉴창 꺼줘야해
+	// 반환값이 false면 메뉴창에서 한단계 더 들어간 위젯이 열려있는거라서
+	// 다시 메뉴위젯으로 돌아와줘야해
+	bool ResetMenuWidget();
+
+private:
+	int32 GetMenuIndex(EMenuType InType);
+
+	// BindWidget 하면 블루프린트에 있는 위젯이랑 변수 이름이 똑같아야 Bind 돼요!
+protected:
+	// 버튼들
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UMenuButtonWidget> InventoryButton;
 
@@ -60,14 +71,10 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UMenuButtonWidget> LowerBeltButton;
 
+	// 패널 및 패널 스위처
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidgetSwitcher> MenuSwitcher;
+	TObjectPtr<UWidgetSwitcher> PanelSwitcher;
 
-	//// 메뉴 타입별 위젯 클래스
-	//UPROPERTY(EditDefaultsOnly, Category = "Menu")
-	//TMap<EMenuType, TSubclassOf<UUserWidget>> MenuClasses;
-
-	//// 생성된 위젯 인스턴스 보관
-	//UPROPERTY(Transient)
-	//TMap<EMenuType, TObjectPtr<UUserWidget>> MenuInstances;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UItemListWidget> WBP_ItemListWidget;
 };

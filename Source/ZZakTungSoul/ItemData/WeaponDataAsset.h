@@ -33,8 +33,5 @@ public:
 	float Weight = 0.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSoftObjectPtr<USkeletalMesh> WeaponMesh;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<UAnimMontage> AttackMontage;  // 창과 검이 같은 몽타주를 가지면 안되니까
 };

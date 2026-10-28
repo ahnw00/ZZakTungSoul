@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Character/CharacterStatComponent.h"
@@ -9,6 +9,27 @@
 #include <Data/DamageInfo.h>
 #include <SaveData/WarriorSaveData.h>
 
+
+// Called when the game starts
+void UCharacterStatComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// 게임 시작 시 테이블로부터 기본 스탯 로드.
+	LoadCharacterStat();
+
+	// 게임 시작 시 현재 HP, FP, Stamina 스탯을 UI에 방송.
+	BroadcastAllStats();
+}
+
+// Called every frame
+void UCharacterStatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// 매 프레임 스테미너 자연 회복 체크.
+	RegenerateStamina(DeltaTime);
+}
 
 // Sets default values for this component's properties
 UCharacterStatComponent::UCharacterStatComponent()
@@ -39,6 +60,35 @@ UCharacterStatComponent::UCharacterStatComponent()
 	{
 		StatGrowthTable = StatGrowthTableAsset.Object;
 	}
+}
+
+// 기본 스탯 로딩.
+void UCharacterStatComponent::LoadCharacterStat()
+{
+	if (!StatDefineTable)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[StatComponent] 유효하지 않은 CSV 파일."));
+		return;
+	}
+
+	// 1. 최대치(Max) 스탯 로드
+	MaxHP = GetStatInitialValue(HpKey);
+	MaxFP = GetStatInitialValue(FpKey);
+	MaxStamina = GetStatInitialValue(StaminaKey);
+	MaxStance = GetStatInitialValue(StanceKey);
+
+	// 2. 현재값(Current) 초기화
+	CurrentHP = MaxHP;
+	CurrentFP = MaxFP;
+	CurrentStamina = MaxStamina;
+	// 3. 전투 및 이동 스탯 로드
+	EquipLoad = GetStatInitialValue(EquipLoadKey);
+	Poise = GetStatInitialValue(PoiseKey);
+	AttackPower = GetStatInitialValue(AttackPowerKey);
+	Defense = GetStatInitialValue(DefenseKey);
+	Resistance = GetStatInitialValue(ResistanceKey);
+	MaxWalkSpeed = GetStatInitialValue(WalkSpeedKey);
+	OverloadedSpeed = GetStatInitialValue(OverloadedSpeedKey);
 }
 
 // [UI]
@@ -104,90 +154,12 @@ int32 UCharacterStatComponent::CalculateGrowthValue(
 
 	return static_cast<float>(TotalBonus);
 }
-// 최종 스탯 결과값.
-void UCharacterStatComponent::UpdateCharacterStat(const FWarriorAttributeData& Attributes)
-{
-	// Attribute 기본 수치 갱신.
-	Vigor = GetStatInitialValue(VigorKey) + Attributes.Vigor;
-	Attunement = GetStatInitialValue(AttunementKey) + Attributes.Attunement;
-	Endurance = GetStatInitialValue(EnduranceKey) + Attributes.Endurance;
-	Vitality = GetStatInitialValue(VitalityKey) + Attributes.Vitality;
-	Strength = GetStatInitialValue(StrengthKey) + Attributes.Strength;
-	Dexterity = GetStatInitialValue(DexterityKey) + Attributes.Dexterity;
-	// Pool 최종값 계산.
-	const FStatPreview NewStats = CalculateDerivedStats(Attributes);
-	MaxHP = NewStats.MaxHP;
-	MaxFP = NewStats.MaxFP;
-	MaxStamina = NewStats.MaxStamina;
-	// Stat 최종값 계산.
-	Defense = NewStats.Defense;
-	EquipLoad = NewStats.EquipLoad;
-	Resistance = NewStats.Resistance;
-	AttackPower = NewStats.AttackPower;
-
-	if (CurrentHP <= 0.f)
-	{
-		CurrentHP = MaxHP;
-	}
-	else
-	{
-		CurrentHP = FMath::Clamp(CurrentHP, 0.f, MaxHP);
-	}
-	if (CurrentFP <= 0.f)
-	{
-		CurrentFP = MaxFP;
-	}
-	else
-	{
-		CurrentFP = FMath::Clamp(CurrentFP, 0.f, MaxFP);
-	}
-	
-	
-	CurrentStamina = MaxStamina;
-
-	BroadcastAllStats();
-}
 
 
-// Called when the game starts
-void UCharacterStatComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	// 게임 시작 시 테이블로부터 기본 스탯 로드.
-	LoadCharacterStat();
-
-	// 게임 시작 시 현재 HP, FP, Stamina 스탯을 UI에 방송.
-	BroadcastAllStats();
-}
 
 
-// 기본 스탯 로딩.
-void UCharacterStatComponent::LoadCharacterStat()
-{
-	if (!StatDefineTable)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[StatComponent] 유효하지 않은 CSV 파일."));
-		return;
-	}
 
-	// 1. 최대치(Max) 스탯 로드
-	MaxHP = GetStatInitialValue(HpKey);
-	MaxFP = GetStatInitialValue(FpKey);
-	MaxStamina = GetStatInitialValue(StaminaKey);
-	// 2. 현재값(Current) 초기화
-	CurrentHP = MaxHP;
-	CurrentFP = MaxFP;
-	CurrentStamina = MaxStamina;
-	// 3. 전투 및 이동 스탯 로드
-	EquipLoad = GetStatInitialValue(EquipLoadKey);
-	Poise = GetStatInitialValue(PoiseKey);
-	AttackPower = GetStatInitialValue(AttackPowerKey);
-	Defense = GetStatInitialValue(DefenseKey);
-	Resistance = GetStatInitialValue(ResistanceKey);
-	MaxWalkSpeed = GetStatInitialValue(WalkSpeedKey);
-	OverloadedSpeed = GetStatInitialValue(OverloadedSpeedKey);
-}
+
 
 int32 UCharacterStatComponent::GetRequiredSouls(int32 Level) const
 {
@@ -228,33 +200,70 @@ FStatPreview UCharacterStatComponent::CalculateDerivedStats(const FWarriorAttrib
 {
 	FStatPreview OutPreview;
 
-	// 1. Pool 스탯 가상 계산.
+	// Pool 스탯 계산.
 	OutPreview.MaxHP = GetStatInitialValue(HpKey) + CalculateGrowthValue(VigorKey, HpKey, InAttributes.Vigor);
 	OutPreview.MaxFP = GetStatInitialValue(FpKey) + CalculateGrowthValue(AttunementKey, FpKey, InAttributes.Attunement);
 	OutPreview.MaxStamina = GetStatInitialValue(StaminaKey) + CalculateGrowthValue(EnduranceKey, StaminaKey, InAttributes.Endurance);
 
-	// 2. 전투 스탯 가상 계산.
+	// 전투 스탯 계산.
 	OutPreview.Defense = GetStatInitialValue(DefenseKey) + CalculateGrowthValue(EnduranceKey, DefenseKey, InAttributes.Endurance);
 	OutPreview.EquipLoad = GetStatInitialValue(EquipLoadKey) + CalculateGrowthValue(VitalityKey, EquipLoadKey, InAttributes.Vitality);
 	OutPreview.Resistance = GetStatInitialValue(ResistanceKey) + CalculateGrowthValue(VitalityKey, ResistanceKey, InAttributes.Vitality);
 
-	// 3. 공격 가상 계산.
+	// 공격 계산.
 	OutPreview.AttackPower = GetStatInitialValue(AttackPowerKey) + CalculateGrowthValue(StrengthKey, AttackPowerKey, InAttributes.Strength)
 		+ CalculateGrowthValue(DexterityKey, AttackPowerKey, InAttributes.Dexterity);
 
 	return OutPreview;
 }
 
-
-
-// Called every frame
-void UCharacterStatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+// 최종 스탯 결과값.
+void UCharacterStatComponent::UpdateCharacterStat(const FWarriorAttributeData& Attributes)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	// Attribute 기본 수치 갱신.
+	Vigor = GetStatInitialValue(VigorKey) + Attributes.Vigor;
+	Attunement = GetStatInitialValue(AttunementKey) + Attributes.Attunement;
+	Endurance = GetStatInitialValue(EnduranceKey) + Attributes.Endurance;
+	Vitality = GetStatInitialValue(VitalityKey) + Attributes.Vitality;
+	Strength = GetStatInitialValue(StrengthKey) + Attributes.Strength;
+	Dexterity = GetStatInitialValue(DexterityKey) + Attributes.Dexterity;
+	// Pool 최종값 계산.
+	const FStatPreview NewStats = CalculateDerivedStats(Attributes);
+	MaxHP = NewStats.MaxHP;
+	MaxFP = NewStats.MaxFP;
+	MaxStamina = NewStats.MaxStamina;
+	// Stat 최종값 계산.
+	Defense = NewStats.Defense;
+	EquipLoad = NewStats.EquipLoad;
+	Resistance = NewStats.Resistance;
+	AttackPower = NewStats.AttackPower;
 
-	// 매 프레임 스테미너 자연 회복 체크.
-	RegenerateStamina(DeltaTime);
+	if (CurrentHP <= 0.f)
+	{
+		CurrentHP = MaxHP;
+	}
+	else
+	{
+		CurrentHP = FMath::Clamp(CurrentHP, 0.f, MaxHP);
+	}
+	if (CurrentFP <= 0.f)
+	{
+		CurrentFP = MaxFP;
+	}
+	else
+	{
+		CurrentFP = FMath::Clamp(CurrentFP, 0.f, MaxFP);
+	}
+
+
+	CurrentStamina = MaxStamina;
+
+	BroadcastAllStats();
 }
+
+
+
+
 
 
 // [스탯 제어 함수]
@@ -322,6 +331,35 @@ bool UCharacterStatComponent::UseStamina(float Amount)
 	}
 	
 	return true;
+}
+
+void UCharacterStatComponent::SetCurrentStance(float NewStance)
+{
+	CurrentStance = FMath::Clamp(NewStance, 0.f, MaxStance);
+	OnStanceChanged.Broadcast(CurrentStance, MaxStance);
+}
+
+bool UCharacterStatComponent::TakeStanceDamage(float Amount)
+{
+	if (Amount <= 0.f) 
+	{ 
+		return true;
+	}
+
+	if (CurrentStance < Amount)
+	{
+		SetCurrentStance(0.f);
+		return true;
+	}
+
+	SetCurrentStance(CurrentStamina - Amount);
+
+	if (UWorld* World = GetWorld())
+	{
+		LastStaminaUseTime = World->GetTimeSeconds();
+	}
+
+	return false;
 }
 
 //	// TODO: 다크 소울 형식 고려.

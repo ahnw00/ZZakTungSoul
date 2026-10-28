@@ -23,7 +23,7 @@
 #include "Anim/WarriorAnimInstance.h"
 #include "Enemy/WarriorAIController.h"
 #include "Engine/OverlapResult.h"
-#include "Interface/InteractableInterface.h"
+#include "Interface/InteractionInterface.h"
 
 
 AWarrior::AWarrior()
@@ -331,8 +331,12 @@ void AWarrior::SprintStart()
 {
 	if (bIsSprint)
 		return;
-	if (OverlayState == EOverlayState::Block)
+
+	if (ActionState == EActionState::Block)
 		return;
+
+	//if (OverlayState == EOverlayState::Block)
+	//	return;
 
 	bIsSprint = true;
 	// 임시로 값 직접 넣어준거(달리는 속도 600)
@@ -354,23 +358,28 @@ void AWarrior::BlockStart()
 	// 다른 액션을 하고 있으면 무시
 	if (ActionState != EActionState::None)
 		return;
-	if (OverlayState != EOverlayState::None)
-		return;
+
+	//if (OverlayState != EOverlayState::None)
+	//	return;
+
 	if (bIsSprint)
 		SprintEnd();
 
 	//OverlayState = EOverlayState::Block;
-	SetOverlayState(EOverlayState::Block);
+	SetActionState(EActionState::Block);
+	//SetOverlayState(EOverlayState::Block);
 	//AnimInstance->PlayBlockMontage();
 }
 
 void AWarrior::BlockEnd()
 {
-	if (OverlayState != EOverlayState::Block)
+	if (ActionState != EActionState::Block)
 		return;
+	//if (OverlayState != EOverlayState::Block)
+	//	return;
 
 	//OverlayState = EOverlayState::None;
-	SetOverlayState(EOverlayState::None);
+	SetActionState(EActionState::None);
 	//AnimInstance->StopBlockMontage();
 }
 
@@ -387,11 +396,28 @@ void AWarrior::Attack()
 		}
 	}
 
-	if (ActionState != EActionState::None)
-		return;
-
-	if (OverlayState != EOverlayState::None)
+	switch (ActionState)
+	{
+	case EActionState::None:
+		break;
+	case EActionState::Block:
 		BlockEnd();
+		[[fallthrough]];
+	case EActionState::Roll:
+		[[fallthrough]];
+	case EActionState::BackStep:
+		[[fallthrough]];
+	case EActionState::Attack:
+		[[fallthrough]];
+	case EActionState::Hit:
+		return;
+	default:
+		break;
+	}
+
+
+	//if (OverlayState != EWeaponState::None)
+	//	BlockEnd();
 
 	AttackCombo = 0;
 	bIsAttacking = true;
@@ -647,12 +673,12 @@ void AWarrior::SetActionState(EActionState NewState)
 	ActionState = NewState;
 }
 
-void AWarrior::SetOverlayState(EOverlayState NewState)
+void AWarrior::SetWeaponState(EWeaponState NewState)
 {
-	if (OverlayState == NewState)
+	if (WeaponState == NewState)
 		return;
 
-	OverlayState = NewState;
+	WeaponState = NewState;
 }
 
 //void AWarrior::Interact()
@@ -680,7 +706,8 @@ void AWarrior::EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot)
 	Equipment->EquipItem(InItem->InstanceID, Slot);
 
 	UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(InItem);
-	if (!InItem)
+
+	if (!WeaponData)
 		return;
 
 	// 아직 로드되지 않았다면

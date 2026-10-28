@@ -31,13 +31,31 @@ public:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 private:
+	//---------------------------------------------------------------
+	// 몽타주들 초기화
+	// 
+	//---------------------------------------------------------------
+	void InitRollMontages();
+	void InitStepMontages();
+	void InitAttackMontages();
+
+private:
 	UPROPERTY()
-	UAnimMontage* RollMontage;
+	//UAnimMontage* RollMontage;
+	TMap<EWeaponState, TObjectPtr<UAnimMontage>> RollMontage;
+
 	UPROPERTY()
-	UAnimMontage* BackStepMontage;
-	//UPROPERTY()
+	TMap<EWeaponState, TObjectPtr<UAnimMontage>> BackStepMontage;
+	//UAnimMontage* BackStepMontage;
+
 	UPROPERTY()
-	TMap<EOverlayState, FAnimMontageArrayWrapper> AttackMontage;
+	TMap<EWeaponState, FAnimMontageArrayWrapper> AttackMontage;
+
+	UPROPERTY()
+	TMap<EWeaponState, FAnimMontageArrayWrapper> HitMontage;
+
+	UPROPERTY()
+	TMap<EWeaponState, FAnimMontageArrayWrapper> StunMontage;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
@@ -49,7 +67,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	EActionState ActionState = EActionState::None;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	EOverlayState OverlayState = EOverlayState::None;
+	EWeaponState WeaponState = EWeaponState::None;
 
 public:
 	UFUNCTION()

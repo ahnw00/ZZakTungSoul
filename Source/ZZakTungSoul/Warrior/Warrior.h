@@ -76,7 +76,7 @@ private:
 
 	EMoveState MoveState = EMoveState::Idle;
 	EActionState ActionState = EActionState::None;
-	EOverlayState OverlayState = EOverlayState::None;
+	EWeaponState WeaponState = EWeaponState::None;
 
 
 
@@ -135,8 +135,8 @@ public:
 	FORCEINLINE EActionState GetActionState() const { return ActionState; }
 	void SetActionState(EActionState NewState);
 
-	FORCEINLINE EOverlayState GetOverlayState() const { return OverlayState; }
-	void SetOverlayState(EOverlayState NewState);
+	FORCEINLINE EWeaponState GetWeaponState() const { return WeaponState; }
+	void SetWeaponState(EWeaponState NewState);
 
 	// AnimMontage 관련
 	FORCEINLINE void EndAction() { ActionState = EActionState::None; }

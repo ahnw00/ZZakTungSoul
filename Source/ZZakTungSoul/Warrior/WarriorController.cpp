@@ -77,7 +77,23 @@ AWarriorController::AWarriorController()
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum3(TEXT("/Game/Input/Debug/IA_Debug_Num3.IA_Debug_Num3"));
 	if (ia_debugNum3.Succeeded()) IA_DebugNum3 = ia_debugNum3.Object;
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum4(TEXT("/Game/Input/Debug/IA_Debug_Num4.IA_Debug_Num4"));
+	if (ia_debugNum4.Succeeded()) IA_DebugNum4 = ia_debugNum4.Object;
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum5(TEXT("/Game/Input/Debug/IA_Debug_Num5.IA_Debug_Num5"));
+	if (ia_debugNum5.Succeeded()) IA_DebugNum5 = ia_debugNum5.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum6(TEXT("/Game/Input/Debug/IA_Debug_Num6.IA_Debug_Num6"));
+	if (ia_debugNum6.Succeeded()) IA_DebugNum6 = ia_debugNum6.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum7(TEXT("/Game/Input/Debug/IA_Debug_Num7.IA_Debug_Num7"));
+	if (ia_debugNum7.Succeeded()) IA_DebugNum7 = ia_debugNum7.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum8(TEXT("/Game/Input/Debug/IA_Debug_Num8.IA_Debug_Num8"));
+	if (ia_debugNum8.Succeeded()) IA_DebugNum8 = ia_debugNum8.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum9(TEXT("/Game/Input/Debug/IA_Debug_Num9.IA_Debug_Num9"));
+	if (ia_debugNum9.Succeeded()) IA_DebugNum9 = ia_debugNum9.Object;
 
 	// [UI]
 	// [플레이어 HUD]
@@ -196,6 +212,12 @@ void AWarriorController::SetupInputComponent()
 	EnhancedInput->BindAction(IA_DebugNum1, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum1);
 	EnhancedInput->BindAction(IA_DebugNum2, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum2);
 	EnhancedInput->BindAction(IA_DebugNum3, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum3);
+	EnhancedInput->BindAction(IA_DebugNum4, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum4);
+	EnhancedInput->BindAction(IA_DebugNum5, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum5);
+	EnhancedInput->BindAction(IA_DebugNum6, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum6);
+	EnhancedInput->BindAction(IA_DebugNum7, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum7);
+	EnhancedInput->BindAction(IA_DebugNum8, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum8);
+	EnhancedInput->BindAction(IA_DebugNum9, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum9);
 	//---------------------------------------------------------------
 
 	// 세이브/로드 바인드
@@ -225,8 +247,34 @@ void AWarriorController::Move(const FInputActionValue& InputValue)
 	if (AWarrior* Warrior = Cast<AWarrior>(ControlledPawn))
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("State : %d"), (int)Warrior->GetActionState());
-		if (Warrior->GetActionState() != EActionState::None)
+		//if (Warrior->GetActionState() != EActionState::None)
+		//	return;
+
+		switch (Warrior->GetActionState())
+		{
+
+		case EActionState::Roll:
+			[[fallthrough]];
+		case EActionState::BackStep:
+			[[fallthrough]];
+		case EActionState::Attack:
+			[[fallthrough]];
+		case EActionState::Hit:
 			return;
+		case EActionState::Block:
+		{
+			if (Warrior->GetWeaponState() == EWeaponState::TwoHand)
+			{
+				return;
+			}
+
+			[[fallthrough]];
+		case EActionState::None:
+			[[fallthrough]];
+		}
+		default:
+			break;
+		}
 	}
 
 	const FRotator YawRotation(0.f, GetControlRotation().Yaw, 0.f);
@@ -304,8 +352,33 @@ void AWarriorController::Dodge()
 {
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		if (Warrior->GetActionState() != EActionState::None)
+		//if (Warrior->GetActionState() != EActionState::None)
+		//	return;
+		switch (Warrior->GetActionState())
+		{
+
+		case EActionState::Roll:
+			[[fallthrough]];
+		case EActionState::BackStep:
+			[[fallthrough]];
+		case EActionState::Attack:
+			[[fallthrough]];
+		case EActionState::Hit:
 			return;
+		case EActionState::Block:
+		{
+			if (Warrior->GetWeaponState() == EWeaponState::TwoHand)
+			{
+				return;
+			}
+
+			[[fallthrough]];
+		case EActionState::None:
+			[[fallthrough]];
+		}
+		default:
+			break;
+		}
 
 		Warrior->Dodge(ControlDir);
 	}
@@ -420,48 +493,75 @@ void AWarriorController::TriggerDebugToggle()
 		UE_LOG(LogTemp, Log, TEXT("Debug Mode Active"));
 
 		subsystem->AddMappingContext(IMC_Debug, 10);
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드 활성화 (1, 2, 3 키 사용 가능)"));
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Debug On"));
 	}
 	else
 	{
 		UE_LOG(LogTemp, Log, TEXT("Debug Mode Not Active"));
 
 		subsystem->RemoveMappingContext(IMC_Debug);
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("디버그 모드 비활성화"));
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("Debug Off"));
 	}
 }
 
 void AWarriorController::TriggerDebugNum1()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드: 숫자 1"));
-
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->SetOverlayState(EOverlayState::None);
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("플레이어 오버레이 상태: 주먹"));
+		Warrior->SetWeaponState(EWeaponState::None);
 	}
 }
 
 void AWarriorController::TriggerDebugNum2()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드: 숫자 2"));
+	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(""));
 
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->SetOverlayState(EOverlayState::OneHand);
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("플레이어 오버레이 상태: 한손"));
+		Warrior->SetWeaponState(EWeaponState::OneHand);
 	}
 }
 
 void AWarriorController::TriggerDebugNum3()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드: 숫자 3"));
 
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->SetOverlayState(EOverlayState::TwoHand);
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("플레이어 오버레이 상태: 양손"));
+		Warrior->SetWeaponState(EWeaponState::OneHandWithShield);
 	}
+}
+
+void AWarriorController::TriggerDebugNum4()
+{
+
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->SetWeaponState(EWeaponState::TwoHand);
+	}
+}
+
+void AWarriorController::TriggerDebugNum5()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->SetWeaponState(EWeaponState::Katana);
+	}
+}
+
+void AWarriorController::TriggerDebugNum6()
+{
+}
+
+void AWarriorController::TriggerDebugNum7()
+{
+}
+
+void AWarriorController::TriggerDebugNum8()
+{
+}
+
+void AWarriorController::TriggerDebugNum9()
+{
 }
 
 

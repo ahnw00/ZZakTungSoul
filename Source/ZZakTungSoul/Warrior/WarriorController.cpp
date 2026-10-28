@@ -24,6 +24,9 @@
 #include <UI/MenuWidget.h>
 #include <UI/BonfireMenuWidget.h>
 
+// test
+#include <Engine/DamageEvents.h>
+
 AWarriorController::AWarriorController()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -518,7 +521,7 @@ void AWarriorController::TriggerDebugNum2()
 
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->SetWeaponState(EWeaponState::OneHand);
+		Warrior->SetWeaponState(EWeaponState::Katana);
 	}
 }
 
@@ -544,16 +547,24 @@ void AWarriorController::TriggerDebugNum5()
 {
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->SetWeaponState(EWeaponState::Katana);
+		Warrior->TakeDamaged(20.f, 10.f, 10.f, false, false);
 	}
 }
 
 void AWarriorController::TriggerDebugNum6()
 {
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->TakeDamageTest_1(20.f, 10.f, 10.f, false, false);
+	}
 }
 
 void AWarriorController::TriggerDebugNum7()
 {
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->TakeDamageTest_2(20.f, 10.f, 10.f, false, false);
+	}
 }
 
 void AWarriorController::TriggerDebugNum8()

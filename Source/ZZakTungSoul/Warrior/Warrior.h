@@ -78,8 +78,6 @@ private:
 	EActionState ActionState = EActionState::None;
 	EWeaponState WeaponState = EWeaponState::None;
 
-
-
 	int32 AttackCombo = 0;
 
 	class UWarriorAnimInstance* AnimInstance;
@@ -173,4 +171,10 @@ private:
 	// 상호작용할 대상 저장 변수
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AActor>> DetectedActors;
+
+public:
+	//virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	float TakeDamaged(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
+	float TakeDamageTest_1(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
+	float TakeDamageTest_2(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
 };

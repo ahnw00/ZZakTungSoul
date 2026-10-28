@@ -38,24 +38,30 @@ private:
 	void InitRollMontages();
 	void InitStepMontages();
 	void InitAttackMontages();
+	void InitStunMontages();
+	void InitHitMontages();
 
 private:
 	UPROPERTY()
-	//UAnimMontage* RollMontage;
-	TMap<EWeaponState, TObjectPtr<UAnimMontage>> RollMontage;
+	UAnimMontage* RollMontage;
+	//TMap<EWeaponState, TObjectPtr<UAnimMontage>> RollMontage;
 
 	UPROPERTY()
-	TMap<EWeaponState, TObjectPtr<UAnimMontage>> BackStepMontage;
-	//UAnimMontage* BackStepMontage;
+	//TMap<EWeaponState, TObjectPtr<UAnimMontage>> BackStepMontage;
+	UAnimMontage* BackStepMontage;
 
 	UPROPERTY()
-	TMap<EWeaponState, FAnimMontageArrayWrapper> AttackMontage;
+	//TMap<EWeaponState, FAnimMontageArrayWrapper> AttackMontage;
+	//UAnimMontage* AttackMontage;
+	TArray<UAnimMontage*> AttackMontage;
 
 	UPROPERTY()
-	TMap<EWeaponState, FAnimMontageArrayWrapper> HitMontage;
+	//TMap<EWeaponState, FAnimMontageArrayWrapper> HitMontage;
+	UAnimMontage* HitMontage;
 
 	UPROPERTY()
-	TMap<EWeaponState, FAnimMontageArrayWrapper> StunMontage;
+	//TMap<EWeaponState, FAnimMontageArrayWrapper> StunMontage;
+	UAnimMontage* StunMontage;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))

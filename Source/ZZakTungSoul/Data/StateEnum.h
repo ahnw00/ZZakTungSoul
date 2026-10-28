@@ -21,15 +21,16 @@ enum class EActionState : uint8
 	Roll,
 	BackStep,
 	Attack,
-	Hit,
 	Block,
+	Hit,
+	Stun,
 };
 
 UENUM(BlueprintType)
 enum class EWeaponState : uint8
 {
 	None,				// 아무런 무기를 안든 상태
-	OneHand,			// 한손 무기
+	//OneHand,			// 한손 무기
 	TwoHand,			// 두손 무기	
 	OneHandWithShield,	// 방패 든 채로 무기 들고 있는 상태
 	Katana,

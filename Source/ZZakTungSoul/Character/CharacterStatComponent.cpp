@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Character/CharacterStatComponent.h"
@@ -174,6 +174,8 @@ void UCharacterStatComponent::LoadCharacterStat()
 	MaxHP = GetStatInitialValue(HpKey);
 	MaxFP = GetStatInitialValue(FpKey);
 	MaxStamina = GetStatInitialValue(StaminaKey);
+	MaxStance = GetStatInitialValue(StanceKey);
+
 	// 2. 현재값(Current) 초기화
 	CurrentHP = MaxHP;
 	CurrentFP = MaxFP;
@@ -313,6 +315,35 @@ bool UCharacterStatComponent::UseStamina(float Amount)
 	}
 	
 	return true;
+}
+
+void UCharacterStatComponent::SetCurrentStance(float NewStance)
+{
+	CurrentStance = FMath::Clamp(NewStance, 0.f, MaxStance);
+	OnStanceChanged.Broadcast(CurrentStance, MaxStance);
+}
+
+bool UCharacterStatComponent::TakeStanceDamage(float Amount)
+{
+	if (Amount <= 0.f) 
+	{ 
+		return true;
+	}
+
+	if (CurrentStance < Amount)
+	{
+		SetCurrentStance(0.f);
+		return true;
+	}
+
+	SetCurrentStance(CurrentStamina - Amount);
+
+	if (UWorld* World = GetWorld())
+	{
+		LastStaminaUseTime = World->GetTimeSeconds();
+	}
+
+	return false;
 }
 
 //	// TODO: 다크 소울 형식 고려.

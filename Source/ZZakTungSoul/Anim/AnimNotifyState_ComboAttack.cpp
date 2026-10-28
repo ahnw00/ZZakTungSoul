@@ -20,7 +20,7 @@ void UAnimNotifyState_ComboWindow::NotifyBegin(USkeletalMeshComponent* MeshComp,
 			UE_LOG(
 				LogTemp,
 				Warning,
-				TEXT("ANS NotifyBegin()== Attack Window Open")
+				TEXT("Attack Window Open")
 			);
 
 			Player->SetComboWindow(true);
@@ -45,7 +45,7 @@ void UAnimNotifyState_ComboWindow::NotifyEnd(USkeletalMeshComponent * MeshComp,
 			UE_LOG(
 				LogTemp,
 				Warning,
-				TEXT("ANS NotifyEnd()== Attack Window Close")
+				TEXT("Attack Window Close")
 			);
 			
 			Player->SetComboWindow(false);

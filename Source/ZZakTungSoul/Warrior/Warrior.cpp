@@ -415,7 +415,6 @@ void AWarrior::Attack()
 		break;
 	}
 
-
 	//if (OverlayState != EWeaponState::None)
 	//	BlockEnd();
 
@@ -449,10 +448,6 @@ void AWarrior::FinishAttack()
 void AWarrior::SetComboWindow(bool bOpen)
 {
 	bCanComboInput = bOpen && ActionState == EActionState::Attack && !bComboQueued;
-	//UE_LOG(
-	//	LogTemp,
-	//	Warning,
-	//	TEXT("SetComboWindow()== CanComboInput: %d"), bCanComboInput);
 }
 
 void AWarrior::OnComboTransition()
@@ -470,7 +465,6 @@ void AWarrior::OnComboTransition()
 	bComboQueued = false;
 
 	AttackCombo++;
-	//UE_LOG(LogTemp, Warning, TEXT("===========================AttackCombo: %d"), AttackCombo);
 
 	if (!AnimInstance || !AnimInstance->PlayActionMontage())
 	{
@@ -736,3 +730,73 @@ void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
 	// 인벤토리에 추가
 	Inventory->AddItem(ItemData->GetItemData());
 }
+
+//float AWarrior::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+//{
+//	float ret = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+//
+//	if (!AnimInstance && !CharacterStatComponent)
+//	{
+//		CharacterStatComponent->ApplyDamage(Damage);
+//
+//		//SetActionState(EActionState::Hit);
+//		//SetActionState(EActionState::Stun);
+//		AnimInstance->PlayActionMontage();
+//	}
+//
+//	return ret;
+//}
+
+float AWarrior::TakeDamaged(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility)
+{
+	if (!AnimInstance && !CharacterStatComponent)
+	{
+		float Poise = CharacterStatComponent->GetPoise();
+		float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
+
+		if (Poise < PoiseDamage)
+		{
+			// 스텐스 낮추기.
+			bool StanceIsZero = CharacterStatComponent->TakeStanceDamage(StanceDamage);
+
+			if (StanceIsZero)
+			{
+				SetActionState(EActionState::Stun);
+			}
+			else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
+			{
+				CharacterStatComponent->SetCurrentStance(0);
+				SetActionState(EActionState::Stun);
+				AnimInstance->PlayActionMontage();
+			}
+			else
+			{
+				SetActionState(EActionState::Hit);
+				AnimInstance->PlayActionMontage();
+			}
+		}
+		else
+		{
+			// 맞았는데, 강인도가 높아서 액션 취소 안됨.
+		}
+
+		CharacterStatComponent->ApplyDamage(Damage);
+	}
+
+	return 0.0f;
+}
+
+float AWarrior::TakeDamageTest_1(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility)
+{
+	SetActionState(EActionState::Stun);
+	AnimInstance->PlayActionMontage();
+	return 0.0f;
+}
+
+float AWarrior::TakeDamageTest_2(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility)
+{
+	SetActionState(EActionState::Hit);
+	AnimInstance->PlayActionMontage();
+	return 0.0f;
+}
+

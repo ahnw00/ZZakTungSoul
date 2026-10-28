@@ -854,7 +854,7 @@ float AWarrior::TakeDamaged(float Damage, float PoiseDamage, float StanceDamage,
 			// 맞았는데, 강인도가 높아서 액션 취소 안됨.
 		}
 
-		CharacterStatComponent->ApplyDamage(Damage);
+		//CharacterStatComponent->ApplyDamage(Damage);
 	}
 
 	return 0.0f;

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include <ItemData/ItemDataAsset.h>
 #include "WarriorController.generated.h"
 
 // [전방 선언].
@@ -62,6 +63,11 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* IA_Load;
 
+	// 메뉴 창(ESC랑 나중에 한번에 하도록 묶어주는 함수 만들어야 함)
+	// 화톳불 메뉴에서 ESC를 눌러도 닫고 메뉴 창을 열고 닫을 때도 ESC를 눌러야 하니까
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_Menu;
+
 	//---------------------------------------------------------------
 	// 디버그 용
 	// Insert키를 누르면 디버그 상태.
@@ -117,6 +123,9 @@ private:
 	void Save();
 	void Load();
 
+	// [메뉴 창 토글 함수]
+	void ToggleMenuWindow();
+
 	//---------------------------------------------------------------
 	// 디버그 용 토글 함수 및 숫자들 트리거 함수.
 	// 
@@ -139,6 +148,8 @@ public:
 	void CloseBonfireMenu();
 	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
 	bool TeleportToBonfire(const FName& TargetBonfireID);
+
+	void EquipItem(UItemDataAsset* InItemData, EEquipmentSlot InSlot);
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

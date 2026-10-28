@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -6,19 +6,23 @@
 #include "Blueprint/UserWidget.h"
 #include "MenuButtonWidget.generated.h"
 
+// 메뉴 스위처에 이 순서로 위젯들이 자식으로 배치되어있어야해
 UENUM(BlueprintType)
 enum class EMenuType : uint8
 {
-	Equipment,
+	Menu,
 	Inventory,
 	Stat,
 	Settings,
+	RightHand,
+	LeftHand,
+	Head,
+	Chest,
+	Arms,
+	Legs,
 	UpperBelt,
 	LowerBelt
 };
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnMenuClickedDelegate, EMenuType, MenuWidgetType);
 
 /**
  * 
@@ -32,14 +36,22 @@ protected:
 	virtual void NativeConstruct() override;
 
 	UFUNCTION()
-	void HandleClicked();
+	void OnButtonClicked();
 
 public:
-	UPROPERTY(BlueprintAssignable)
-	FOnMenuClickedDelegate OnMenuClicked;
+	FORCEINLINE void SetParentWidget(UUserWidget* InParentWidget) 
+	{ 
+		ParentWidget = InParentWidget; 
+	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+public:
+	// 버튼마다 열 메뉴의 타입을 꼭 에디터에서 지정해줘야함!!
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widget")
 	EMenuType MenuType;
+
+private:
+	UPROPERTY(VisibleAnywhere, Category = "Widget")
+	UUserWidget* ParentWidget;
 
 protected:
 	UPROPERTY(meta = (BindWidget))

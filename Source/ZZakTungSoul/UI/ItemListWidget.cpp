@@ -149,6 +149,13 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
     }
 
     ItemButton->SetItemData(InItemData);
+    
+    // 벨트 슬롯에 끼는거면 벨트 UI 아이콘 세팅도 같이 해줘야해(함수 바인드해주기)
+    if (CurrentEquipSlot == EEquipmentSlot::UpperBelt || 
+        CurrentEquipSlot == EEquipmentSlot::LowerBelt)
+    {
+
+    }
 
     const int32 Row = Index / ContainerWidth;
     const int32 Column = Index % ContainerWidth;
@@ -299,6 +306,27 @@ void UItemListWidget::ShowInfo(UItemDataAsset* ItemData)
     // 정보로 표시할 변수들 이름값으로 가져와
     for (TFieldIterator<FProperty> PropIt(ItemData->GetClass()); PropIt; ++PropIt)
     {
+        // 프로퍼티가 텍스처인지 확인(이미지 넣어주는거)
+        if (FSoftObjectProperty* SoftObjectProperty = CastField<FSoftObjectProperty>(*PropIt))
+        {
+            if (SoftObjectProperty->PropertyClass->IsChildOf(UTexture2D::StaticClass()))
+            {
+                const FSoftObjectPtr SoftObject = SoftObjectProperty->GetPropertyValue_InContainer(ItemData);
+                if (SoftObject.IsPending())
+                {
+                    SoftObject.LoadSynchronous();
+                }
+                UTexture2D* Texture = Cast<UTexture2D>(SoftObject.Get());
+
+                UImage* Icon = Cast<UImage>(GetWidgetFromName(TEXT("Icon")));
+                if (Icon)
+                {
+                    Icon->SetBrushFromTexture(Texture);
+                    continue;
+                }
+            }
+        }
+
         // 속성의 이름 값
         const FName PropName(PropIt->GetName());
 

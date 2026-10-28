@@ -7,6 +7,8 @@
 #include <ItemData/ItemDataAsset.h>
 #include "EquipmentComponent.generated.h"
 
+DECLARE_TS_MULTICAST_DELEGATE_TwoParams(FOnEquipItem, FGuid, EEquipmentSlot);
+
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ZZAKTUNGSOUL_API UEquipmentComponent : public UActorComponent
@@ -24,6 +26,10 @@ public:
 
 	FORCEINLINE FGuid GetEquippedItem(EEquipmentSlot Slot) const { return EquippedItems[Slot]; }
 
+public:
+	FOnEquipItem OnEquipItem;
+
 private:
+	UPROPERTY()
 	TMap<EEquipmentSlot, FGuid> EquippedItems;
 };

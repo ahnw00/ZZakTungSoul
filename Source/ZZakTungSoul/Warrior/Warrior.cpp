@@ -33,7 +33,7 @@ AWarrior::AWarrior()
 
 	// Mesh setting
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> TempMesh
-	(TEXT("/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Cardboard.SK_CharM_Cardboard"));
+	(TEXT("/Game/Assets/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Cardboard.SK_CharM_Cardboard"));
 	if (TempMesh.Succeeded())
 	{
 		GetMesh()->SetSkeletalMesh(TempMesh.Object);
@@ -684,13 +684,14 @@ void AWarrior::EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot)
 		return;
 
 	// 아직 로드되지 않았다면
-	if (WeaponData->WeaponMesh.IsPending())
+	if (WeaponData->Mesh.IsPending())
 	{
 		// 동기 로딩
-		WeaponData->WeaponMesh.LoadSynchronous();
+		WeaponData->Mesh.LoadSynchronous();
 	}
 
-	Weapon->SetSkeletalMesh(WeaponData->WeaponMesh.Get());
+	Weapon->SetSkeletalMesh(WeaponData->Mesh.Get());
+	Weapon->SetRelativeRotation(WeaponData->EquipRotation);
 
 	// Todo: 무기 스탯 연동해주기
 }

@@ -52,4 +52,8 @@ protected:
 	TObjectPtr<UProgressBar> ProgressBar_FP;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UProgressBar> ProgressBar_Stamina;
+
+	// [BindWidget Belt]
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UBeltWidget> WBP_BeltWidget;
 };

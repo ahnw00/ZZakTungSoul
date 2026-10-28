@@ -10,6 +10,8 @@
 #include <Components/CanvasPanel.h>
 #include <Components/Image.h>
 
+#include <Warrior/WarriorController.h>
+
 #include <Engine/AssetManager.h>
 
 
@@ -110,12 +112,12 @@ void UItemListWidget::CreateFilterButtons()
         {
             continue;
         }
-        FilterButton->OnFilterSelected.BindUObject(this, &UItemListWidget::ListItemsByFilter);
+        FilterButton->OnFilterSelected.AddUObject(this, &UItemListWidget::ListItemsByFilter);
         FilterButton->OnFilterClicked.BindUObject(this, &UItemListWidget::ResetInfo);
         FilterButton->SetFilterType(Filter);
         FilterButton->SetFilterText(Enum->GetDisplayNameTextByValue(static_cast<int64>(Filter)));
 
-        FilterButton->OnFilterSelected.BindUObject(this, &UItemListWidget::SetEquipmentSlotByFilter);
+        FilterButton->OnFilterSelected.AddUObject(this, &UItemListWidget::SetEquipmentSlotByFilter);
         
         FilterContainer->AddChildToUniformGrid(FilterButton, 0, Column);
         ++Column;
@@ -365,5 +367,12 @@ void UItemListWidget::SetEquipmentSlotByFilter(EItemListFilter InFilter)
 void UItemListWidget::EquipItem(UItemDataAsset* ItemData)
 {
     //equipmentcomponent->EquipItem(ItemData->InstanceID, CurrentEquipSlot);
+    AWarriorController* WC = Cast<AWarriorController>(GetOwningPlayer());
+    if (!WC)
+    {
+        return;
+    }
+
+    WC->EquipItem(ItemData, CurrentEquipSlot);
     UE_LOG(LogTemp, Log, TEXT("Equip Item"));
 }

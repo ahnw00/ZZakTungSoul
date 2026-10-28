@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include <ItemData/ItemDataAsset.h>
 #include "WarriorController.generated.h"
 
 // [전방 선언].
@@ -142,6 +143,8 @@ public:
 	void OpenBonfireMenu();
 	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
 	void CloseBonfireMenu();
+
+	void EquipItem(UItemDataAsset* InItemData, EEquipmentSlot InSlot);
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

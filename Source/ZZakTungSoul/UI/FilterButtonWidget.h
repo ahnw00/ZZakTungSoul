@@ -7,7 +7,7 @@
 #include <UI/ItemListWidget.h>
 #include "FilterButtonWidget.generated.h"
 
-DECLARE_DELEGATE_OneParam(FOnFilterSelected, EItemListFilter /*FilterType*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnFilterSelected, EItemListFilter /*FilterType*/);
 DECLARE_DELEGATE(FOnFilterClicked);
 
 /**

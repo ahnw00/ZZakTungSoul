@@ -15,7 +15,7 @@ void UFilterButtonWidget::NativeConstruct()
 
 void UFilterButtonWidget::OnButtonClicked()
 {
-	OnFilterSelected.ExecuteIfBound(FilterType);
+	OnFilterSelected.Broadcast(FilterType);
 	OnFilterClicked.ExecuteIfBound();
 }
 

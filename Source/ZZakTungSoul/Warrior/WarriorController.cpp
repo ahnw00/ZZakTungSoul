@@ -24,6 +24,7 @@
 #include <UI/MenuWidget.h>
 #include <UI/BonfireMenuWidget.h>
 
+
 AWarriorController::AWarriorController()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -548,6 +549,18 @@ void AWarriorController::CloseBonfireMenu()
 		bShowMouseCursor = false;
 		SetInputMode(FInputModeGameOnly());
 	}
+}
+
+void AWarriorController::EquipItem(UItemDataAsset* InItemData, EEquipmentSlot InSlot)
+{
+	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
+	if (!Warrior)
+	{
+		return;
+	}
+
+	// Todo: 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
+	Warrior->EquipWeapon(InItemData, InSlot);
 }
 
 void AWarriorController::ToggleMenuWindow()

@@ -10,7 +10,7 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 	CurrentPawnSpeed = 0.f;
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> UnarmedRollMontageRef(
-		TEXT("/Assets/Game/RetargetAnimations/SwordAndShield/Warrior_SwordAndShield_BackStep_Montage.Warrior_SwordAndShield_BackStep_Montage")
+		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_BackStep_Montage.Warrior_SwordAndShield_BackStep_Montage")
 	);
 	if (UnarmedRollMontageRef.Succeeded())
 	{
@@ -18,7 +18,7 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> UnarmedBackStepMontageRef(
-		TEXT("/Assets/Game/RetargetAnimations/SwordAndShield/Warrior_SwordAndShield_Dodge_Montage.Warrior_SwordAndShield_Dodge_Montage")
+		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Dodge_Montage.Warrior_SwordAndShield_Dodge_Montage")
 	);
 	if (UnarmedBackStepMontageRef.Succeeded())
 	{
@@ -26,7 +26,7 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> UnarmedHitMontageMontageRef(
-		TEXT("/Assets/Game/RetargetAnimations/SwordAndShield/Warrior_SwordAndShield_Hit_1.Warrior_SwordAndShield_Hit_1")
+		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Hit_1.Warrior_SwordAndShield_Hit_1")
 	);
 	if (UnarmedHitMontageMontageRef.Succeeded())
 	{
@@ -34,7 +34,7 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> UnarmedStunMontageMontageRef(
-		TEXT("/Assets/Game/RetargetAnimations/SwordAndShield/Warrior_SwordAndShield_Stun.Warrior_SwordAndShield_Stun")
+		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Stun.Warrior_SwordAndShield_Stun")
 	);
 	if (UnarmedStunMontageMontageRef.Succeeded())
 	{
@@ -46,7 +46,7 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 	for (int32 i = 1; i <= NoneAttackMontageMaxCount; i++)
 	{
 		FString ObjectPath = FString::Printf(
-			TEXT("/Assets/Game/RetargetAnimations/UnArmed/Warrior_Unarmed_Attack_Montage_%d.Warrior_Unarmed_Attack_Montage_%d"), i, i);
+			TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_Unarmed_Attack_Montage_%d.Warrior_Unarmed_Attack_Montage_%d"), i, i);
 
 		ConstructorHelpers::FObjectFinder<UAnimMontage> UnarmedAttackMontageRef(*ObjectPath);
 

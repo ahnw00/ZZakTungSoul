@@ -2,6 +2,9 @@
 
 
 #include "UI/LevelUpWidget.h"
+
+#include <GamePlay/ZTSGameMode.h>
+
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Warrior/WarriorPlayerState.h"
@@ -150,12 +153,22 @@ void ULevelUpWidget::CommitLevelUp()
 	{
 		return;
 	}
-
-	// PlayerState에 Pending Points 넘겨 일괄 결제 승인 요청.
+	
 	AWarriorPlayerState* PS = GetWarriorPlayerState();
+	if (!PS)
+	{
+		return;
+	}
+	// PlayerState에 Pending Points 넘겨 일괄 결제 승인 요청.
 	if (PS && PS->ApplyLevelUp(PendingPoints))
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("[화톳불] 레벨업 완료!"));
+		// [자동 저장]
+		if (AZTSGameMode* GM = Cast<AZTSGameMode>(GetWorld()->GetAuthGameMode()))
+		{
+			GM->SaveGame();
+		}
+
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("[화톳불] 레벨업 완 + 자동저장."));
 		
 		// 결제 성공 후 최신 세이브데이터로 장바구니 재동기화 및 리셋.
 		InitializedLevelUp();

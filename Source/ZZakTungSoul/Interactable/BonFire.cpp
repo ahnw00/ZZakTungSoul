@@ -2,16 +2,25 @@
 
 
 #include "Interactable/Bonfire.h"
+#include <Engine/OverlapResult.h>
+
+#include <GamePlay/ZTSGameMode.h>
+
 #include <Components/StaticMeshComponent.h>
 #include <Components/SphereComponent.h>
 #include <Components/ArrowComponent.h>
+
+#include <Character/CharacterStatComponent.h>
+
 #include <Warrior/Warrior.h>
 #include <Warrior/WarriorController.h>
 #include <Warrior/WarriorPlayerState.h>
-#include <Enemy/EnemyBase.h>
-#include <Engine/OverlapResult.h>
+
 #include <Interface/CharacterStatInterface.h>
-#include <Character/CharacterStatComponent.h>
+
+#include <Enemy/EnemyBase.h>
+
+
 
 
 // Sets default values
@@ -171,8 +180,14 @@ void ABonfire::Interact(AActor* detectedActor)
 			PS->RegisterLitBonfire(BonfireID);
 		}
 
+		// [자동 저장]
+		if (AZTSGameMode* GM = Cast<AZTSGameMode>(GetWorld()->GetAuthGameMode()))
+		{
+			GM->SaveGame();
+		}
+
 		// 디버깅용 메세지.
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("[화톳불] 화톳불 불을 밝힘."));
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("[화톳불] 화톳불 불을 밝힘 + 자동저장."));
 		return;
 	
 	}
@@ -189,8 +204,14 @@ void ABonfire::Interact(AActor* detectedActor)
 			}
 		}
 
+		// [자동 저장]
+		if (AZTSGameMode* GM = Cast<AZTSGameMode>(GetWorld()->GetAuthGameMode()))
+		{
+			GM->SaveGame();
+		}
+
 		// 디버깅용 메세지.
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("[화톳불] 화톳불 휴식 + 스탯 업그레이드 창"));
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("[화톳불] 현재 활성화 상태 화톳불 + 자동저장."));
 
 		// 화톳불 메뉴 요청.
 		if (AWarriorController* PC = Interactor->GetController<AWarriorController>())

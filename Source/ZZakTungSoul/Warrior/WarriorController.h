@@ -86,6 +86,18 @@ private:
 	class UInputAction* IA_DebugNum2;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* IA_DebugNum3;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum4;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum5;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum6;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum7;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum8;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* IA_DebugNum9;
 
 private:
 	void Move(const struct FInputActionValue& InputValue);
@@ -134,6 +146,13 @@ private:
 	void TriggerDebugNum1();
 	void TriggerDebugNum2();
 	void TriggerDebugNum3();
+	void TriggerDebugNum4();
+	void TriggerDebugNum5();
+	void TriggerDebugNum6();
+	void TriggerDebugNum7();
+	void TriggerDebugNum8();
+	void TriggerDebugNum9();
+
 
 	// [UI]
 public:

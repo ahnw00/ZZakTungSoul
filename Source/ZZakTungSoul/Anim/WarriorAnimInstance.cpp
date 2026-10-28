@@ -9,85 +9,231 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 {
 	CurrentPawnSpeed = 0.f;
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> RollMontageRef(
-		TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_Dodge_Montage.Warrior_Dodge_Montage")
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> UnarmedRollMontageRef(
+		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_BackStep_Montage.Warrior_SwordAndShield_BackStep_Montage")
 	);
-	if (RollMontageRef.Succeeded())
+	if (UnarmedRollMontageRef.Succeeded())
 	{
-		RollMontage = RollMontageRef.Object;
+		RollMontage = UnarmedRollMontageRef.Object;
 	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> BackStepMontageRef(
-		TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_BackStep_Montage.Warrior_BackStep_Montage")
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> UnarmedBackStepMontageRef(
+		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Dodge_Montage.Warrior_SwordAndShield_Dodge_Montage")
 	);
-	if (BackStepMontageRef.Succeeded())
+	if (UnarmedBackStepMontageRef.Succeeded())
 	{
-		BackStepMontage = BackStepMontageRef.Object;
+		BackStepMontage = UnarmedBackStepMontageRef.Object;
 	}
 
-	//None						// 아무런 무기를 안든 상태
-	//Block,					// 무기를 든 채로 방패로 막기
-	//BlockWithoutWeapon,		// 무기를 안 든 채로 방패로 막기
-	//OneHand,					// 방패 든 채로 무기 들고 있는 상태		
-	//OneHandWithoutShield,		// 방패 안 든 채로 무기 들고 있는 상태	
-	//TwoHand					// 두 손으로 무기 들고 있는 상태
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> UnarmedHitMontageMontageRef(
+		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Hit_1.Warrior_SwordAndShield_Hit_1")
+	);
+	if (UnarmedHitMontageMontageRef.Succeeded())
+	{
+		HitMontage = UnarmedHitMontageMontageRef.Object;
+	}
 
-	//if (!HasAnyFlags(RF_ClassDefaultObject))
-	//{
-	//	return;
-	//}
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> UnarmedStunMontageMontageRef(
+		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Stun.Warrior_SwordAndShield_Stun")
+	);
+	if (UnarmedStunMontageMontageRef.Succeeded())
+	{
+		StunMontage = UnarmedStunMontageMontageRef.Object;
+	}
 
-	//None,	아무런 무기를 안든 상태
 	const int32 NoneAttackMontageMaxCount = 4;
-	AttackMontage.Add(EOverlayState::None);
 
 	for (int32 i = 1; i <= NoneAttackMontageMaxCount; i++)
 	{
 		FString ObjectPath = FString::Printf(
-			TEXT("/Game/RetargetAnimations/UnArmed/Warrior_Unarmed_Attack_Montage_%d.Warrior_Unarmed_Attack_Montage_%d"), i, i);
+			TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_Unarmed_Attack_Montage_%d.Warrior_Unarmed_Attack_Montage_%d"), i, i);
 
-		ConstructorHelpers::FObjectFinder<UAnimMontage> NoneAttackMontageRef(*ObjectPath);
+		ConstructorHelpers::FObjectFinder<UAnimMontage> UnarmedAttackMontageRef(*ObjectPath);
 
-		if (NoneAttackMontageRef.Succeeded())
+		if (UnarmedAttackMontageRef.Succeeded())
 		{
-			AttackMontage[EOverlayState::None].Entries.Add(NoneAttackMontageRef.Object);
+			AttackMontage.Add(UnarmedAttackMontageRef.Object);
 		}
 	}
 
-	//OneHand, 방패 든 채로 무기 들고 있는 상태
-	const int32 OneHandAttackMontageMaxCount = 4;
-	AttackMontage.Add(EOverlayState::OneHand);
+	//InitRollMontages();
+	//InitStepMontages();
+	//InitAttackMontages();
 
-	for (int32 i = 1; i <= OneHandAttackMontageMaxCount; i++)
-	{
-		FString ObjectPath = FString::Printf(
-			TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_SwordAndShield_Attack_Montage_%d.Warrior_SwordAndShield_Attack_Montage_%d"), i, i);
-		ConstructorHelpers::FObjectFinder<UAnimMontage> OneHandAttackMontageRef(*ObjectPath);
-
-		if (OneHandAttackMontageRef.Succeeded())
-		{
-			AttackMontage[EOverlayState::OneHand].Entries.Add(OneHandAttackMontageRef.Object);
-		}
-	}
-
-	//TwoHand, 두 손으로 무기 들고 있는 상태
-	const int32 TwoHandAttackMontageMaxCount = 4;
-	AttackMontage.Add(EOverlayState::TwoHand);
-
-	for (int32 i = 1; i <= TwoHandAttackMontageMaxCount; i++)
-	{
-		FString ObjectPath = FString::Printf(
-			TEXT("/Game/RetargetAnimations/TwoHanded/Warrior_TwoHand_Attack1_Montage_%d.Warrior_TwoHand_Attack1_Montage_%d"), i, i);
-		ConstructorHelpers::FObjectFinder<UAnimMontage> TwoHandAttackMontageRef(*ObjectPath);
-
-		if (TwoHandAttackMontageRef.Succeeded())
-		{
-			AttackMontage[EOverlayState::TwoHand].Entries.Add(TwoHandAttackMontageRef.Object);
-		}
-	}
 }
 
+void UWarriorAnimInstance::InitRollMontages()
+{
+	////None
+	////OneHand
+	////OneHandWithShield
+	//static ConstructorHelpers::FObjectFinder<UAnimMontage> NoneRollMontageRef(
+	//	TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_Dodge_Montage.Warrior_Dodge_Montage")
+	//);
 
+	//if (NoneRollMontageRef.Succeeded())
+	//{
+	//	RollMontage.Add(EWeaponState::None, NoneRollMontageRef.Object);
+	//	RollMontage.Add(EWeaponState::OneHand, NoneRollMontageRef.Object);
+	//	RollMontage.Add(EWeaponState::OneHandWithShield, NoneRollMontageRef.Object);
+	//}
+
+	////TwoHand
+	//static ConstructorHelpers::FObjectFinder<UAnimMontage> TwoHandRollMontageRef(
+	//	TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_Dodge_Montage.Warrior_Dodge_Montage")
+	//);
+
+	//if (TwoHandRollMontageRef.Succeeded())
+	//{
+	//	RollMontage.Add(EWeaponState::TwoHand, TwoHandRollMontageRef.Object);
+	//}
+
+	////Katana
+	//static ConstructorHelpers::FObjectFinder<UAnimMontage> KatanaRollMontageRef(
+	//	TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_Dodge_Montage.Warrior_Dodge_Montage")
+	//);
+
+	//if (KatanaRollMontageRef.Succeeded())
+	//{
+	//	RollMontage.Add(EWeaponState::Katana, KatanaRollMontageRef.Object);
+	//}
+
+}
+
+void UWarriorAnimInstance::InitStepMontages()
+{
+	////None
+	////OneHand
+	////OneHandWithShield
+	//static ConstructorHelpers::FObjectFinder<UAnimMontage> NoneBackStepMontageRef(
+	//	TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_BackStep_Montage.Warrior_BackStep_Montage")
+	//);
+
+	//if (NoneBackStepMontageRef.Succeeded())
+	//{
+	//	BackStepMontage.Add(EWeaponState::None, NoneBackStepMontageRef.Object);
+	//	BackStepMontage.Add(EWeaponState::OneHand, NoneBackStepMontageRef.Object);
+	//	BackStepMontage.Add(EWeaponState::OneHandWithShield, NoneBackStepMontageRef.Object);
+	//}
+
+	////TwoHand
+	//static ConstructorHelpers::FObjectFinder<UAnimMontage> TwoHandBackStepMontageRef(
+	//	TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_BackStep_Montage.Warrior_BackStep_Montage")
+	//);
+
+	//if (TwoHandBackStepMontageRef.Succeeded())
+	//{
+	//	BackStepMontage.Add(EWeaponState::TwoHand, TwoHandBackStepMontageRef.Object);
+	//}
+
+	////Katana
+	//static ConstructorHelpers::FObjectFinder<UAnimMontage> KatanaBackStepMontageRef(
+	//	TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_BackStep_Montage.Warrior_BackStep_Montage")
+	//);
+
+	//if (KatanaBackStepMontageRef.Succeeded())
+	//{
+	//	BackStepMontage.Add(EWeaponState::Katana, KatanaBackStepMontageRef.Object);
+	//}
+
+}
+
+void UWarriorAnimInstance::InitAttackMontages()
+{
+	////None
+	//const int32 NoneAttackMontageMaxCount = 4;
+	//AttackMontage.Add(EWeaponState::None);
+
+	//for (int32 i = 1; i <= NoneAttackMontageMaxCount; i++)
+	//{
+	//	FString ObjectPath = FString::Printf(
+	//		TEXT("/Game/RetargetAnimations/UnArmed/Warrior_Unarmed_Attack_Montage_%d.Warrior_Unarmed_Attack_Montage_%d"), i, i);
+
+	//	ConstructorHelpers::FObjectFinder<UAnimMontage> NoneAttackMontageRef(*ObjectPath);
+
+	//	if (NoneAttackMontageRef.Succeeded())
+	//	{
+	//		AttackMontage[EWeaponState::None].Entries.Add(NoneAttackMontageRef.Object);
+	//	}
+	//}
+
+	////OneHand
+	////OneHandWithShield
+	//const int32 OneHandAttackMontageMaxCount = 4;
+	//AttackMontage.Add(EWeaponState::OneHand);
+	//AttackMontage.Add(EWeaponState::OneHandWithShield);
+
+	//for (int32 i = 1; i <= OneHandAttackMontageMaxCount; i++)
+	//{
+	//	FString ObjectPath = FString::Printf(
+	//		TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_SwordAndShield_Attack_Montage_%d.Warrior_SwordAndShield_Attack_Montage_%d"), i, i);
+	//	ConstructorHelpers::FObjectFinder<UAnimMontage> OneHandAttackMontageRef(*ObjectPath);
+
+	//	if (OneHandAttackMontageRef.Succeeded())
+	//	{
+	//		AttackMontage[EWeaponState::OneHand].Entries.Add(OneHandAttackMontageRef.Object);
+	//		AttackMontage[EWeaponState::OneHandWithShield].Entries.Add(OneHandAttackMontageRef.Object);
+	//	}
+	//}
+
+	////OneHandWithShield
+	////const int32 OneHandWithShieldAttackMontageMaxCount = 4;
+	////AttackMontage.Add(EWeaponState::OneHandWithShield);
+
+	////for (int32 i = 1; i <= OneHandWithShieldAttackMontageMaxCount; i++)
+	////{
+	////	FString ObjectPath = FString::Printf(
+	////		TEXT("/Game/RetargetAnimations/SwordAndShield/Warrior_SwordAndShield_Attack_Montage_%d.Warrior_SwordAndShield_Attack_Montage_%d"), i, i);
+	////	ConstructorHelpers::FObjectFinder<UAnimMontage> OneHandWithShieldAttackMontageRef(*ObjectPath);
+
+	////	if (OneHandWithShieldAttackMontageRef.Succeeded())
+	////	{
+	////		AttackMontage[EWeaponState::OneHandWithShield].Entries.Add(OneHandWithShieldAttackMontageRef.Object);
+	////	}
+	////}
+
+	////TwoHand
+	//const int32 TwoHandAttackMontageMaxCount = 4;
+	//AttackMontage.Add(EWeaponState::TwoHand);
+
+	//for (int32 i = 1; i <= TwoHandAttackMontageMaxCount; i++)
+	//{
+	//	FString ObjectPath = FString::Printf(
+	//		TEXT("/Game/RetargetAnimations/TwoHanded/Warrior_TwoHand_Attack1_Montage_%d.Warrior_TwoHand_Attack1_Montage_%d"), i, i);
+	//	ConstructorHelpers::FObjectFinder<UAnimMontage> TwoHandAttackMontageRef(*ObjectPath);
+
+	//	if (TwoHandAttackMontageRef.Succeeded())
+	//	{
+	//		AttackMontage[EWeaponState::TwoHand].Entries.Add(TwoHandAttackMontageRef.Object);
+	//	}
+	//}
+
+	////Katana
+	//const int32 KatanaAttackMontageMaxCount = 4;
+	//AttackMontage.Add(EWeaponState::Katana);
+
+	//for (int32 i = 1; i <= TwoHandAttackMontageMaxCount; i++)
+	//{
+	//	FString ObjectPath = FString::Printf(
+	//		TEXT("/Game/RetargetAnimations/TwoHanded/Warrior_TwoHand_Attack1_Montage_%d.Warrior_TwoHand_Attack1_Montage_%d"), i, i);
+	//	ConstructorHelpers::FObjectFinder<UAnimMontage> TwoHandAttackMontageRef(*ObjectPath);
+
+	//	if (TwoHandAttackMontageRef.Succeeded())
+	//	{
+	//		AttackMontage[EWeaponState::TwoHand].Entries.Add(TwoHandAttackMontageRef.Object);
+	//	}
+	//}
+}
+
+void UWarriorAnimInstance::InitStunMontages()
+{
+
+}
+
+void UWarriorAnimInstance::InitHitMontages()
+{
+
+}
 
 void UWarriorAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
@@ -103,7 +249,7 @@ void UWarriorAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 		MoveState = Warrior->GetMoveState();
 		ActionState = Warrior->GetActionState();
-		OverlayState = Warrior->GetOverlayState();
+		WeaponState = Warrior->GetWeaponState();
 
 		if (!Pawn->GetVelocity().IsNearlyZero())
 		{
@@ -176,42 +322,82 @@ bool UWarriorAnimInstance::PlayActionMontage()
 	case EActionState::None:
 		break;
 	case EActionState::Roll:
-		Montage_Play(RollMontage);
+	{
+		//EWeaponState CurWeaponState = Warrior->GetWeaponState();
+
+		//const auto Montage = RollMontage.Find(CurWeaponState);
+
+		//if (!Montage)
+		//{
+		//	return false;
+		//}
+
+		//float Time = Montage_Play(*Montage);
+		//return Time > 0.f;
+		float Time = Montage_Play(RollMontage);
+		return Time > 0.f;
+	}
 		break;
 	case EActionState::BackStep:
-		Montage_Play(BackStepMontage);
+	{
+		//EWeaponState CurWeaponState = Warrior->GetWeaponState();
+
+		//const auto Montage = BackStepMontage.Find(CurWeaponState);
+
+		//if (!Montage)
+		//{
+		//	return false;
+		//}
+
+		//float Time = Montage_Play(*Montage);
+		//return Time > 0.f;
+		float Time = Montage_Play(BackStepMontage);
+		return Time > 0.f;
+	}
 		break;
 	case EActionState::Attack:
 	{
-		EOverlayState CurOverlayState = Warrior->GetOverlayState();
+		//EWeaponState CurWeaponState = Warrior->GetWeaponState();
+		//const int32 ComboIndex = Warrior->GetCombo();
+		//
+		//const auto Montages = AttackMontage.Find(CurWeaponState);
+
+		//if (!Montages)
+		//{
+		//	return false;
+		//}
+
+		//if (!Montages->Entries.IsValidIndex(ComboIndex))
+		//{
+		//	return false;
+		//}
+
+		//float Time = Montage_Play(Montages->Entries[ComboIndex]);
+		//return Time > 0.f;
+
 		const int32 ComboIndex = Warrior->GetCombo();
-		
-		const auto Montages = AttackMontage.Find(CurOverlayState);
 
-		if (!Montages)
+		if (!AttackMontage.IsValidIndex(ComboIndex))
 		{
 			return false;
 		}
 
-		if (!Montages->Entries.IsValidIndex(ComboIndex))
-		{
-			return false;
-		}
-
-		//UE_LOG(LogTemp, Warning, TEXT("PlayActionMontage()== Montage_Play ComboIndex: %d"), ComboIndex);
-		float Time = Montage_Play(Montages->Entries[ComboIndex]);
-
-		//UE_LOG(LogTemp, Warning, TEXT("PlayActionMontage()== Montage_Play Montages->Entries[ComboIndex]: %s"), *Montages->Entries[ComboIndex]->GetName());
-		//UE_LOG(LogTemp, Warning, TEXT("PlayActionMontage()== Montage_Play Time: %f"), Time);
-		//UE_LOG(LogTemp, Warning, TEXT("PlayActionMontage()== Montage_Play ComboIndex: %d"), ComboIndex);
-
+		float Time = Montage_Play(AttackMontage[ComboIndex]);
 		return Time > 0.f;
-		//Montage_Play(AttackMontage[CurOverlayState].Entries[ComboIndex]);
 	}
 		break;
 	case EActionState::Hit:
 		//Montage_Play();
+	{
+		float Time = Montage_Play(HitMontage);
+	}
 		break;
+	case EActionState::Stun:
+		//Montage_Play();
+	{
+		float Time = Montage_Play(StunMontage);
+	}
+	break;
 	default:
 		break;
 	}

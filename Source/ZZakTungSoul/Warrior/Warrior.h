@@ -76,9 +76,7 @@ private:
 
 	EMoveState MoveState = EMoveState::Idle;
 	EActionState ActionState = EActionState::None;
-	EOverlayState OverlayState = EOverlayState::None;
-
-
+	EWeaponState WeaponState = EWeaponState::None;
 
 	int32 AttackCombo = 0;
 
@@ -136,8 +134,8 @@ public:
 	FORCEINLINE EActionState GetActionState() const { return ActionState; }
 	void SetActionState(EActionState NewState);
 
-	FORCEINLINE EOverlayState GetOverlayState() const { return OverlayState; }
-	void SetOverlayState(EOverlayState NewState);
+	FORCEINLINE EWeaponState GetWeaponState() const { return WeaponState; }
+	void SetWeaponState(EWeaponState NewState);
 
 	// AnimMontage 관련
 	FORCEINLINE void EndAction() { ActionState = EActionState::None; }
@@ -186,4 +184,10 @@ private:
 	// 상호작용할 대상 저장 변수
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AActor>> DetectedActors;
+
+public:
+	//virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	float TakeDamaged(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
+	float TakeDamageTest_1(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
+	float TakeDamageTest_2(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
 };

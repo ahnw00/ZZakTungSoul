@@ -5,8 +5,10 @@
 #include <Enemy/EnemyAIController.h>
 #include <Enemy/Data/EnemyAIData.h>
 #include <Enemy/Components/AttackTraceComponent.h>
+#include <Enemy/Components/EnemyStatComponent.h>
 #include <Character/CharacterStatComponent.h>
-#include <Interface/CharacterStatInterface.h>
+#include <Interface/CombatDamageInterface.h>
+#include <Data/DamageInfo.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
 #include <Components/StaticMeshComponent.h>
@@ -32,6 +34,9 @@ AEnemyBase::AEnemyBase()
 
 	// Trace Component 설정
 	AttackTraceComponent = CreateDefaultSubobject<UAttackTraceComponent>(TEXT("AttackTraceComponent"));
+
+	// Stat Component 설정
+	EnemyStatComponet = CreateDefaultSubobject<UEnemyStatComponent>(TEXT("EnemyStatComponent"));
 }
 
 void AEnemyBase::BeginPlay()
@@ -51,10 +56,38 @@ void AEnemyBase::BeginPlay()
 	}
 }
 
+void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
+{
+	//Super::ReceiveDamage(DamageInfo, Hit);
+
+	if (nullptr == EnemyStatComponet)
+	{
+		return;
+	}
+
+	bool bInIsUnBlockable = DamageInfo.bUnblockable;
+	bool bInIsIgnoreInvincibility = DamageInfo.bIgnoreInvincibility;
+
+	// 무적 상태이고 무적무시공격이 아닐때 데미지 X
+	if (bIsInvincibility && !bInIsIgnoreInvincibility)
+	{
+		return;
+	}
+
+	// 방어 하는 중이고 가드불가공격이 아닐때 데미지 X
+	if (bIsGuard && !bInIsUnBlockable)
+	{
+		// 데미지 안주고 그로기 수치만 보내고 싶으면 DamageInfo에서 StanceDamage 수치만 보내면 됨
+		return;
+	}
+
+	EnemyStatComponet->ApplyDamage(DamageInfo);
+}
+
 void AEnemyBase::UpdateMovementSpeed()
 {
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
-	if (!Movement || !EnemyAIData)
+	if (!Movement || !EnemyStatComponet)
 	{
 		return;
 	}
@@ -66,15 +99,15 @@ void AEnemyBase::UpdateMovementSpeed()
 		break;
 
 	case EEnemyState::Patrol:
-		Movement->MaxWalkSpeed = EnemyAIData->PatrolMovementSpeed;
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
 		break;
 
 	case EEnemyState::Chase:
-		Movement->MaxWalkSpeed = EnemyAIData->ChaseMovementSpeed;
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetChaseSpeed();
 		break;
 
 	case EEnemyState::Strafe:
-		Movement->MaxWalkSpeed = EnemyAIData->StrafeMovementSpeed;
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetStrafeSpeed();
 		break;
 
 	case EEnemyState::Attack:
@@ -82,7 +115,7 @@ void AEnemyBase::UpdateMovementSpeed()
 		break;
 
 	case EEnemyState::Search:
-		Movement->MaxWalkSpeed = EnemyAIData->SearchMovementSpeed;
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
 		break;
 
 	case EEnemyState::Hit:
@@ -121,8 +154,8 @@ void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
 	//UE_LOG(LogTemp, Log, TEXT("Attack Hit: %s"), *HitActor->GetName());
 
 	// 인터페이스 형변환
-	ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(HitActor);
-	if (nullptr == StatOwner)
+	ICombatDamageInterface* HitTarget = Cast<ICombatDamageInterface>(HitActor);
+	if (nullptr == HitTarget)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Noooooooooo Hit!!!!!"));
 		return;
@@ -130,15 +163,24 @@ void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
 
 	UE_LOG(LogTemp, Log, TEXT("Attack Hit!!!!!@!@!@@@@@@!"));
 
-	// 스탯 컴포넌트 가져오기
-	TargetStatComp = StatOwner->GetCharacterStatComponent();
+	// 공격 데이터 설정
+	FDamageInfo DamageInfo;
+
+	// @@Todo: 나중에 수치 하드 코딩이 아니라 외부에서 데이터 설정해서 가져오도록 구현 EX: AnimNotify, AssetData 등등
+	DamageInfo.AttackDamage = 50.0f;
+
+	// 데미지 처리
+	HitTarget->ReceiveDamage(DamageInfo, Hit);
+
+	/* 스탯 컴포넌트 가져오기
+	TargetStatComp = HitTarget->GetCharacterStatComponent();
 	if (nullptr == TargetStatComp)
 	{
 		return;
 	}
 
 	// @Todo: 데미지 임시 처리
-	TargetStatComp->ApplyDamage(50.0f);
+	TargetStatComp->ApplyDamage(50.0f);		//*/
 }
 
 void AEnemyBase::InitializeWeapon()
@@ -237,6 +279,7 @@ void AEnemyBase::SetEnemyState(EEnemyState NewState)
 	}
 }
 
+// 현재 쓰이진 않지만 일단 남겨둠 -> SetStrafeMode Task에서 사용하지만 해당 Task도 사용은 안함
 void AEnemyBase::SetStrafeMode(bool bEnable)
 {
 	// 현재 Strafe 상태와 설정할 상태가 같으면 건너뜀

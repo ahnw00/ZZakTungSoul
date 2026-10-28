@@ -6,6 +6,7 @@
 #include <Data/StatDefine.h>
 #include <Data/LevelRequiredSouls.h>
 #include <Data/StatGrowth.h>
+#include <Data/DamageInfo.h>
 #include <SaveData/WarriorSaveData.h>
 
 
@@ -289,9 +290,17 @@ void UCharacterStatComponent::BroadcastAllStats()
 
 
 // [스탯 소모 함수]
-void UCharacterStatComponent::ApplyDamage(float InDamage)
+void UCharacterStatComponent::ApplyDamage(const struct FDamageInfo& DamageInfo)
 {
-	if (InDamage <= 0.f) { return; }
+	// Damage Info 받아오기
+	float InDamage = DamageInfo.AttackDamage;
+	float InPoiseDamage = DamageInfo.PoiseDamage;
+	float InStanceDamage = DamageInfo.StanceDamage;
+	if (InDamage < 0.0f || InPoiseDamage < 0.0f || InStanceDamage < 0.0f)
+	{
+		return;
+	}
+
 	SetCurrentHP(CurrentHP - InDamage);
 }
 bool UCharacterStatComponent::UseFP(float Amount)

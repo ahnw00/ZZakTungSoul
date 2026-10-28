@@ -158,6 +158,17 @@ public:
 	// [인벤토리]
 	FORCEINLINE UInventoryComponent* GetInventory() const { return Inventory; }
 
+protected:
+	// 데미지 처리 판정 -> 상위 클래스에서 인터페이스 사용함
+	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit) override;
+
+	// Trace에 걸린 액터 처리 함수
+	void HandleAttackTraceHit(const FHitResult& Hit);
+
+protected:
+	// 공격 판정을 위한 Trace Component
+	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
+	TObjectPtr<class UAttackTraceComponent> AttackTraceComponent;
 	
 
 	// 아이템 관련 함수

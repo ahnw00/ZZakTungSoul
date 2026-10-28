@@ -25,6 +25,10 @@
 #include "Engine/OverlapResult.h"
 #include "Interface/InteractableInterface.h"
 
+// Damage
+#include  <Data/DamageInfo.h>
+#include <Interface/CombatDamageInterface.h>
+#include <Enemy/Components/AttackTraceComponent.h>
 
 AWarrior::AWarrior()
 {
@@ -87,6 +91,9 @@ AWarrior::AWarrior()
 	// [인벤토리 컴포넌트]
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	
+	// Trace 무기 판정 -> 장착 가능한 무기 수만큼 컴포너트 추가하면 됩니다. EX) 쌍검 쓸거면 하나 더 추가...
+	// Trace Component 설정
+	AttackTraceComponent = CreateDefaultSubobject<UAttackTraceComponent>(TEXT("RightAttackTraceComponent"));
 
 	// Player가 소유하지 않으면 AI가 소유해
 	AIControllerClass = AWarriorAIController::StaticClass();
@@ -98,6 +105,15 @@ void AWarrior::BeginPlay()
 	Super::BeginPlay();
 
 	UpdateCharacterStats();
+
+	// Delegate 연결
+	if (AttackTraceComponent)
+	{
+		AttackTraceComponent->OnTraceHit.AddUObject(this, &AWarrior::HandleAttackTraceHit);
+
+		// Test
+		AttackTraceComponent->SetTraceMesh(Weapon);
+	}
 }
 
 void AWarrior::PostInitializeComponents()
@@ -672,6 +688,62 @@ const FWarriorSaveData* AWarrior::GetSaveData() const
 	return nullptr;
 }
 
+void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
+{
+	if (nullptr == CharacterStatComponent)
+	{
+		return;
+	}
+
+	bool bInIsUnBlockable = DamageInfo.bUnblockable;
+	bool bInIsIgnoreInvincibility = DamageInfo.bIgnoreInvincibility;
+
+	// 무적 상태이고 무적무시공격이 아닐때 데미지 X
+	if (bIsInvincibility && !bInIsIgnoreInvincibility)
+	{
+		return;
+	}
+
+	// 방어 하는 중이고 가드불가공격이 아닐때 데미지 X
+	if (bIsGuard && !bInIsUnBlockable)
+	{
+		// 데미지 안주고 그로기 수치만 보내고 싶으면 DamageInfo에서 StanceDamage 수치만 보내면 됨
+		return;
+	}
+
+	CharacterStatComponent->ApplyDamage(DamageInfo);
+}
+
+void AWarrior::HandleAttackTraceHit(const FHitResult& Hit)
+{
+	AActor* HitActor = Hit.GetActor();
+	if (!IsValid(HitActor))
+	{
+		return;
+	}
+
+	//UE_LOG(LogTemp, Log, TEXT("Attack Hit: %s"), *HitActor->GetName());
+
+	// 인터페이스 형변환
+	ICombatDamageInterface* HitTarget = Cast<ICombatDamageInterface>(HitActor);
+	if (nullptr == HitTarget)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Player Attack Noooooooooo Hit!!!!!"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Player Attack Hit!!!!!########!"));
+
+	// 공격 데이터 설정
+	FDamageInfo DamageInfo;
+
+	// @@Todo: 나중에 수치 하드 코딩이 아니라 외부에서 데이터 설정해서 가져오도록 구현 EX: AnimNotify, AssetData 등등
+	DamageInfo.AttackDamage = 50.0f;
+
+	// 데미지 처리
+	HitTarget->ReceiveDamage(DamageInfo, Hit);
+}
+
 void AWarrior::EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot)
 {
 	if (!InItem)
@@ -692,6 +764,7 @@ void AWarrior::EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot)
 
 	Weapon->SetSkeletalMesh(WeaponData->Mesh.Get());
 	Weapon->SetRelativeRotation(WeaponData->EquipRotation);
+	AttackTraceComponent->SetTraceMesh(Weapon);
 
 	// Todo: 무기 스탯 연동해주기
 }

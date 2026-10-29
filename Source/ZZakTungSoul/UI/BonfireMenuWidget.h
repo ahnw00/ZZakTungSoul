@@ -20,6 +20,10 @@ class ZZAKTUNGSOUL_API UBonfireMenuWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
+public:
+	// 열려 있는 서브 메뉴 있다면 닫고 true, 없으면 false.
+	bool CloseCurrentSubMenu();
+
 
 protected:
 

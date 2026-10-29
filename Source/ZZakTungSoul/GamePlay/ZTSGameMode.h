@@ -21,6 +21,12 @@ class ZZAKTUNGSOUL_API AZTSGameMode : public AGameMode
 public:
 	AZTSGameMode();
 
+	// 맵 열릴 때 LoadGame=1 수신.
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
+
+protected:
+	virtual void BeginPlay() override;
+
 protected:
 	// Getter(만약 없으면 생성해서 반환)
 	UWarriorPlayerSaveGame* GetSaveGame();
@@ -37,4 +43,7 @@ public:
 
 private:
 	const FString SlotName = TEXT("SaveSlot");
+
+	// 시작시 세이브 로드해야 하는 지 여부 플래그.
+	bool bShouldLoadOnStart = false;
 };

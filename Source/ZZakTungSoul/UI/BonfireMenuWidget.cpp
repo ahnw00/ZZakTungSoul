@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "UI/BonfireMenuWidget.h"
@@ -6,6 +6,7 @@
 #include "Warrior/WarriorController.h"
 #include <UI/LevelUpWidget.h>
 #include <UI/TeleportWidget.h>
+
 
 void UBonfireMenuWidget::NativeOnInitialized()
 {
@@ -90,4 +91,25 @@ void UBonfireMenuWidget::OnLeaveClicked()
 	{
 		PC->CloseBonfireMenu();
 	}
+}
+
+bool UBonfireMenuWidget::CloseCurrentSubMenu()
+{
+	// 레벨업 창이 열려 있는 경우.
+	if (LevelUpWidget && LevelUpWidget->GetVisibility() == ESlateVisibility::Visible)
+	{
+		ShowSubMenu(nullptr);
+		return true;
+	}
+
+
+	// 텔레포트 창이 열려 있는 경우.
+	if (TeleportWidget && TeleportWidget->GetVisibility() == ESlateVisibility::Visible)
+	{
+		ShowSubMenu(nullptr);
+		return true;
+	}
+
+	// 열려 있는 서브 메뉴 없음.
+	return false;
 }

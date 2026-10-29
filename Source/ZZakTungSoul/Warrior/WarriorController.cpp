@@ -148,6 +148,11 @@ void AWarriorController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// 인게임 진입 시 게임 전용 입력 모드 복구 및 마우스 커서 숨김.
+	FInputModeGameOnly InputMode;
+	SetInputMode(InputMode);
+	SetShowMouseCursor(false);
+
 	// LocalPlayerSubsystem 중에서도 EnhancedInput에 내가 생성한 IMC 매핑해주기
 	auto subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 	if (subsystem)
@@ -675,7 +680,18 @@ void AWarriorController::OpenBonfireMenu()
 	{
 		BonfireMenuWidget->AddToViewport(10);
 		bShowMouseCursor = true;
-		SetInputMode(FInputModeGameAndUI());
+
+		// 캐릭터 조작 매핑 일시 해제.
+		if (auto Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		{
+			Subsystem->RemoveMappingContext(IMC_Warrior);
+		}
+
+		// UI 및 단축키 조작 모드.
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(BonfireMenuWidget->TakeWidget());
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
 	}
 }
 
@@ -683,8 +699,23 @@ void AWarriorController::CloseBonfireMenu()
 {
 	if (BonfireMenuWidget && BonfireMenuWidget->IsInViewport())
 	{
+		// 서브메뉴 열려 있다면 서브메뉴만 닫기.
+		if (BonfireMenuWidget->CloseCurrentSubMenu())
+		{
+			return;
+		}
+
+		// 화톳불 메인 메뉴 상태일 때 전체 화톳불 메뉴 닫기.
 		BonfireMenuWidget->RemoveFromParent();
 		bShowMouseCursor = false;
+		
+		// 캐릭터 조작 매핑 활성화.
+		if (auto Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(IMC_Warrior, 0);
+		}
+		
+		// 게임 전용 조작 모드 복구.
 		SetInputMode(FInputModeGameOnly());
 	}
 }
@@ -793,7 +824,7 @@ bool AWarriorController::TeleportToBonfire(const FName& TargetBonfireID)
 	// 열려 있던 화톳불 메뉴 닫기 및 게임 입력 복구.
 	CloseBonfireMenu();
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, FString::Printf(TEXT("[Teleport] %s (으)로 이동 완료"), *TargetBonfire->GetBonfireDisplayName().ToString()));
+	UE_LOG(LogTemp, Log, TEXT("[Teleport] %s (으)로 이동 완료"), *TargetBonfire->GetBonfireID().ToString());
 
 	return true;
 

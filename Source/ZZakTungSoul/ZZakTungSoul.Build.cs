@@ -20,7 +20,8 @@ public class ZZakTungSoul : ModuleRules
 			"AIModule",
 			"NavigationSystem",
 			"GameplayTasks",
-			"GameplayTags"
+			"GameplayTags",
+			"AssetRegistry"
 		});
 
 		PrivateDependencyModuleNames.AddRange(

@@ -3,34 +3,42 @@
 
 #include "UI/BeltWidget.h"
 #include <ItemData/ItemDataAsset.h>
+#include <Component/EquipmentComponent.h>
+#include <Component/InventoryComponent.h>
 #include <Components/Image.h>
 
 
-void UBeltWidget::OnEquipmentChanged(UItemDataAsset* InItemData, EEquipmentSlot InSlot)
+void UBeltWidget::OnEquipmentChanged()
 {
-	if (InSlot != EEquipmentSlot::UpperBelt && 
-		InSlot != EEquipmentSlot::LowerBelt)
-	{
-		return;
-	}
+	FGuid InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::UpperBelt);
+    UpperBeltImage->SetBrushFromTexture(GetTexture(InstanceID));
 
-	if (!InItemData)
-	{
-		return;
-	}
+    InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::LowerBelt);
+    LowerBeltImage->SetBrushFromTexture(GetTexture(InstanceID));
+}
 
-	// Icon을 TSoftObjectPtr로 가지고 있어서 로드 안되어있다면 로드
-	if (InItemData->Icon.IsPending())
-	{
-		InItemData->Icon.LoadSynchronous();
-	}
+UTexture2D* UBeltWidget::GetTexture(FGuid InstanceID)
+{
+    if (InstanceID == FGuid())
+    {
+        return nullptr;
+    }
 
-	if (InSlot == EEquipmentSlot::UpperBelt)
-	{
-		UpperBeltImage->SetBrushFromTexture(InItemData->Icon.Get());
-	}
-	else if (InSlot == EEquipmentSlot::LowerBelt)
-	{
-		LowerBeltImage->SetBrushFromTexture(InItemData->Icon.Get());
-	}
+    const FInventoryItem* Item = Inventory->FindItemByInstanceID(InstanceID);
+
+    // FGuid로 아이템 데이터 가져오기
+    UItemDataAsset* ItemData = Inventory->GetItemData(*Item);
+    if (!ItemData)
+    {
+        return nullptr;
+    }
+
+    // 버튼에 아이템 아이콘 이미지 넣어주기
+    auto ItemIcon = ItemData->Icon;
+    if (ItemIcon.IsPending())
+    {
+        ItemIcon.LoadSynchronous();
+    }
+
+    return ItemIcon.Get();
 }

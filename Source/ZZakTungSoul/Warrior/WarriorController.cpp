@@ -178,6 +178,12 @@ void AWarriorController::BeginPlay()
 		if (PlayerHUDWidget)
 		{
 			PlayerHUDWidget->AddToViewport();
+
+			if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+			{
+				PlayerHUDWidget->GetBeltWidget()->SetEquipment(Warrior->GetEquipment());
+				PlayerHUDWidget->GetBeltWidget()->SetInventory(Warrior->GetInventory());
+			}
 		}
 	}
 	if (MenuWidgetClass)
@@ -736,15 +742,6 @@ void AWarriorController::EquipItem(UItemDataAsset* InItemData, EEquipmentSlot In
 
 	// Todo: 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
 	Warrior->EquipWeapon(InItemData, InSlot);
-	SetBeltHUD(InItemData, InSlot);
-}
-
-void AWarriorController::SetBeltHUD(UItemDataAsset* InItemData, EEquipmentSlot InSlot)
-{
-	if (!PlayerHUDWidget)
-	{
-		return;
-	}
 
 	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
 	if (!BeltWidget)
@@ -752,7 +749,7 @@ void AWarriorController::SetBeltHUD(UItemDataAsset* InItemData, EEquipmentSlot I
 		return;
 	}
 
-	BeltWidget->OnEquipmentChanged(InItemData, InSlot);
+	BeltWidget->OnEquipmentChanged();
 }
 
 void AWarriorController::ToggleMenuWindow()

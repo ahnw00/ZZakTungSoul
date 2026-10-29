@@ -21,7 +21,20 @@ class ZZAKTUNGSOUL_API UBeltWidget : public UUserWidget
 public:
 	//void OnEquipmentChanged(EEquipmentSlot InSlot, UItemDataAsset* InItemData);
 	
-	void OnEquipmentChanged(UItemDataAsset* InItemData, EEquipmentSlot InSlot);
+	void OnEquipmentChanged();
+
+	FORCEINLINE void SetEquipment(class UEquipmentComponent* InEquipment)
+	{
+		Equipment = InEquipment;
+	}
+
+	FORCEINLINE void SetInventory(class UInventoryComponent* InInventory)
+	{
+		Inventory = InInventory;
+	}
+
+private:
+	UTexture2D* GetTexture(FGuid InstanceID);
 
 private:
 	UPROPERTY(meta = (Bindwidget))
@@ -29,4 +42,10 @@ private:
 
 	UPROPERTY(meta = (Bindwidget))
 	TObjectPtr<class UImage> LowerBeltImage;
+
+	UPROPERTY()
+	TObjectPtr<UEquipmentComponent> Equipment;
+
+	UPROPERTY()
+	TObjectPtr<UInventoryComponent> Inventory;
 };

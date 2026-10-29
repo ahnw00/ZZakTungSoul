@@ -26,6 +26,17 @@ void UEquipmentComponent::EquipItem(FGuid InstanceID, EEquipmentSlot Slot)
         }
     }
 
+    // 다른 슬롯에 장착되어있는 아이템을 장착하려고 하면
+    // 그 전의 슬롯에서 해제해줘
+    for (TPair<EEquipmentSlot, FGuid>& Pair : EquippedItems)
+    {
+        if (Pair.Key != Slot && Pair.Value == InstanceID)
+        {
+            Pair.Value.Invalidate();
+            break;
+        }
+    }
+
     EquippedItems.Add(Slot, InstanceID);
 
     OnEquipItem.Broadcast(InstanceID, Slot);

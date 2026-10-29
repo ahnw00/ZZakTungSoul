@@ -172,8 +172,6 @@ public:
 
 	void EquipItem(UItemDataAsset* InItemData, EEquipmentSlot InSlot);
 
-private:
-	void SetBeltHUD(UItemDataAsset* InItemData, EEquipmentSlot InSlot);
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

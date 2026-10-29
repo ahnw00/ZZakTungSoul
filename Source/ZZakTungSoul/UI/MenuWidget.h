@@ -21,7 +21,7 @@ class ZZAKTUNGSOUL_API UMenuWidget : public UUserWidget
 	GENERATED_BODY()
 
 protected:
-	virtual void NativeConstruct() override;
+	virtual void NativeOnInitialized() override;
 
 public:
 	UFUNCTION()

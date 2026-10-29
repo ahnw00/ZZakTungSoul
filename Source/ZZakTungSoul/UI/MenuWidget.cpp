@@ -7,9 +7,12 @@
 #include <Component/InventoryComponent.h>
 
 
-void UMenuWidget::NativeConstruct()
+void UMenuWidget::NativeOnInitialized()
 {
-	Super::NativeConstruct(); 
+	Super::NativeOnInitialized();
+
+    UE_LOG(LogTemp, Warning, TEXT("MenuWidget: %p"), this);
+    UE_LOG(LogTemp, Warning, TEXT("Before Add: %d"), Buttons.Num());
 
     // 제일 윗줄 버튼들
     Buttons.Add(InventoryButton);
@@ -26,6 +29,8 @@ void UMenuWidget::NativeConstruct()
     // 네번째 줄 버튼들
     Buttons.Add(UpperBeltButton);
     Buttons.Add(LowerBeltButton);
+
+    UE_LOG(LogTemp, Warning, TEXT("After Add: %d"), Buttons.Num());
 
     for (const auto Button : Buttons)
     {
@@ -167,6 +172,11 @@ void UMenuWidget::ChangeButtonsImage()
     {
         EMenuType ButtonType = Button->MenuType;
         FGuid InstanceID;
+
+        if (!Equipment)
+        {
+            return;
+        }
 
         switch (ButtonType)
         {

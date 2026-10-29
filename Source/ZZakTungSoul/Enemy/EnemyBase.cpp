@@ -23,6 +23,11 @@ AEnemyBase::AEnemyBase()
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
+	// RVO 설정
+	GetCharacterMovement()->bUseRVOAvoidance = true;
+	GetCharacterMovement()->AvoidanceConsiderationRadius = 100.0f;
+	GetCharacterMovement()->AvoidanceWeight = 0.3f;
+
 	// 초기 이동 속도 설정
 	//GetCharacterMovement()->MaxWalkSpeed = PatrolSpeed;
 
@@ -111,7 +116,7 @@ void AEnemyBase::UpdateMovementSpeed()
 		break;
 
 	case EEnemyState::Attack:
-		Movement->MaxWalkSpeed = 0.0f;
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
 		break;
 
 	case EEnemyState::Search:

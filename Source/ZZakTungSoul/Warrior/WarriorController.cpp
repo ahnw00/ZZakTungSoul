@@ -23,6 +23,11 @@
 #include <UI/StatusWindowWidget.h>
 #include <UI/MenuWidget.h>
 #include <UI/BonfireMenuWidget.h>
+<<<<<<< Updated upstream
+=======
+#include <Interactable/BonFire.h>
+#include <UI/BeltWidget.h>
+>>>>>>> Stashed changes
 
 
 AWarriorController::AWarriorController()
@@ -216,6 +221,29 @@ void AWarriorController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &AWarriorController::Interact);
 	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
 	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
+<<<<<<< Updated upstream
+=======
+	// [디버그] 소울 획득 키.
+	InputComponent->BindKey(EKeys::F1, IE_Pressed, this, &AWarriorController::DebugAddSouls);
+}
+
+void AWarriorController::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if(!PlayerHUDWidget)
+}
+
+void AWarriorController::DebugAddSouls()
+{
+#if !UE_BUILD_SHIPPING
+	if (AWarriorPlayerState* PS = GetPlayerState<AWarriorPlayerState>())
+	{
+		PS->AddSouls(5000);
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[디버그] 소울 5,000 지급."));
+	}
+#endif
+>>>>>>> Stashed changes
 }
 
 void AWarriorController::Move(const FInputActionValue& InputValue)
@@ -561,6 +589,28 @@ void AWarriorController::EquipItem(UItemDataAsset* InItemData, EEquipmentSlot In
 
 	// Todo: 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
 	Warrior->EquipWeapon(InItemData, InSlot);
+}
+
+void AWarriorController::SetupEquipEvents()
+{
+	if (!PlayerHUDWidget)
+	{
+		return;
+	}
+
+	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
+	if (!BeltWidget)
+	{
+		return;
+	}
+
+	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
+	if (!Warrior)
+	{
+		return;
+	}
+
+
 }
 
 void AWarriorController::ToggleMenuWindow()

@@ -3,19 +3,24 @@
 
 #include "Warrior/WarriorController.h"
 #include "Warrior.h"
+#include <Warrior/WarriorPlayerState.h>
+
+
+#include <EngineUtils.h>
+#include <Components/CapsuleComponent.h>
 
 #include <InputMappingContext.h>
 #include <InputAction.h>
-
-#include <EnhancedInputSubsystems.h>
 #include <EnhancedInputComponent.h>
+#include <EnhancedInputSubsystems.h>
+#include <Blueprint/UserWidget.h>
+
 
 #include <TimerManager.h>
 #include <Engine/OverlapResult.h>
 
 #include <GamePlay/ZTSGameMode.h>
 
-#include <Blueprint/UserWidget.h>
 
 // [UI]
 #include <UI/PlayerHUDWidget.h>
@@ -23,12 +28,12 @@
 #include <UI/StatusWindowWidget.h>
 #include <UI/MenuWidget.h>
 #include <UI/BonfireMenuWidget.h>
-<<<<<<< Updated upstream
-=======
 #include <Interactable/BonFire.h>
 #include <UI/BeltWidget.h>
->>>>>>> Stashed changes
 
+
+// test
+#include <Engine/DamageEvents.h>
 
 AWarriorController::AWarriorController()
 {
@@ -87,7 +92,23 @@ AWarriorController::AWarriorController()
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum3(TEXT("/Game/Input/Debug/IA_Debug_Num3.IA_Debug_Num3"));
 	if (ia_debugNum3.Succeeded()) IA_DebugNum3 = ia_debugNum3.Object;
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum4(TEXT("/Game/Input/Debug/IA_Debug_Num4.IA_Debug_Num4"));
+	if (ia_debugNum4.Succeeded()) IA_DebugNum4 = ia_debugNum4.Object;
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum5(TEXT("/Game/Input/Debug/IA_Debug_Num5.IA_Debug_Num5"));
+	if (ia_debugNum5.Succeeded()) IA_DebugNum5 = ia_debugNum5.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum6(TEXT("/Game/Input/Debug/IA_Debug_Num6.IA_Debug_Num6"));
+	if (ia_debugNum6.Succeeded()) IA_DebugNum6 = ia_debugNum6.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum7(TEXT("/Game/Input/Debug/IA_Debug_Num7.IA_Debug_Num7"));
+	if (ia_debugNum7.Succeeded()) IA_DebugNum7 = ia_debugNum7.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum8(TEXT("/Game/Input/Debug/IA_Debug_Num8.IA_Debug_Num8"));
+	if (ia_debugNum8.Succeeded()) IA_DebugNum8 = ia_debugNum8.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_debugNum9(TEXT("/Game/Input/Debug/IA_Debug_Num9.IA_Debug_Num9"));
+	if (ia_debugNum9.Succeeded()) IA_DebugNum9 = ia_debugNum9.Object;
 
 	// [UI]
 	// [플레이어 HUD]
@@ -207,6 +228,12 @@ void AWarriorController::SetupInputComponent()
 	EnhancedInput->BindAction(IA_DebugNum1, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum1);
 	EnhancedInput->BindAction(IA_DebugNum2, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum2);
 	EnhancedInput->BindAction(IA_DebugNum3, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum3);
+	EnhancedInput->BindAction(IA_DebugNum4, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum4);
+	EnhancedInput->BindAction(IA_DebugNum5, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum5);
+	EnhancedInput->BindAction(IA_DebugNum6, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum6);
+	EnhancedInput->BindAction(IA_DebugNum7, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum7);
+	EnhancedInput->BindAction(IA_DebugNum8, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum8);
+	EnhancedInput->BindAction(IA_DebugNum9, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum9);
 	//---------------------------------------------------------------
 
 	// 세이브/로드 바인드
@@ -221,8 +248,6 @@ void AWarriorController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &AWarriorController::Interact);
 	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
 	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
-<<<<<<< Updated upstream
-=======
 	// [디버그] 소울 획득 키.
 	InputComponent->BindKey(EKeys::F1, IE_Pressed, this, &AWarriorController::DebugAddSouls);
 }
@@ -243,7 +268,6 @@ void AWarriorController::DebugAddSouls()
 		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[디버그] 소울 5,000 지급."));
 	}
 #endif
->>>>>>> Stashed changes
 }
 
 void AWarriorController::Move(const FInputActionValue& InputValue)
@@ -262,8 +286,34 @@ void AWarriorController::Move(const FInputActionValue& InputValue)
 	if (AWarrior* Warrior = Cast<AWarrior>(ControlledPawn))
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("State : %d"), (int)Warrior->GetActionState());
-		if (Warrior->GetActionState() != EActionState::None)
+		//if (Warrior->GetActionState() != EActionState::None)
+		//	return;
+
+		switch (Warrior->GetActionState())
+		{
+
+		case EActionState::Roll:
+			[[fallthrough]];
+		case EActionState::BackStep:
+			[[fallthrough]];
+		case EActionState::Attack:
+			[[fallthrough]];
+		case EActionState::Hit:
 			return;
+		case EActionState::Block:
+		{
+			if (Warrior->GetWeaponState() == EWeaponState::TwoHand)
+			{
+				return;
+			}
+
+			[[fallthrough]];
+		case EActionState::None:
+			[[fallthrough]];
+		}
+		default:
+			break;
+		}
 	}
 
 	const FRotator YawRotation(0.f, GetControlRotation().Yaw, 0.f);
@@ -341,8 +391,33 @@ void AWarriorController::Dodge()
 {
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		if (Warrior->GetActionState() != EActionState::None)
+		//if (Warrior->GetActionState() != EActionState::None)
+		//	return;
+		switch (Warrior->GetActionState())
+		{
+
+		case EActionState::Roll:
+			[[fallthrough]];
+		case EActionState::BackStep:
+			[[fallthrough]];
+		case EActionState::Attack:
+			[[fallthrough]];
+		case EActionState::Hit:
 			return;
+		case EActionState::Block:
+		{
+			if (Warrior->GetWeaponState() == EWeaponState::TwoHand)
+			{
+				return;
+			}
+
+			[[fallthrough]];
+		case EActionState::None:
+			[[fallthrough]];
+		}
+		default:
+			break;
+		}
 
 		Warrior->Dodge(ControlDir);
 	}
@@ -457,48 +532,83 @@ void AWarriorController::TriggerDebugToggle()
 		UE_LOG(LogTemp, Log, TEXT("Debug Mode Active"));
 
 		subsystem->AddMappingContext(IMC_Debug, 10);
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드 활성화 (1, 2, 3 키 사용 가능)"));
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Debug On"));
 	}
 	else
 	{
 		UE_LOG(LogTemp, Log, TEXT("Debug Mode Not Active"));
 
 		subsystem->RemoveMappingContext(IMC_Debug);
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("디버그 모드 비활성화"));
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("Debug Off"));
 	}
 }
 
 void AWarriorController::TriggerDebugNum1()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드: 숫자 1"));
-
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->SetOverlayState(EOverlayState::None);
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("플레이어 오버레이 상태: 주먹"));
+		Warrior->SetWeaponState(EWeaponState::None);
 	}
 }
 
 void AWarriorController::TriggerDebugNum2()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드: 숫자 2"));
+	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(""));
 
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->SetOverlayState(EOverlayState::OneHand);
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("플레이어 오버레이 상태: 한손"));
+		Warrior->SetWeaponState(EWeaponState::Katana);
 	}
 }
 
 void AWarriorController::TriggerDebugNum3()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("디버그 모드: 숫자 3"));
 
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->SetOverlayState(EOverlayState::TwoHand);
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("플레이어 오버레이 상태: 양손"));
+		Warrior->SetWeaponState(EWeaponState::OneHandWithShield);
 	}
+}
+
+void AWarriorController::TriggerDebugNum4()
+{
+
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->SetWeaponState(EWeaponState::TwoHand);
+	}
+}
+
+void AWarriorController::TriggerDebugNum5()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->TakeDamaged(20.f, 10.f, 10.f, false, false);
+	}
+}
+
+void AWarriorController::TriggerDebugNum6()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->TakeDamageTest_1(20.f, 10.f, 10.f, false, false);
+	}
+}
+
+void AWarriorController::TriggerDebugNum7()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->TakeDamageTest_2(20.f, 10.f, 10.f, false, false);
+	}
+}
+
+void AWarriorController::TriggerDebugNum8()
+{
+}
+
+void AWarriorController::TriggerDebugNum9()
+{
 }
 
 
@@ -610,7 +720,7 @@ void AWarriorController::SetupEquipEvents()
 		return;
 	}
 
-
+	Warrior->e
 }
 
 void AWarriorController::ToggleMenuWindow()
@@ -640,4 +750,73 @@ void AWarriorController::ToggleMenuWindow()
 		bShowMouseCursor = true;
 		SetInputMode(FInputModeGameAndUI());
 	}
+}
+
+
+
+bool AWarriorController::TeleportToBonfire(const FName& TargetBonfireID)
+{
+	if (TargetBonfireID.IsNone())
+	{
+		return false;
+	}
+
+	// 활성화 화톳불 확인.
+	AWarriorPlayerState* PS = GetPlayerState<AWarriorPlayerState>();
+	if (!PS || !PS->IsBonfireLit(TargetBonfireID))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Teleport] 점화되지 않은 화톳불: %s"), *TargetBonfireID.ToString());
+		return false;
+	}
+
+	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
+	if (!Warrior)
+	{
+		return false;
+	}
+
+
+	// ID 가진 화톳불 검색.
+	ABonfire* TargetBonfire = nullptr;
+	for (TActorIterator<ABonfire> It(GetWorld()); It; ++It)
+	{
+		if (It->GetBonfireID() == TargetBonfireID)
+		{
+			TargetBonfire = *It;
+			break;
+		}
+	}
+	if (!TargetBonfire)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Teleport] 대상 화톳불을 찾을 수 없음: %s"), *TargetBonfireID.ToString());
+		return false;
+	}
+
+	// 화톳불 착지점 획득 및 발바닥 착지 높이 보정.
+	const FTransform TargetTransform = TargetBonfire->GetTeleportTransform();
+	FVector TargetLocation = TargetTransform.GetLocation();
+	const FRotator TargetRotation = TargetTransform.GetRotation().Rotator();
+
+	if (UCapsuleComponent* Capsule = Warrior->GetCapsuleComponent())
+	{
+		TargetLocation.Z += Capsule->GetScaledCapsuleHalfHeight();
+	}
+
+	// 캐릭터 위치 및 회전 순간이동(실패시 중단).
+	if (!Warrior->TeleportTo(TargetLocation, TargetRotation))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Teleport] 순간이동 실패(목적지 충돌)."));
+		return false;
+	}
+
+	// 컨트롤러 카메라 시선 정렬.
+	SetControlRotation(TargetRotation);
+
+	// 열려 있던 화톳불 메뉴 닫기 및 게임 입력 복구.
+	CloseBonfireMenu();
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, FString::Printf(TEXT("[Teleport] %s (으)로 이동 완료"), *TargetBonfire->GetBonfireDisplayName().ToString()));
+
+	return true;
+
 }

@@ -20,7 +20,9 @@ public:
 
 	// Getter/Setter
 	FORCEINLINE const FWarriorSaveData& GetSaveData() const { return SaveData; }
-	FORCEINLINE void LoadSaveDataFrom(const FWarriorSaveData& NewSaveData) { SaveData = NewSaveData; }
+	
+	
+	void LoadSaveDataFrom(const FWarriorSaveData& NewSaveData);
 
 	UFUNCTION(BlueprintCallable, Category = "PlayerState|Stat")
 	bool UpgradeStat(const FName& StatName, int32 RequiredSouls);
@@ -40,6 +42,8 @@ public:
 	bool IsBonfireLit(const FName& BonfireID) const;
 
 	FORCEINLINE const TArray<FName>& GetLitBonfireIds() const { return SaveData.LitBonfireIDs; }
+	FORCEINLINE FName GetLastBonfireID() { return SaveData.LastBonfireID; }
+	FORCEINLINE void SetLastBonfireID(const FName& IsBonfireID) { SaveData.LastBonfireID = IsBonfireID; }
 private:
 	// 실제 게임 플레이 중 값을 변화하게할 대상
 	UPROPERTY()

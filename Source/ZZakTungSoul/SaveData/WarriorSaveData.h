@@ -53,4 +53,7 @@ struct FWarriorSaveData
 
     UPROPERTY()
     TArray<FName> LitBonfireIDs;
+
+    UPROPERTY()
+    FName LastBonfireID;
 };

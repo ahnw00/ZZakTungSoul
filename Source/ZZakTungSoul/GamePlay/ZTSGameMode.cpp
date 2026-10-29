@@ -23,6 +23,29 @@ AZTSGameMode::AZTSGameMode()
 	}
 }
 
+void AZTSGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+
+	// 레벨 열릴 때 LoadGame 옵션 붙어 있는 지 검사.
+	if (UGameplayStatics::HasOption(Options, TEXT("LoadGame")))
+	{
+		bShouldLoadOnStart = true;
+		UE_LOG(LogTemp, Log, TEXT("[GameMode] LoadGame 옵션 감지. BeginPlay에서 세이브 로드합니다."));
+	}
+}
+
+void AZTSGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// 타이틀에서 [LoadGame]으로 들어왔다면 자동으로 세이브 로드.
+	if (bShouldLoadOnStart)
+	{
+		LoadGame();
+	}
+}
+
 UWarriorPlayerSaveGame* AZTSGameMode::GetSaveGame()
 {
 	// 저장된 데이터가 있으면 그거 반환
@@ -89,6 +112,17 @@ void AZTSGameMode::LoadGame()
 				// PlayerState로 정보 로드
 				WarriorPlayerState->LoadSaveDataFrom(WarriorLoadGame->GetSaveData());
 				UE_LOG(LogTemp, Log, TEXT("Warrior Data Loaded"));
+
+				// 마지막 상호작용 화톳불로 순간이동.
+				const FName LastBonfireID = WarriorPlayerState->GetLastBonfireID();
+				if (!LastBonfireID.IsNone())
+				{
+					if (AWarriorController* PC = Cast<AWarriorController>(GetWorld()->GetFirstPlayerController()))
+					{
+						PC->TeleportToBonfire(LastBonfireID);
+						UE_LOG(LogTemp, Log, TEXT("[GameMode] 마지막 화톳불(%s) 위치로 이동 완료."), *LastBonfireID.ToString());
+					}
+				}
 			}
 			else
 			{

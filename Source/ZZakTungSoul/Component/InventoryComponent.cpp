@@ -19,8 +19,7 @@ void UInventoryComponent::AddItem(UItemDataAsset* ItemData)
 		return;
 
 	FInventoryItem AddedItem;
-	AddedItem.InstanceID = FGuid::NewGuid();
-	ItemData->InstanceID = AddedItem.InstanceID;
+	AddedItem.InstanceID = ItemData->InstanceID;
 
 	AddedItem.AssetID = ItemData->GetPrimaryAssetId();
 	// Todo: 여러개 가질 수 있는 아이템 처리

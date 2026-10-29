@@ -537,9 +537,13 @@ void AWarriorController::TriggerDebugToggle()
 
 void AWarriorController::TriggerDebugNum1()
 {
+	//if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	//{
+	//	Warrior->SetWeaponState(EWeaponState::None);
+	//}
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->SetWeaponState(EWeaponState::None);
+		Warrior->ToggleTwoHanded();
 	}
 }
 
@@ -547,52 +551,56 @@ void AWarriorController::TriggerDebugNum2()
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(""));
 
+	//if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	//{
+	//	Warrior->SetWeaponState(EWeaponState::Katana);
+	//}
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->SetWeaponState(EWeaponState::Katana);
+		Warrior->ToggleTwoHanded();
 	}
 }
 
 void AWarriorController::TriggerDebugNum3()
 {
 
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->SetWeaponState(EWeaponState::OneHandWithShield);
-	}
+	//if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	//{
+	//	Warrior->SetWeaponState(EWeaponState::OneHandWithShield);
+	//}
 }
 
 void AWarriorController::TriggerDebugNum4()
 {
 
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->SetWeaponState(EWeaponState::TwoHand);
-	}
+	//if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	//{
+	//	Warrior->SetWeaponState(EWeaponState::TwoHand);
+	//}
 }
 
 void AWarriorController::TriggerDebugNum5()
 {
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->TakeDamaged(20.f, 10.f, 10.f, false, false);
-	}
+	//if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	//{
+	//	Warrior->TakeDamaged(20.f, 10.f, 10.f, false, false);
+	//}
 }
 
 void AWarriorController::TriggerDebugNum6()
 {
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->TakeDamageTest_1(20.f, 10.f, 10.f, false, false);
-	}
+	//if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	//{
+	//	Warrior->TakeDamageTest_1(20.f, 10.f, 10.f, false, false);
+	//}
 }
 
 void AWarriorController::TriggerDebugNum7()
 {
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->TakeDamageTest_2(20.f, 10.f, 10.f, false, false);
-	}
+	//if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	//{
+	//	Warrior->TakeDamageTest_2(20.f, 10.f, 10.f, false, false);
+	//}
 }
 
 void AWarriorController::TriggerDebugNum8()

@@ -731,7 +731,40 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 		return;
 	}
 
-	CharacterStatComponent->ApplyDamage(DamageInfo);
+	if (!AnimInstance && !CharacterStatComponent)
+	{
+		float Poise = CharacterStatComponent->GetPoise();
+		float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
+
+		if (Poise < DamageInfo.PoiseDamage)
+		{
+			// 스텐스 낮추기.
+			bool StanceIsZero = CharacterStatComponent->TakeStanceDamage(DamageInfo.StanceDamage);
+
+			if (StanceIsZero)
+			{
+				SetActionState(EActionState::Stun);
+			}
+			else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
+			{
+				CharacterStatComponent->SetCurrentStance(0);
+				SetActionState(EActionState::Stun);
+				AnimInstance->PlayActionMontage();
+				CharacterStatComponent->ApplyDamage(DamageInfo);
+			}
+			else
+			{
+				SetActionState(EActionState::Hit);
+				AnimInstance->PlayActionMontage();
+				CharacterStatComponent->ApplyDamage(DamageInfo);
+			}
+		}
+		else
+		{
+			// 맞았는데, 강인도가 높아서 액션 취소 안됨.
+			CharacterStatComponent->ApplyDamage(DamageInfo);
+		}
+	}
 }
 
 void AWarrior::HandleAttackTraceHit(const FHitResult& Hit)
@@ -872,5 +905,17 @@ float AWarrior::TakeDamageTest_2(float Damage, float PoiseDamage, float StanceDa
 	SetActionState(EActionState::Hit);
 	AnimInstance->PlayActionMontage();
 	return 0.0f;
+}
+
+void AWarrior::ReceiveDamageTest_1(const FDamageInfo& DamageInfo, const FHitResult& Hit)
+{
+	SetActionState(EActionState::Stun);
+	AnimInstance->PlayActionMontage();
+}
+
+void AWarrior::ReceiveDamageTest_2(const FDamageInfo & DamageInfo, const FHitResult & Hit)
+{
+	SetActionState(EActionState::Hit);
+	AnimInstance->PlayActionMontage();
 }
 

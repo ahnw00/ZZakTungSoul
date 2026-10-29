@@ -79,7 +79,16 @@ void UItemListWidget::CreateFilterButtons()
 
     TArray<EItemListFilter> Filters;
 
-    if (ListMode == EItemListMode::EquipmentSlot)
+    if(ListMode == EItemListMode::Inventory)
+    {
+        Filters = {
+            EItemListFilter::All,
+            EItemListFilter::Consumable,
+            EItemListFilter::Weapon,
+            EItemListFilter::Armor
+        };
+    }
+    else if (ListMode == EItemListMode::EquipmentSlot)
     {
         Filters = {
             EItemListFilter::LeftHand,
@@ -90,13 +99,11 @@ void UItemListWidget::CreateFilterButtons()
             EItemListFilter::Legs
         };
     }
-    else
+    else //if (ListMode == EItemListMode::BeltSlot)
     {
         Filters = {
-            EItemListFilter::All,
-            EItemListFilter::Consumable,
-            EItemListFilter::Weapon,
-            EItemListFilter::Armor
+            EItemListFilter::UpperBelt,
+            EItemListFilter::LowerBelt
         };
     }
 
@@ -140,7 +147,7 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
     // 델리게이트에 ShowInfo 바인드해주기
     ItemButton->OnItemSelected.BindUObject(this, &UItemListWidget::ShowInfo);
 
-    if (ListMode == EItemListMode::EquipmentSlot)
+    if (ListMode != EItemListMode::Inventory)
     {
         ItemButton->SetEquipSlot(CurrentEquipSlot);
 
@@ -149,13 +156,6 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
     }
 
     ItemButton->SetItemData(InItemData);
-    
-    // 벨트 슬롯에 끼는거면 벨트 UI 아이콘 세팅도 같이 해줘야해(함수 바인드해주기)
-    if (CurrentEquipSlot == EEquipmentSlot::UpperBelt || 
-        CurrentEquipSlot == EEquipmentSlot::LowerBelt)
-    {
-        //BeltWidget->setupperbeltimage
-    }
 
     const int32 Row = Index / ContainerWidth;
     const int32 Column = Index % ContainerWidth;
@@ -286,6 +286,20 @@ bool UItemListWidget::IsAllowed(EItemListFilter InFilterType, UItemDataAsset* It
 
     case EItemListFilter::Legs:
         if (ItemData->AllowedSlots.Find(EEquipmentSlot::Legs) != INDEX_NONE)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::UpperBelt:
+        if (ItemData->AllowedSlots.Find(EEquipmentSlot::UpperBelt) != INDEX_NONE)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::LowerBelt:
+        if (ItemData->AllowedSlots.Find(EEquipmentSlot::UpperBelt) != INDEX_NONE)
         {
             return true;
         }

@@ -6,7 +6,7 @@
 #include <Components/Image.h>
 
 
-void UBeltWidget::OnEquipmentChanged(EEquipmentSlot InSlot, UItemDataAsset* InItemData)
+void UBeltWidget::OnEquipmentChanged(UItemDataAsset* InItemData, EEquipmentSlot InSlot)
 {
 	if (InSlot != EEquipmentSlot::UpperBelt && 
 		InSlot != EEquipmentSlot::LowerBelt)

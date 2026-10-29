@@ -46,6 +46,16 @@ UItemDataAsset* UInventoryComponent::GetItemData(const FInventoryItem& Item) con
 	return ItemData;
 }
 
+const FInventoryItem* UInventoryComponent::FindItemByInstanceID(const FGuid& InInstanceID) const
+{
+	return Items.FindByPredicate(
+		[&InInstanceID](const FInventoryItem& Item)
+		{
+			return Item.InstanceID == InInstanceID;
+		}
+	);
+}
+
 // Called when the game starts
 void UInventoryComponent::BeginPlay()
 {

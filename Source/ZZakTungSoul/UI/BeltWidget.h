@@ -21,7 +21,7 @@ class ZZAKTUNGSOUL_API UBeltWidget : public UUserWidget
 public:
 	//void OnEquipmentChanged(EEquipmentSlot InSlot, UItemDataAsset* InItemData);
 	
-	void OnEquipmentChanged(EEquipmentSlot InSlot, UItemDataAsset* InItemData);
+	void OnEquipmentChanged(UItemDataAsset* InItemData, EEquipmentSlot InSlot);
 
 private:
 	UPROPERTY(meta = (Bindwidget))

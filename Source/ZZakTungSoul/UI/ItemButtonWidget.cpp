@@ -22,3 +22,14 @@ void UItemButtonWidget::OnButtonClicked()
 {
 	OnItemClicked.ExecuteIfBound(ItemData);
 }
+
+void UItemButtonWidget::ResetButtonImage()
+{
+	FButtonStyle Style = ItemButton->GetStyle();
+
+	Style.Normal.SetResourceObject(nullptr);
+	Style.Hovered.SetResourceObject(nullptr);
+	Style.Pressed.SetResourceObject(nullptr);
+
+	ItemButton->SetStyle(Style);
+}

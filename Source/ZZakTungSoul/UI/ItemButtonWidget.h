@@ -32,6 +32,8 @@ public:
 	UFUNCTION()
 	void OnButtonClicked();
 
+	void ResetButtonImage();
+
 public:
 	FOnItemSelected OnItemSelected;
 	FOnItemClicked OnItemClicked;

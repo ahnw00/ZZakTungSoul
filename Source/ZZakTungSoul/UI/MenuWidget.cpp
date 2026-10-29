@@ -3,31 +3,34 @@
 
 #include "UI/MenuWidget.h"
 #include <UI/ItemListWidget.h>
+#include <Component/EquipmentComponent.h>
 #include <Component/InventoryComponent.h>
 
 
 void UMenuWidget::NativeConstruct()
 {
-	Super::NativeConstruct();
+	Super::NativeConstruct(); 
 
     // 제일 윗줄 버튼들
-    InventoryButton->SetParentWidget(this);
-    StatButton->SetParentWidget(this);
-    SettingButton->SetParentWidget(this);
-
+    Buttons.Add(InventoryButton);
+    Buttons.Add(StatButton);
+    Buttons.Add(SettingButton);
     // 두번째 줄 버튼들
-    RightWeaponButton->SetParentWidget(this);
-    LeftWeaponButton->SetParentWidget(this);
-
+    Buttons.Add(RightWeaponButton);
+    Buttons.Add(LeftWeaponButton);
     // 세번째 줄 버튼들
-    HeadButton->SetParentWidget(this);
-    ChestButton->SetParentWidget(this);
-    ArmsButton->SetParentWidget(this);
-    LegsButton->SetParentWidget(this);
-
+    Buttons.Add(HeadButton);
+    Buttons.Add(ChestButton);
+    Buttons.Add(ArmsButton);
+    Buttons.Add(LegsButton);
     // 네번째 줄 버튼들
-    UpperBeltButton->SetParentWidget(this);
-    LowerBeltButton->SetParentWidget(this);
+    Buttons.Add(UpperBeltButton);
+    Buttons.Add(LowerBeltButton);
+
+    for (const auto Button : Buttons)
+    {
+        Button->SetParentWidget(this);
+    }
 }
 
 void UMenuWidget::OpenMenu(EMenuType MenuType)
@@ -99,14 +102,14 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         break;
 
     case EMenuType::UpperBelt:
-        WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
+        WBP_ItemListWidget->SetListMode(EItemListMode::BeltSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::UpperBelt);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::UpperBelt);
         WBP_ItemListWidget->ResetInfo();
         break;
 
     case EMenuType::LowerBelt:
-        WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
+        WBP_ItemListWidget->SetListMode(EItemListMode::BeltSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::LowerBelt);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::LowerBelt);
         WBP_ItemListWidget->ResetInfo();
@@ -119,6 +122,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
 
 void UMenuWidget::SetInventory(UInventoryComponent* InInventory)
 {
+    Inventory = InInventory;
     WBP_ItemListWidget->SetInventory(InInventory);
 }
 
@@ -150,4 +154,92 @@ int32 UMenuWidget::GetMenuIndex(EMenuType InType)
     }
 
     return 0;
+}
+
+void UMenuWidget::ChangeButtonsImage()
+{
+    if (Buttons.Num() == 0)
+    {
+        return;
+    }
+
+    for (const auto Button : Buttons)
+    {
+        EMenuType ButtonType = Button->MenuType;
+        FGuid InstanceID;
+
+        switch (ButtonType)
+        {
+        case EMenuType::RightHand:
+            InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::RightHand);
+            SetButtonImage(RightWeaponButton, GetTexture(InstanceID));
+            break;
+        case EMenuType::LeftHand:
+            InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::LeftHand);
+            SetButtonImage(LeftWeaponButton, GetTexture(InstanceID));
+            break;
+        case EMenuType::Head:
+            InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::Head);
+            SetButtonImage(HeadButton, GetTexture(InstanceID));
+            break;
+        case EMenuType::Chest:
+            InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::Chest);
+            SetButtonImage(ChestButton, GetTexture(InstanceID));
+            break;
+        case EMenuType::Arms:
+            InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::Arms);
+            SetButtonImage(ArmsButton, GetTexture(InstanceID));
+            break;
+        case EMenuType::Legs:
+            InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::Legs);
+            SetButtonImage(LegsButton, GetTexture(InstanceID));
+            break;
+        case EMenuType::UpperBelt:
+            InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::UpperBelt);
+            SetButtonImage(UpperBeltButton, GetTexture(InstanceID));
+            break;
+        case EMenuType::LowerBelt:
+            InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::LowerBelt);
+            SetButtonImage(LowerBeltButton, GetTexture(InstanceID));
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+UTexture2D* UMenuWidget::GetTexture(FGuid InstanceID)
+{
+    if (InstanceID == FGuid())
+    {
+        return nullptr;
+    }
+
+    const FInventoryItem* Item = Inventory->FindItemByInstanceID(InstanceID);
+
+    // FGuid로 아이템 데이터 가져오기
+    UItemDataAsset* ItemData = Inventory->GetItemData(*Item);
+    if (!ItemData)
+    {
+        return nullptr;
+    }
+
+    // 버튼에 아이템 아이콘 이미지 넣어주기
+    auto ItemIcon = ItemData->Icon;
+    if (ItemIcon.IsPending())
+    {
+        ItemIcon.LoadSynchronous();
+    }
+
+    return ItemIcon.Get();
+}
+
+void UMenuWidget::SetButtonImage(UMenuButtonWidget* Button, UTexture2D* InTexture)
+{
+    if (!Button)
+    {
+        return;
+    }
+
+    Button->SetButtonImage(InTexture);
 }

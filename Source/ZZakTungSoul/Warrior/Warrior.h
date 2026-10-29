@@ -162,6 +162,8 @@ public:
 	virtual const struct FWarriorSaveData* GetSaveData() const override;
 	// [인벤토리]
 	FORCEINLINE UInventoryComponent* GetInventory() const { return Inventory; }
+	// [장비 컴포넌트]
+	FORCEINLINE class UEquipmentComponent* GetEquipment() const { return Equipment; }
 
 protected:
 	// 데미지 처리 판정 -> 상위 클래스에서 인터페이스 사용함

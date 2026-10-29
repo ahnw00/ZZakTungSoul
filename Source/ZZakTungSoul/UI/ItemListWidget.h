@@ -11,7 +11,8 @@ UENUM(BlueprintType)
 enum class EItemListMode : uint8
 {
 	Inventory,
-	EquipmentSlot
+	EquipmentSlot,
+	BeltSlot
 };
 
 UENUM(BlueprintType)

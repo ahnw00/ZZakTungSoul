@@ -43,6 +43,8 @@ public:
 
 	UItemDataAsset* GetItemData(const FInventoryItem& Item) const;
 
+	const FInventoryItem* FindItemByInstanceID(const FGuid& InInstanceID) const;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;

@@ -168,7 +168,7 @@ void ULevelUpWidget::CommitLevelUp()
 			GM->SaveGame();
 		}
 
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("[화톳불] 레벨업 완 + 자동저장."));
+		UE_LOG(LogTemp, Log, TEXT("[화톳불] 레벨업 완 + 자동저장."));
 		
 		// 결제 성공 후 최신 세이브데이터로 장바구니 재동기화 및 리셋.
 		InitializedLevelUp();

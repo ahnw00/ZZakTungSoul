@@ -25,6 +25,10 @@
 #include "Engine/OverlapResult.h"
 #include "Interface/InteractionInterface.h"
 
+// Damage
+#include  <Data/DamageInfo.h>
+#include <Interface/CombatDamageInterface.h>
+#include <Enemy/Components/AttackTraceComponent.h>
 
 AWarrior::AWarrior()
 {
@@ -87,6 +91,9 @@ AWarrior::AWarrior()
 	// [인벤토리 컴포넌트]
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	
+	// Trace 무기 판정 -> 장착 가능한 무기 수만큼 컴포너트 추가하면 됩니다. EX) 쌍검 쓸거면 하나 더 추가...
+	// Trace Component 설정
+	AttackTraceComponent = CreateDefaultSubobject<UAttackTraceComponent>(TEXT("RightAttackTraceComponent"));
 
 	// Player가 소유하지 않으면 AI가 소유해
 	AIControllerClass = AWarriorAIController::StaticClass();
@@ -98,6 +105,15 @@ void AWarrior::BeginPlay()
 	Super::BeginPlay();
 
 	UpdateCharacterStats();
+
+	// Delegate 연결
+	if (AttackTraceComponent)
+	{
+		AttackTraceComponent->OnTraceHit.AddUObject(this, &AWarrior::HandleAttackTraceHit);
+
+		// Test
+		AttackTraceComponent->SetTraceMesh(Weapon);
+	}
 }
 
 void AWarrior::PostInitializeComponents()
@@ -331,8 +347,12 @@ void AWarrior::SprintStart()
 {
 	if (bIsSprint)
 		return;
-	if (OverlayState == EOverlayState::Block)
+
+	if (ActionState == EActionState::Block)
 		return;
+
+	//if (OverlayState == EOverlayState::Block)
+	//	return;
 
 	bIsSprint = true;
 	// 임시로 값 직접 넣어준거(달리는 속도 600)
@@ -354,23 +374,28 @@ void AWarrior::BlockStart()
 	// 다른 액션을 하고 있으면 무시
 	if (ActionState != EActionState::None)
 		return;
-	if (OverlayState != EOverlayState::None)
-		return;
+
+	//if (OverlayState != EOverlayState::None)
+	//	return;
+
 	if (bIsSprint)
 		SprintEnd();
 
 	//OverlayState = EOverlayState::Block;
-	SetOverlayState(EOverlayState::Block);
+	SetActionState(EActionState::Block);
+	//SetOverlayState(EOverlayState::Block);
 	//AnimInstance->PlayBlockMontage();
 }
 
 void AWarrior::BlockEnd()
 {
-	if (OverlayState != EOverlayState::Block)
+	if (ActionState != EActionState::Block)
 		return;
+	//if (OverlayState != EOverlayState::Block)
+	//	return;
 
 	//OverlayState = EOverlayState::None;
-	SetOverlayState(EOverlayState::None);
+	SetActionState(EActionState::None);
 	//AnimInstance->StopBlockMontage();
 }
 
@@ -387,11 +412,27 @@ void AWarrior::Attack()
 		}
 	}
 
-	if (ActionState != EActionState::None)
-		return;
-
-	if (OverlayState != EOverlayState::None)
+	switch (ActionState)
+	{
+	case EActionState::None:
+		break;
+	case EActionState::Block:
 		BlockEnd();
+		[[fallthrough]];
+	case EActionState::Roll:
+		[[fallthrough]];
+	case EActionState::BackStep:
+		[[fallthrough]];
+	case EActionState::Attack:
+		[[fallthrough]];
+	case EActionState::Hit:
+		return;
+	default:
+		break;
+	}
+
+	//if (OverlayState != EWeaponState::None)
+	//	BlockEnd();
 
 	AttackCombo = 0;
 	bIsAttacking = true;
@@ -423,10 +464,6 @@ void AWarrior::FinishAttack()
 void AWarrior::SetComboWindow(bool bOpen)
 {
 	bCanComboInput = bOpen && ActionState == EActionState::Attack && !bComboQueued;
-	//UE_LOG(
-	//	LogTemp,
-	//	Warning,
-	//	TEXT("SetComboWindow()== CanComboInput: %d"), bCanComboInput);
 }
 
 void AWarrior::OnComboTransition()
@@ -444,7 +481,6 @@ void AWarrior::OnComboTransition()
 	bComboQueued = false;
 
 	AttackCombo++;
-	//UE_LOG(LogTemp, Warning, TEXT("===========================AttackCombo: %d"), AttackCombo);
 
 	if (!AnimInstance || !AnimInstance->PlayActionMontage())
 	{
@@ -647,12 +683,12 @@ void AWarrior::SetActionState(EActionState NewState)
 	ActionState = NewState;
 }
 
-void AWarrior::SetOverlayState(EOverlayState NewState)
+void AWarrior::SetWeaponState(EWeaponState NewState)
 {
-	if (OverlayState == NewState)
+	if (WeaponState == NewState)
 		return;
 
-	OverlayState = NewState;
+	WeaponState = NewState;
 }
 
 //void AWarrior::Interact()
@@ -672,6 +708,95 @@ const FWarriorSaveData* AWarrior::GetSaveData() const
 	return nullptr;
 }
 
+void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
+{
+	if (nullptr == CharacterStatComponent)
+	{
+		return;
+	}
+
+	bool bInIsUnBlockable = DamageInfo.bUnblockable;
+	bool bInIsIgnoreInvincibility = DamageInfo.bIgnoreInvincibility;
+
+	// 무적 상태이고 무적무시공격이 아닐때 데미지 X
+	if (bIsInvincibility && !bInIsIgnoreInvincibility)
+	{
+		return;
+	}
+
+	// 방어 하는 중이고 가드불가공격이 아닐때 데미지 X
+	if (bIsGuard && !bInIsUnBlockable)
+	{
+		// 데미지 안주고 그로기 수치만 보내고 싶으면 DamageInfo에서 StanceDamage 수치만 보내면 됨
+		return;
+	}
+
+	if (!AnimInstance && !CharacterStatComponent)
+	{
+		float Poise = CharacterStatComponent->GetPoise();
+		float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
+
+		if (Poise < DamageInfo.PoiseDamage)
+		{
+			// 스텐스 낮추기.
+			bool StanceIsZero = CharacterStatComponent->TakeStanceDamage(DamageInfo.StanceDamage);
+
+			if (StanceIsZero)
+			{
+				SetActionState(EActionState::Stun);
+			}
+			else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
+			{
+				CharacterStatComponent->SetCurrentStance(0);
+				SetActionState(EActionState::Stun);
+				AnimInstance->PlayActionMontage();
+				CharacterStatComponent->ApplyDamage(DamageInfo);
+			}
+			else
+			{
+				SetActionState(EActionState::Hit);
+				AnimInstance->PlayActionMontage();
+				CharacterStatComponent->ApplyDamage(DamageInfo);
+			}
+		}
+		else
+		{
+			// 맞았는데, 강인도가 높아서 액션 취소 안됨.
+			CharacterStatComponent->ApplyDamage(DamageInfo);
+		}
+	}
+}
+
+void AWarrior::HandleAttackTraceHit(const FHitResult& Hit)
+{
+	AActor* HitActor = Hit.GetActor();
+	if (!IsValid(HitActor))
+	{
+		return;
+	}
+
+	//UE_LOG(LogTemp, Log, TEXT("Attack Hit: %s"), *HitActor->GetName());
+
+	// 인터페이스 형변환
+	ICombatDamageInterface* HitTarget = Cast<ICombatDamageInterface>(HitActor);
+	if (nullptr == HitTarget)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Player Attack Noooooooooo Hit!!!!!"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Player Attack Hit!!!!!########!"));
+
+	// 공격 데이터 설정
+	FDamageInfo DamageInfo;
+
+	// @@Todo: 나중에 수치 하드 코딩이 아니라 외부에서 데이터 설정해서 가져오도록 구현 EX: AnimNotify, AssetData 등등
+	DamageInfo.AttackDamage = 50.0f;
+
+	// 데미지 처리
+	HitTarget->ReceiveDamage(DamageInfo, Hit);
+}
+
 void AWarrior::EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot)
 {
 	if (!InItem)
@@ -680,7 +805,8 @@ void AWarrior::EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot)
 	Equipment->EquipItem(InItem->InstanceID, Slot);
 
 	UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(InItem);
-	if (!InItem)
+
+	if (!WeaponData)
 		return;
 
 	// 아직 로드되지 않았다면
@@ -692,6 +818,7 @@ void AWarrior::EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot)
 
 	Weapon->SetSkeletalMesh(WeaponData->Mesh.Get());
 	Weapon->SetRelativeRotation(WeaponData->EquipRotation);
+	AttackTraceComponent->SetTraceMesh(Weapon);
 
 	// Todo: 무기 스탯 연동해주기
 }
@@ -710,3 +837,85 @@ void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
 	// 인벤토리에 추가
 	Inventory->AddItem(ItemData->GetItemData());
 }
+
+//float AWarrior::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+//{
+//	float ret = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+//
+//	if (!AnimInstance && !CharacterStatComponent)
+//	{
+//		CharacterStatComponent->ApplyDamage(Damage);
+//
+//		//SetActionState(EActionState::Hit);
+//		//SetActionState(EActionState::Stun);
+//		AnimInstance->PlayActionMontage();
+//	}
+//
+//	return ret;
+//}
+
+float AWarrior::TakeDamaged(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility)
+{
+	if (!AnimInstance && !CharacterStatComponent)
+	{
+		float Poise = CharacterStatComponent->GetPoise();
+		float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
+
+		if (Poise < PoiseDamage)
+		{
+			// 스텐스 낮추기.
+			bool StanceIsZero = CharacterStatComponent->TakeStanceDamage(StanceDamage);
+
+			if (StanceIsZero)
+			{
+				SetActionState(EActionState::Stun);
+			}
+			else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
+			{
+				CharacterStatComponent->SetCurrentStance(0);
+				SetActionState(EActionState::Stun);
+				AnimInstance->PlayActionMontage();
+			}
+			else
+			{
+				SetActionState(EActionState::Hit);
+				AnimInstance->PlayActionMontage();
+			}
+		}
+		else
+		{
+			// 맞았는데, 강인도가 높아서 액션 취소 안됨.
+		}
+
+		//CharacterStatComponent->ApplyDamage(Damage);
+	}
+
+	return 0.0f;
+}
+
+float AWarrior::TakeDamageTest_1(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility)
+{
+	SetActionState(EActionState::Stun);
+	AnimInstance->PlayActionMontage();
+	return 0.0f;
+}
+
+float AWarrior::TakeDamageTest_2(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility)
+{
+	SetActionState(EActionState::Hit);
+	AnimInstance->PlayActionMontage();
+	return 0.0f;
+}
+
+void AWarrior::ReceiveDamageTest_1(const FDamageInfo& DamageInfo, const FHitResult& Hit)
+{
+	SetActionState(EActionState::Stun);
+	AnimInstance->PlayActionMontage();
+}
+
+void AWarrior::ReceiveDamageTest_2(const FDamageInfo & DamageInfo, const FHitResult & Hit)
+{
+	SetActionState(EActionState::Hit);
+	AnimInstance->PlayActionMontage();
+}
+

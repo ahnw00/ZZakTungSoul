@@ -10,7 +10,7 @@ void UAnimNotifyState_AttackTrace::NotifyBegin(USkeletalMeshComponent* MeshComp,
 
 	if (MeshComp && MeshComp->GetOwner())
 	{
-		UAttackTraceComponent* TraceComp = MeshComp->GetOwner()->FindComponentByClass<UAttackTraceComponent>();
+		UAttackTraceComponent* TraceComp = MeshComp->GetOwner()->FindComponentByTag<UAttackTraceComponent>(FindTraceComponentTagName);
 		if (TraceComp)
 		{
 			TraceComp->BeginTrace();
@@ -24,7 +24,7 @@ void UAnimNotifyState_AttackTrace::NotifyEnd(USkeletalMeshComponent* MeshComp, U
 
 	if (MeshComp && MeshComp->GetOwner())
 	{
-		UAttackTraceComponent* TraceComp = MeshComp->GetOwner()->FindComponentByClass<UAttackTraceComponent>();
+		UAttackTraceComponent* TraceComp = MeshComp->GetOwner()->FindComponentByTag<UAttackTraceComponent>(FindTraceComponentTagName);
 		if (TraceComp)
 		{
 			TraceComp->EndTrace();

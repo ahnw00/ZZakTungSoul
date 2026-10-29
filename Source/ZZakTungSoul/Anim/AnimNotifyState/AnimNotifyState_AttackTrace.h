@@ -17,4 +17,8 @@ class ZZAKTUNGSOUL_API UAnimNotifyState_AttackTrace : public UAnimNotifyState
 protected:
 	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference) override;
 	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
+
+protected:
+	UPROPERTY(EditAnywhere, Category = "TraceComponentTagName")
+	FName FindTraceComponentTagName = TEXT("AttackTrace");
 };

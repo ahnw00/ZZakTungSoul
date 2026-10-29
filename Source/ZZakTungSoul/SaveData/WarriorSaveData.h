@@ -50,4 +50,7 @@ struct FWarriorSaveData
 
     UPROPERTY()
     float CurrentFP = 0.f;
+
+    UPROPERTY()
+    TArray<FName> LitBonfireIDs;
 };

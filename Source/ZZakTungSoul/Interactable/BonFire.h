@@ -4,12 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Interface/InteractionInterface.h"
+#include "Interface/InteractableInterface.h"
 #include "Bonfire.generated.h"
 
 // 전방선언.
 class AWarrior;
-
+class AWarriorPlayerState;
+class USphereComponent;
+class UArrowComponent;
 
 // 화톳불 상태.
 UENUM(BlueprintType)
@@ -24,7 +26,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBonfireRestDelegate);
 UCLASS()
 class ZZAKTUNGSOUL_API ABonfire
 	: public AActor,
-	public IInteractionInterface
+	public IInteractableInterface
 {
 	GENERATED_BODY()
 
@@ -33,7 +35,7 @@ public:
 	ABonfire();
 
 	// 상호작용 인터페이스.
-	virtual void Interact(AWarrior* Interactor) override;
+	virtual void Interact(AActor* detectedActor) override;
 	// 휴식 이벤트 델리게이트.
 	UPROPERTY(BlueprintAssignable, Category = "Bonfire|Events")
 	FOnBonfireRestDelegate OnBonfireRest;
@@ -41,6 +43,8 @@ public:
 	FORCEINLINE EBonfireState GetBonfireState() const { return BonfireState; }
 	FORCEINLINE FName GetBonfireID() const { return BonfireID; }
 	FORCEINLINE FText GetBonfireDisplayName() const { return BonfireDisplayName; }
+	FORCEINLINE UArrowComponent* GetTeleportPoint() const { return TeleportPoint; }
+	FTransform GetTeleportTransform() const;
 
 protected:
 	// Called when the game starts or when spawned
@@ -49,6 +53,9 @@ protected:
 	// 작동 가능 검사.
 	bool CanInteractBonfire(AWarrior* Interactor) const;
 	
+	// 세이브 데이터화 화톳불 활성화 상태 동기화.
+	void SyncLitState(const AWarriorPlayerState* PS);
+
 	UFUNCTION()
 	void OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, 
 		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -63,7 +70,7 @@ protected:
 
 	// 플레이어 감지용 상호작용 구체.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
-	TObjectPtr<class USphereComponent> InteractionSphere;
+	TObjectPtr<USphereComponent> InteractionSphere;
 	
 	// 화톳불 사용 방해 적 감지 범위.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
@@ -77,7 +84,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
 	FText BonfireDisplayName;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
+	TObjectPtr<UArrowComponent> TeleportPoint;
+
 	// 현재 화톳불 상태.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|State")
 	EBonfireState BonfireState = EBonfireState::Unlit;
+
+
 };

@@ -19,6 +19,8 @@ struct FStatPreview
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
 	float MaxStamina = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
+	float MaxStance = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
 	float AttackPower = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
 	float Defense = 0.f;
@@ -70,6 +72,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Stat|Events")
 	FOnStatChangedDelegate OnStaminaChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Stat|Events")
+	FOnStatChangedDelegate OnStanceChanged;
+
 public:
 	// ==============================================================================================
 	// [Getter].
@@ -87,6 +92,10 @@ public:
 	FORCEINLINE float GetCurrentStamina() const { return CurrentStamina; }
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	FORCEINLINE float GetMaxStamina() const { return MaxStamina; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	FORCEINLINE float GetCurrentStance() const { return CurrentStance; }
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	FORCEINLINE float GetMaxStance() const { return MaxStance; }
 	// Stat.
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	FORCEINLINE float GetAttackPower() const { return AttackPower; }
@@ -100,6 +109,7 @@ public:
 	FORCEINLINE float GetResistance() const { return Resistance; }
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	FORCEINLINE float GetMaxWalkSpeed() const { return MaxWalkSpeed; }
+
 	// RequiredSouls
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
 	int32 GetRequiredSouls(int32 Level) const;
@@ -112,17 +122,17 @@ public:
 	FStatPreview CalculateDerivedStats(const struct FWarriorAttributeData& InAttributes) const;
 	// Attributes
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetVigor() const { return Vigor; }
+	FORCEINLINE int32 GetVigor() const { return Vigor; }
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetAttunement() const { return Attunement; }
+	FORCEINLINE int32 GetAttunement() const { return Attunement; }
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetEndurance() const { return Endurance; }
+	FORCEINLINE int32 GetEndurance() const { return Endurance; }
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetVitality() const { return Vitality; }
+	FORCEINLINE int32 GetVitality() const { return Vitality; }
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetStrength() const { return Strength; }
+	FORCEINLINE int32 GetStrength() const { return Strength; }
 	UFUNCTION(BlueprintPure, Category = "Stat|Attributes")
-	FORCEINLINE float GetDexterity() const { return Dexterity; }
+	FORCEINLINE int32 GetDexterity() const { return Dexterity; }
 
 	// [비율 Getter].
 	UFUNCTION(BlueprintPure, Category = "Stat")
@@ -141,7 +151,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void SetCurrentHP(float NewHP);
 	UFUNCTION(BlueprintCallable, Category = "Stat")
-	void ApplyDamage(float InDamage);
+	void ApplyDamage(const struct FDamageInfo& DamageInfo);
 
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void SetCurrentFP(float NewFP);
@@ -152,6 +162,11 @@ public:
 	void SetCurrentStamina(float NewStamina);
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	bool UseStamina(float Amount);
+
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	void SetCurrentStance(float NewStance);
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	bool TakeStanceDamage(float Amount);
 
 	// 게임 시작 시 UI 초기화를 위해 현재 스텟을 즉시 한 번 방송하는 함수.
 	UFUNCTION(BlueprintCallable, Category = "Stat")
@@ -167,6 +182,15 @@ private:
 	float LastStaminaUseTime = 0.f; // 마지막으로 스테미너를 쓴 시각.
 	void RegenerateStamina(float DeltaTime);
 
+	// [스탠스 자연 회복 파라미터].
+	UPROPERTY(EditAnywhere, Category = "Stat|Stance")
+	float StanceRegenRate = 30.f; // 초당 30 회복.
+
+	UPROPERTY(EditAnywhere, Category = "Stat|Stance")
+	float StanceRegenDelay = 1.f; // 스테미너 사용 후 회복 시작까지 대기할 지연 시간.
+	float LastStanceUseTime = 0.f; // 마지막으로 스테미너를 쓴 시각.
+	void RegenerateStance(float DeltaTime);
+
 private:
 	// 능력치로부터 계산되는 최대치
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
@@ -175,6 +199,8 @@ private:
 	float MaxFP = 100.f;
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	float MaxStamina = 100.f;
+	UPROPERTY(VisibleAnywhere, Category = "Stat")
+	float MaxStance = 100.f;
 
 	// 적이나 보스 등 다른 객체에도 사용할 것이기 때문에 CurrentHP, CurrentFP 추가.
 	UPROPERTY(VisibleAnywhere, Category = "CurrentStat")
@@ -183,20 +209,22 @@ private:
 	float CurrentFP = 100.f;
 	UPROPERTY(VisibleAnywhere, Category = "CurrentStat")
 	float CurrentStamina = 100.f;
+	UPROPERTY(VisibleAnywhere, Category = "CurrentStat")
+	float CurrentStance = 100.f;
 
 	// Attribute
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Vigor = 10.f;
+	int32 Vigor = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Attunement= 10.f;
+	int32 Attunement= 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Endurance = 10.f;
+	int32 Endurance = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Vitality = 10.f;
+	int32 Vitality = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Strength = 10.f;
+	int32 Strength = 10;
 	UPROPERTY(VisibleAnywhere, Category = "Stat|Attributes")
-	float Dexterity= 10.f;
+	int32 Dexterity= 10;
 
 	// 계산된 전투 스탯
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
@@ -237,6 +265,7 @@ private:
 	inline static const FName HpKey = TEXT("HP");
 	inline static const FName FpKey = TEXT("FP");
 	inline static const FName StaminaKey = TEXT("Stamina");
+	inline static const FName StanceKey = TEXT("Stance");
 
 	// Stat
 	inline static const FName EquipLoadKey = TEXT("EquipLoad");

@@ -76,11 +76,11 @@ private:
 
 	EMoveState MoveState = EMoveState::Idle;
 	EActionState ActionState = EActionState::None;
-	EOverlayState OverlayState = EOverlayState::None;
-
-
+	EWeaponState WeaponState = EWeaponState::None;
 
 	int32 AttackCombo = 0;
+
+	bool bIsTwoHanded : 1 = 0;
 
 	UPROPERTY()
 	class UWarriorAnimInstance* AnimInstance;
@@ -111,6 +111,11 @@ public:
 
 	FORCEINLINE  bool IsAttackKeyDown() const { return bIsAttacking; }
 
+	FORCEINLINE  bool IsTwoHanded() const { return bIsTwoHanded; }
+
+	FORCEINLINE  void SetTwoHanded(bool Value) {bIsTwoHanded = Value; }
+	FORCEINLINE  void ToggleTwoHanded() { bIsTwoHanded = !bIsTwoHanded; }
+
 	void Dodge(FVector ControlDir);
 
 	UPROPERTY()
@@ -136,8 +141,8 @@ public:
 	FORCEINLINE EActionState GetActionState() const { return ActionState; }
 	void SetActionState(EActionState NewState);
 
-	FORCEINLINE EOverlayState GetOverlayState() const { return OverlayState; }
-	void SetOverlayState(EOverlayState NewState);
+	FORCEINLINE EWeaponState GetWeaponState() const { return WeaponState; }
+	void SetWeaponState(EWeaponState NewState);
 
 	// AnimMontage 관련
 	FORCEINLINE void EndAction() { ActionState = EActionState::None; }
@@ -158,6 +163,17 @@ public:
 	// [인벤토리]
 	FORCEINLINE UInventoryComponent* GetInventory() const { return Inventory; }
 
+protected:
+	// 데미지 처리 판정 -> 상위 클래스에서 인터페이스 사용함
+	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit) override;
+
+	// Trace에 걸린 액터 처리 함수
+	void HandleAttackTraceHit(const FHitResult& Hit);
+
+protected:
+	// 공격 판정을 위한 Trace Component
+	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
+	TObjectPtr<class UAttackTraceComponent> AttackTraceComponent;
 	
 
 	// 아이템 관련 함수
@@ -175,4 +191,12 @@ private:
 	// 상호작용할 대상 저장 변수
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AActor>> DetectedActors;
+
+public:
+	//virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	float TakeDamaged(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
+	float TakeDamageTest_1(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
+	float TakeDamageTest_2(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
+	void ReceiveDamageTest_1(const struct FDamageInfo& DamageInfo, const FHitResult& Hit);
+	void ReceiveDamageTest_2(const struct FDamageInfo& DamageInfo, const FHitResult& Hit);
 };

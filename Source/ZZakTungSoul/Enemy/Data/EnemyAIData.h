@@ -31,24 +31,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BehaviorTree|Patrol")
 	TSoftObjectPtr<UBehaviorTree> PatrolBT;
 
-////// Movement Speed Section
-public:
-	// Patrol Speed
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Patrol")
-	float PatrolMovementSpeed;
-
-	// Chase Speed
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Chase")
-	float ChaseMovementSpeed;
-
-	// Strafe Speed
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Strafe")
-	float StrafeMovementSpeed;
-
-	// Search Speed
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Search")
-	float SearchMovementSpeed;
-
 ////// Distance / Range Section
 public:
 	// 전투 상황 인지 범위

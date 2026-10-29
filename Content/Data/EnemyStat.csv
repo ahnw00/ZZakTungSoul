@@ -1,0 +1,3 @@
+---,Hp,Poise,Stance,Defense,Resistance,WalkSpeed,ChaseSpeed,StrafeSpeed
+MeleeEnemy01,100,2,50,10,10,200,250,150
+MeleeEnemy02,150,3,100,10,10,200,250,150

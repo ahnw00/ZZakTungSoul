@@ -154,7 +154,7 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
     if (CurrentEquipSlot == EEquipmentSlot::UpperBelt || 
         CurrentEquipSlot == EEquipmentSlot::LowerBelt)
     {
-
+        //BeltWidget->setupperbeltimage
     }
 
     const int32 Row = Index / ContainerWidth;

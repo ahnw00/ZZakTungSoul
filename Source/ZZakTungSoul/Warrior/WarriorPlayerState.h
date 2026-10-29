@@ -20,7 +20,9 @@ public:
 
 	// Getter/Setter
 	FORCEINLINE const FWarriorSaveData& GetSaveData() const { return SaveData; }
-	FORCEINLINE void LoadSaveDataFrom(const FWarriorSaveData& NewSaveData) { SaveData = NewSaveData; }
+	
+	
+	FORCEINLINE void LoadSaveDataFrom(const FWarriorSaveData& NewSaveData);
 
 	UFUNCTION(BlueprintCallable, Category = "PlayerState|Stat")
 	bool UpgradeStat(const FName& StatName, int32 RequiredSouls);

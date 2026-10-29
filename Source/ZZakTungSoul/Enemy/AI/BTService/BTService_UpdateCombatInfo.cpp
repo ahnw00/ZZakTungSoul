@@ -3,6 +3,7 @@
 
 #include "Enemy/AI/BTService/BTService_UpdateCombatInfo.h"
 #include <Enemy/AI/EnemyAIBlackboardKey.h>
+#include <Interface/AIDataInterface.h>
 
 #include <AIController.h>
 #include <BehaviorTree/BlackboardComponent.h>
@@ -44,17 +45,24 @@ void UBTService_UpdateCombatInfo::TickNode(UBehaviorTreeComponent& OwnerComp, ui
 		return;
 	}
 
+	// 인터페이스로 형변환
+	IAIDataInterface* AIPawn = Cast<IAIDataInterface>(ControllingPawn);
+	if (nullptr == AIPawn)
+	{
+		return;
+	}
+
 	// ControllingPawn과 TargetActor 사이의 거리
 	const float Distance = FVector::Dist(ControllingPawn->GetActorLocation(), TargetActor->GetActorLocation());
 
 	// 전투 상태 범위 진입 판정
-	const bool bInCombatRange = Distance <= CombatRange;
+	const bool bInCombatRange = Distance <= AIPawn->GetCombatRangeData();
 
 	// 공격 범위 진입 판정
-	const bool bInAttackRange = Distance <= Attackrange;
+	const bool bInAttackRange = Distance <= AIPawn->GetAttackRangeData();
 
 	// 플레이어와 최소 유지 거리 판정
-	const bool bTooClose = Distance <= MinMaintainDistance;
+	const bool bTooClose = Distance <= AIPawn->GetMinMaintainDistanceData();
 
 	// Blackboard 거리값 갱신
 	BlackboardComp->SetValueAsFloat(BBKEY_TARGETDISTANCE, Distance);

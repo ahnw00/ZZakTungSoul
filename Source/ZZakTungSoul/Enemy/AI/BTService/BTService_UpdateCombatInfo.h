@@ -21,7 +21,7 @@ protected:
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 protected:
-	// 전투 상태 진입 범위
+	/* 전투 상태 진입 범위
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float CombatRange = 500.0f;
 
@@ -31,5 +31,5 @@ protected:
 
 	// 플레이어와 유지할 최소 거리
 	UPROPERTY(EditAnywhere, Category = "Combat")
-	float MinMaintainDistance = 150.0f;
+	float MinMaintainDistance = 150.0f;			//*/
 };

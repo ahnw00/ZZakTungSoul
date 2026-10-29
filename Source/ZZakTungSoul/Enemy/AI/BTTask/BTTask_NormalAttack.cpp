@@ -45,7 +45,7 @@ EBTNodeResult::Type UBTTask_NormalAttack::ExecuteTask(UBehaviorTreeComponent& Ow
 	}
 
 	// 일반 공격 Montage 가져오기
-	AttackMontage = AnimationData->NormalAttack.Get();
+	AttackMontage = AnimationData->NormalAttack.Montage.Get();
 	if (!IsValid(AttackMontage))
 	{
 		return EBTNodeResult::Failed;
@@ -57,6 +57,9 @@ EBTNodeResult::Type UBTTask_NormalAttack::ExecuteTask(UBehaviorTreeComponent& Ow
 	{
 		return EBTNodeResult::Failed;
 	}
+
+	// 공격 데미지 데이터 보내기
+	Enemy->SetCurrentDamageInfo(AnimationData->NormalAttack.DamageInfo);
 
 	// Montage 재생
 	if (AnimInstance->Montage_Play(AttackMontage.Get()) <= 0.0f)

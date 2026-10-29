@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Character/CharacterBase.h"
 #include "EnemyStates.h"
+#include <Data/DamageInfo.h>
+#include <Interface/AIDataInterface.h>
 #include "EnemyBase.generated.h"
 
 // 전방 선언
@@ -16,7 +18,7 @@ class UCharacterStatComponent;
  * 
  */
 UCLASS()
-class ZZAKTUNGSOUL_API AEnemyBase : public ACharacterBase
+class ZZAKTUNGSOUL_API AEnemyBase : public ACharacterBase, public IAIDataInterface
 {
 	GENERATED_BODY()
 	
@@ -56,6 +58,9 @@ public:
 	const UEnemyAIData* GetEnemyAIData() const { return EnemyAIData; }
 	const UEnemyAnimationData* GetEnemyAnimationData() const { return EnemyAnimationData; }
 
+	// 적 현재 데미지 데이터 설정
+	void SetCurrentDamageInfo(const FDamageInfo& NewDamageInfo) { CurrentDamageInfo = NewDamageInfo; }
+
 public:
 	// 적 상태 변경
 	void SetEnemyState(EEnemyState NewState);
@@ -63,10 +68,16 @@ public:
 	// Strafe 상태일 때 캐릭터 매쉬 회전 관련 플래그 설정 함수
 	void SetStrafeMode(bool bEnable);
 
+////// 인터페이스 섹션
 protected:
-	// 타겟의 스탯 컴포넌트
-	UPROPERTY()
-	TWeakObjectPtr<UCharacterStatComponent> TargetStatComp;
+	// Inherited via IAIDataInterface
+	virtual float GetCombatRangeData() override;
+	virtual float GetAttackRangeData() override;
+	virtual float GetMinMaintainDistanceData() override;
+
+protected:
+	// 공격할 때 사용할 데미지 정보 저장 변수
+	FDamageInfo CurrentDamageInfo;
 
 protected:
 	// 적의 현재 상태

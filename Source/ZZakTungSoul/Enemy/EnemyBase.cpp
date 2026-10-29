@@ -163,14 +163,10 @@ void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
 
 	UE_LOG(LogTemp, Log, TEXT("Attack Hit!!!!!@!@!@@@@@@!"));
 
-	// 공격 데이터 설정
-	FDamageInfo DamageInfo;
-
-	// @@Todo: 나중에 수치 하드 코딩이 아니라 외부에서 데이터 설정해서 가져오도록 구현 EX: AnimNotify, AssetData 등등
-	DamageInfo.AttackDamage = 50.0f;
-
 	// 데미지 처리
-	HitTarget->ReceiveDamage(DamageInfo, Hit);
+	HitTarget->ReceiveDamage(CurrentDamageInfo, Hit);
+
+	UE_LOG(LogTemp, Log, TEXT("Attack %f : %f : %f"), CurrentDamageInfo.AttackDamage, CurrentDamageInfo.PoiseDamage, CurrentDamageInfo.StanceDamage);
 
 	/* 스탯 컴포넌트 가져오기
 	TargetStatComp = HitTarget->GetCharacterStatComponent();
@@ -300,4 +296,19 @@ void AEnemyBase::SetStrafeMode(bool bEnable)
 		bUseControllerRotationYaw = false;
 		GetCharacterMovement()->bOrientRotationToMovement = true;
 	}
+}
+
+float AEnemyBase::GetCombatRangeData()
+{
+	return EnemyAIData->CombatRange;
+}
+
+float AEnemyBase::GetAttackRangeData()
+{
+	return EnemyAIData->AttackRange;
+}
+
+float AEnemyBase::GetMinMaintainDistanceData()
+{
+	return EnemyAIData->MinMaintainDistance;
 }

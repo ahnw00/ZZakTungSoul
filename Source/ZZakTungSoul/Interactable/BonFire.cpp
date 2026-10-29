@@ -138,8 +138,7 @@ void ABonfire::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedCo
 
 		// 접근 시 세이브 활성화 상태 동기화.
 		SyncLitState(Warrior->GetPlayerState<AWarriorPlayerState>());
-
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[화톳불] 화톳불 영역에 진입. 상호작용 대상 등록."));
+		UE_LOG(LogTemp, Log, TEXT("[화톳불] 화톳불 영역에 진입. 상호작용 대상 등록."));
 	}
 
 }
@@ -151,8 +150,7 @@ void ABonfire::OnInteractionSphereEndOverlap(UPrimitiveComponent* OverlappedComp
 	{
 		Warrior->RemoveDetectedObject(this);
 
-		// 디버깅용 메세지.
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("[화톳불] 화톳불 영역에 떠남. 상호작용 대상 해제."));
+		UE_LOG(LogTemp, Log, TEXT("[화톳불] 화톳불 영역에 떠남. 상호작용 대상 해제."));
 	}
 
 }
@@ -174,10 +172,11 @@ void ABonfire::Interact(AActor* detectedActor)
 	{
 		BonfireState = EBonfireState::Lit;
 
-		// PlayerState에 활성화한 화톳불로 등록.
+		// PlayerState에 활성화한 화톳불로 등록 및 마지막 화톳불 갱신.
 		if (AWarriorPlayerState* PS = Interactor->GetPlayerState<AWarriorPlayerState>())
 		{
 			PS->RegisterLitBonfire(BonfireID);
+			PS->SetLastBonfireID(BonfireID);
 		}
 
 		// [자동 저장]
@@ -187,7 +186,7 @@ void ABonfire::Interact(AActor* detectedActor)
 		}
 
 		// 디버깅용 메세지.
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("[화톳불] 화톳불 불을 밝힘 + 자동저장."));
+		UE_LOG(LogTemp, Log, TEXT("[화톳불] 화톳불 불을 밝힘 + 자동저장."));
 		return;
 	
 	}
@@ -204,6 +203,12 @@ void ABonfire::Interact(AActor* detectedActor)
 			}
 		}
 
+		// 마지막 상호작용 화톳불 갱신.
+		if (AWarriorPlayerState* PS = Interactor->GetPlayerState<AWarriorPlayerState>())
+		{
+			PS->SetLastBonfireID(BonfireID);
+		}
+
 		// [자동 저장]
 		if (AZTSGameMode* GM = Cast<AZTSGameMode>(GetWorld()->GetAuthGameMode()))
 		{
@@ -211,7 +216,7 @@ void ABonfire::Interact(AActor* detectedActor)
 		}
 
 		// 디버깅용 메세지.
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("[화톳불] 현재 활성화 상태 화톳불 + 자동저장."));
+		UE_LOG(LogTemp, Log, TEXT("[화톳불] 현재 활성화 상태 화톳불 + 자동저장."));
 
 		// 화톳불 메뉴 요청.
 		if (AWarriorController* PC = Interactor->GetController<AWarriorController>())

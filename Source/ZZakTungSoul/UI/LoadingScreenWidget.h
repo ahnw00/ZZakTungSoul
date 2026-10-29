@@ -21,9 +21,9 @@ class ZZAKTUNGSOUL_API ULoadingScreenWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	// 비동기 로딩 시작 함수(목표 맵 이름 전달).
+	// 비동기 로딩 시작 함수(목표 맵 이름 및 레벨 옵션전달).
 	UFUNCTION(BlueprintCallable, Category = "Loading")
-	void StartAsyncLoading(FName InTargetMapName);
+	void StartAsyncLoading(FName InTargetMapName, const FString& InMapLoadOption = TEXT(""));
 
 
 protected:
@@ -50,11 +50,18 @@ protected:
 	// 로딩할 에셋 경로 목록(에디터 디테일에서 추가 가능).
 	UPROPERTY(EditDefaultsOnly, Category = "Loading|Assets")
 	TArray<FSoftObjectPath> TargetAssets;
+	// 로딩할 폴더 경로 목록(지정한 폴더 내의 모든 에셋을 자동 수집).
+	UPROPERTY(EditDefaultsOnly, Category = "Loading|Assets", meta = (ContentDir))
+	TArray<FDirectoryPath> TargetFolders;
+	
 	// 전환할 목표 맵 이름.
 	UPROPERTY(EditDefaultsOnly, Category = "Loading|Map")
 	FName TargetMapName = TEXT("BaeTestMap");
 	
 private:
+	// 레벨 전환 옵션(New Game: "", LoadGame: "LoadGame=1)
+	FString MapLoadOption = TEXT("");
+
 	// 비동기 스트리밍 매니저 및 핸들.
 	FStreamableManager StreamableManager;
 	TSharedPtr<FStreamableHandle> LoadingHandle;
@@ -66,4 +73,10 @@ private:
 	float ElapsedTime = 0.f;
 	const float MinLoadingDuration = 1.5f;
 	bool bIsAssetLoadFinished = false;
+
+	// 지정 폴더들에서 모든 에셋의 소프트 경로를 자동 수집하는 함수.
+	void CollectAssetsFromFolders(TArray<FSoftObjectPath>& OutAssets);
+
+	// 입력된 경로를 /Game/... 패키지 경로 형식으로 변환하는 함수.
+	FString ConverToPackagePath(const FString& InPath) const;
 };

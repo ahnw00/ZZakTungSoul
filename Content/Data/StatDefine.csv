@@ -10,6 +10,7 @@ FP,마나,50,1,999,FALSE,
 Stamina,스태미나,60,1,999,FALSE,
 EquipLoad,장비 중량,50,1,999,FALSE,
 Poise,강인도,3,1,999,FALSE,"이 수치가 높을수록 경직에 잘 안 걸림, 착용한 방어구에 의해 올라가는 수치"
+Stance,그로기,10,1,999,FALSE,이 수치가 다 차면 자세가 무너짐
 AttackPower,공격력,20,1,999,FALSE,
 Defense,방어력,5,1,999,FALSE,
 Resistance,저항,3,1,999,FALSE,"화염, 독, 번개 등 내성 수치"

@@ -10,6 +10,20 @@ AWarriorPlayerState::AWarriorPlayerState()
 
 }
 
+void AWarriorPlayerState::LoadSaveDataFrom(const FWarriorSaveData& NewSaveData)
+{
+	SaveData = NewSaveData;
+
+	// [스탯 동기화].
+	if (ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(GetPawn()))
+	{
+		if (UCharacterStatComponent* StatComp = StatOwner->GetCharacterStatComponent())
+		{
+			StatComp->UpdateCharacterStat(SaveData.Attributes);
+		}
+	}
+}
+
 // 스탯 업그레이드.
 bool AWarriorPlayerState::UpgradeStat(const FName& StatName, int32 RequiredSouls)
 {

@@ -8,6 +8,8 @@
 
 #include <Components/Button.h>
 
+#include <UI/LoadingScreenWidget.h>
+
 void UMainMenuWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
@@ -47,18 +49,8 @@ void UMainMenuWidget::OnNewGameClicked()
 		UGameplayStatics::DeleteGameInSlot(SlotName, 0);
 	}
 
-	// [입력 모드 복구]
-	if (APlayerController* PC = GetOwningPlayer())
-	{
-		PC->SetShowMouseCursor(false);
-		PC->SetInputMode(FInputModeGameOnly());
-	}
-
-	// [위젯 제거]
-	RemoveFromParent();
-
-	// 인게임 맵으로 레벨 전환.
-	UGameplayStatics::OpenLevel(this, InGameMapName);
+	// 로딩 화면을 거쳐 새 게임 시작(빈 옵션).
+	StartGameWithLoadingScreen(TEXT(""));
 }
 
 void UMainMenuWidget::OnLoadGameClicked()
@@ -66,23 +58,44 @@ void UMainMenuWidget::OnLoadGameClicked()
 	// 세이브 파일 없으면 무시.
 	if (!UGameplayStatics::DoesSaveGameExist(SlotName, 0))
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("세이브 데이터 없음."));
+		UE_LOG(LogTemp, Log, TEXT("세이브 데이터 없음."));
 		return;
 	}
 
-	// [입력 모드 복구]
+	// 로딩화면을 거쳐 세이브 데이터 로드(LoadGame=1 옵션).
+	StartGameWithLoadingScreen(TEXT("LoadGame=1"));
+}
+
+
+
+void UMainMenuWidget::StartGameWithLoadingScreen(const FString& InMapLoadOption)
+{
+	// 마우스 커서 숨김 및 입력 모드 설정.
 	if (APlayerController* PC = GetOwningPlayer())
 	{
 		PC->SetShowMouseCursor(false);
-		PC->SetInputMode(FInputModeGameOnly());
+		PC->SetInputMode(FInputModeUIOnly());
 	}
 
-	// [위젯 제거]
+	// 1. 로딩 화면 위젯 클래스가 지정되어 있으면 위젯 띄우고 비동기 로딩 시작.
+	if (LoadingScreenWidgetClass)
+	{
+		ULoadingScreenWidget* LoadingWidget = CreateWidget<ULoadingScreenWidget>(this, LoadingScreenWidgetClass);
+		if (LoadingWidget)
+		{
+			// 화면 최상단에 노출(ZOrder 9999).
+			LoadingWidget->AddToViewport(9999);
+			LoadingWidget->StartAsyncLoading(InGameMapName, InMapLoadOption);
+
+			// 메인 메뉴 위젯은 화면에서 제거.
+			RemoveFromParent();
+			return;
+		}
+	}
+
+	// 2. 로딩 위젯 클래스가 미지정이면 즉시 OpenLevel(안전장치 Fallback).
 	RemoveFromParent();
-
-
-	// 세이브 데이터 있으면 인게임 맵으로 전환.
-	UGameplayStatics::OpenLevel(this, InGameMapName);
+	UGameplayStatics::OpenLevel(this, InGameMapName, true, InMapLoadOption);
 }
 
 void UMainMenuWidget::OnExitGameClicked()

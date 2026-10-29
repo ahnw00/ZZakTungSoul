@@ -61,6 +61,7 @@ EBTNodeResult::Type UBTTask_NormalAttack::ExecuteTask(UBehaviorTreeComponent& Ow
 	// Montage 재생
 	if (AnimInstance->Montage_Play(AttackMontage.Get()) <= 0.0f)
 	{
+
 		return EBTNodeResult::Failed;
 	}
 

@@ -765,6 +765,8 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 	else
 	{
 		// 맞았는데, 강인도가 높아서 액션 취소 안됨.
+		SetActionState(EActionState::Hit);
+		AnimInstance->PlayActionMontage();
 		CharacterStatComponent->ApplyDamage(DamageInfo);
 	}
 }

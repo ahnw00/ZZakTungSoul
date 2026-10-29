@@ -114,7 +114,7 @@ public:
 	FORCEINLINE  bool IsTwoHanded() const { return bIsTwoHanded; }
 
 	FORCEINLINE  void SetTwoHanded(bool Value) {bIsTwoHanded = Value; }
-	FORCEINLINE  void ToggleTwoHanded() { bIsTwoHanded = !bIsTwoHanded; }
+	FORCENOINLINE  void ToggleTwoHanded() { bIsTwoHanded = !bIsTwoHanded; }
 
 	void Dodge(FVector ControlDir);
 

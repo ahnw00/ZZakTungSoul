@@ -30,16 +30,16 @@ protected:
 	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit) override;
 
 	// 상태에 따라 이동속도 변경 함수
-	void UpdateMovementSpeed();
+	virtual void UpdateMovementSpeed();
 
 	// 상태에 따라 회전 상태 변경 함수
-	void UpdateRotationMode();
+	virtual void UpdateRotationMode();
 
 	// Trace에 걸린 액터 처리 함수
-	void HandleAttackTraceHit(const FHitResult& Hit);
+	virtual void HandleAttackTraceHit(const FHitResult& Hit);
 
 	// 무기 초기화 함수
-	void InitializeWeapon();
+	virtual void InitializeWeapon();
 
 public:
 	// Getter / Setter

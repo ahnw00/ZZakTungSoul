@@ -33,5 +33,33 @@ public:
 	float Weight = 0.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSoftObjectPtr<UAnimMontage> AttackMontage;  // 창과 검이 같은 몽타주를 가지면 안되니까
+	//TSoftObjectPtr<UAnimMontage> AttackMontage;  // 창과 검이 같은 몽타주를 가지면 안되니까
+	TArray<TSoftObjectPtr<UAnimMontage>> OneHandAttackMontages;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TArray<TSoftObjectPtr<UAnimMontage>> TwoHandAttackMontages;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftObjectPtr<UAnimMontage> OneHandBackStepMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftObjectPtr<UAnimMontage> TwoHandBackStepMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftObjectPtr<UAnimMontage> OneHandRollMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftObjectPtr<UAnimMontage> TwoHandRollMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftObjectPtr<UAnimMontage> OneHandHitMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftObjectPtr<UAnimMontage> TwoHandHitMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftObjectPtr<UAnimMontage> OneHandStunMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftObjectPtr<UAnimMontage> TwoHandStunMontage;
 };

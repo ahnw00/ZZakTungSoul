@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -24,7 +24,15 @@ public:
 
 	void UnequipItem(EEquipmentSlot Slot);
 
-	FORCEINLINE FGuid GetEquippedItem(EEquipmentSlot Slot) const { return EquippedItems[Slot]; }
+	FORCEINLINE FGuid GetEquippedItem(EEquipmentSlot Slot) const 
+	{
+		if (EquippedItems.IsEmpty() || !EquippedItems[Slot].IsValid())
+		{
+			return FGuid();
+		}
+
+		return EquippedItems[Slot]; 
+	}
 
 public:
 	FOnEquipItem OnEquipItem;

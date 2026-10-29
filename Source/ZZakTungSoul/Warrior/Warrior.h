@@ -80,6 +80,8 @@ private:
 
 	int32 AttackCombo = 0;
 
+	bool bIsTwoHanded : 1 = 0;
+
 	UPROPERTY()
 	class UWarriorAnimInstance* AnimInstance;
 
@@ -108,6 +110,11 @@ public:
 	FORCEINLINE bool IsAttacking() const { return bIsAttacking; }
 
 	FORCEINLINE  bool IsAttackKeyDown() const { return bIsAttacking; }
+
+	FORCEINLINE  bool IsTwoHanded() const { return bIsTwoHanded; }
+
+	FORCEINLINE  void SetTwoHanded(bool Value) {bIsTwoHanded = Value; }
+	FORCEINLINE  void ToggleTwoHanded() { bIsTwoHanded = !bIsTwoHanded; }
 
 	void Dodge(FVector ControlDir);
 
@@ -190,4 +197,6 @@ public:
 	float TakeDamaged(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
 	float TakeDamageTest_1(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
 	float TakeDamageTest_2(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
+	void ReceiveDamageTest_1(const struct FDamageInfo& DamageInfo, const FHitResult& Hit);
+	void ReceiveDamageTest_2(const struct FDamageInfo& DamageInfo, const FHitResult& Hit);
 };

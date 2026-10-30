@@ -127,6 +127,10 @@ void AEnemyBase::UpdateMovementSpeed()
 		Movement->MaxWalkSpeed = 0.0f;
 		break;
 
+	case EEnemyState::Avoid:
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
+		break;
+
 	case EEnemyState::Dead:
 		Movement->MaxWalkSpeed = 0.0f;
 		break;
@@ -316,6 +320,11 @@ float AEnemyBase::GetAttackRangeData()
 float AEnemyBase::GetMinMaintainDistanceData()
 {
 	return EnemyAIData->MinMaintainDistance;
+}
+
+UEnemyAnimationData* AEnemyBase::GetAnimationData()
+{
+	return EnemyAnimationData;
 }
 
 void AEnemyBase::SetCurrentDamageInfoInterface(const FDamageInfo& NewDamageInfo)

@@ -75,6 +75,8 @@ protected:
 	virtual float GetAttackRangeData() override;
 	virtual float GetMinMaintainDistanceData() override;
 
+	virtual UEnemyAnimationData* GetAnimationData() override;
+
 	virtual void SetCurrentDamageInfoInterface(const struct FDamageInfo& NewDamageInfo) override;
 
 protected:

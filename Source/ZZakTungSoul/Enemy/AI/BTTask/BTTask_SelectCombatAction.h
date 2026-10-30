@@ -10,7 +10,7 @@ UENUM(BlueprintType)
 enum class ECombatAction : uint8
 {
 	Attack,
-	Strafe
+	Other
 };
 
 /**
@@ -36,5 +36,5 @@ protected:
 	int32 AttackWeight = 70;
 
 	UPROPERTY(EditAnywhere, Category = "Combat|Weight")
-	int32 StrafeWeight = 30;
+	int32 OtherWeight = 30;
 };

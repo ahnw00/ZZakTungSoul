@@ -23,7 +23,7 @@ EBTNodeResult::Type UBTTask_SelectCombatAction::ExecuteTask(UBehaviorTreeCompone
 	}
 
 	// 가중치가 모두 0이면 건너뛰기
-	if (AttackWeight <= 0 && StrafeWeight <= 0)
+	if (AttackWeight <= 0 && OtherWeight <= 0)
 	{
 		return EBTNodeResult::Failed;
 	}
@@ -40,10 +40,10 @@ ECombatAction UBTTask_SelectCombatAction::SelectCombatAction()
 {
 	// 음수 방지
 	const int64 Attack = FMath::Max(0, AttackWeight);
-	const int64 Strafe = FMath::Max(0, StrafeWeight);
+	const int64 Other = FMath::Max(0, OtherWeight);
 
 	// 전체 가중치
-	const int64 TotalWeight = Attack + Strafe;
+	const int64 TotalWeight = Attack + Other;
 	if (TotalWeight <= 0)
 	{
 		return ECombatAction::Attack;
@@ -58,5 +58,5 @@ ECombatAction UBTTask_SelectCombatAction::SelectCombatAction()
 		return ECombatAction::Attack;
 	}
 
-	return ECombatAction::Strafe;
+	return ECombatAction::Other;
 }

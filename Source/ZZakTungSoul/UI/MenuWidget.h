@@ -10,6 +10,8 @@
 
 DECLARE_DELEGATE_OneParam(FOnMenuBtnClickedDelegate, EMenuType /*MenuWidgetType*/);
 
+class UEquipmentComponent;
+
 /**
  * 
  */
@@ -19,7 +21,7 @@ class ZZAKTUNGSOUL_API UMenuWidget : public UUserWidget
 	GENERATED_BODY()
 
 protected:
-	virtual void NativeConstruct() override;
+	virtual void NativeOnInitialized() override;
 
 public:
 	UFUNCTION()
@@ -32,8 +34,19 @@ public:
 	// 다시 메뉴위젯으로 돌아와줘야해
 	bool ResetMenuWidget();
 
+	void ChangeButtonsImage();
+	
+	FORCEINLINE void SetEquipment(UEquipmentComponent* InEquipment)
+	{
+		Equipment = InEquipment;
+	}
+
 private:
 	int32 GetMenuIndex(EMenuType InType);
+
+	UTexture2D* GetTexture(FGuid InstanceID);
+
+	void SetButtonImage(UMenuButtonWidget* Button, UTexture2D* InTexture);
 
 	// BindWidget 하면 블루프린트에 있는 위젯이랑 변수 이름이 똑같아야 Bind 돼요!
 protected:
@@ -71,10 +84,19 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UMenuButtonWidget> LowerBeltButton;
 
+	UPROPERTY()
+	TArray<TObjectPtr<UMenuButtonWidget>> Buttons;
+
 	// 패널 및 패널 스위처
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> PanelSwitcher;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UItemListWidget> WBP_ItemListWidget;
+
+	UPROPERTY()
+	TObjectPtr<UEquipmentComponent> Equipment;
+
+	UPROPERTY()
+	TObjectPtr<UInventoryComponent> Inventory;
 };

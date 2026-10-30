@@ -32,6 +32,8 @@ protected:
 	virtual void SetupInputComponent() override;
 	//virtual void Tick(float DeltaTime) override;
 
+	virtual void PostInitializeComponents() override;
+
 	// [디버그] 소울 지급 함수.
 	void DebugAddSouls();
 
@@ -168,7 +170,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
 	bool TeleportToBonfire(const FName& TargetBonfireID);
 
-	void EquipItem(UItemDataAsset* InItemData, EEquipmentSlot InSlot);
+	void EquipItem(const FGuid& InID, EEquipmentSlot InSlot);
+
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

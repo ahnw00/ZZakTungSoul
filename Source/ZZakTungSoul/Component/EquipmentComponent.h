@@ -7,7 +7,8 @@
 #include <ItemData/ItemDataAsset.h>
 #include "EquipmentComponent.generated.h"
 
-DECLARE_TS_MULTICAST_DELEGATE_TwoParams(FOnEquipItem, FGuid, EEquipmentSlot);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEquipItem, FGuid, EEquipmentSlot);
+DECLARE_MULTICAST_DELEGATE(FOnEquipItemImageChanged);
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -19,6 +20,9 @@ public:
 	// Sets default values for this component's properties
 	UEquipmentComponent();
 
+protected:
+	virtual void InitializeComponent() override;
+
 public:
 	void EquipItem(FGuid InstanceID, EEquipmentSlot Slot);
 
@@ -26,16 +30,19 @@ public:
 
 	FORCEINLINE FGuid GetEquippedItem(EEquipmentSlot Slot) const 
 	{
-		if (EquippedItems.IsEmpty() || !EquippedItems[Slot].IsValid())
+		const FGuid* FoundID = EquippedItems.Find(Slot);
+
+		if (!FoundID || !FoundID->IsValid())
 		{
 			return FGuid();
 		}
 
-		return EquippedItems[Slot]; 
+		return *FoundID;
 	}
 
 public:
 	FOnEquipItem OnEquipItem;
+	FOnEquipItemImageChanged OnEquipItemImageChanged;
 
 private:
 	UPROPERTY()

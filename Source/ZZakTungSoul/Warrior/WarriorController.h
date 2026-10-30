@@ -170,7 +170,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
 	bool TeleportToBonfire(const FName& TargetBonfireID);
 
-	void EquipItem(UItemDataAsset* InItemData, EEquipmentSlot InSlot);
+	void EquipItem(const FGuid& InID, EEquipmentSlot InSlot);
 
 
 protected:

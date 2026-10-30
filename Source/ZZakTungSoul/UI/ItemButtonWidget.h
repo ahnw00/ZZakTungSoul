@@ -7,8 +7,8 @@
 #include <ItemData/ItemDataAsset.h>
 #include "ItemButtonWidget.generated.h"
 
-DECLARE_DELEGATE_OneParam(FOnItemSelected, UItemDataAsset* /*Showed Item Data*/)
-DECLARE_DELEGATE_OneParam(FOnItemClicked, UItemDataAsset* /*Equip Item Data*/)
+DECLARE_DELEGATE_OneParam(FOnItemSelected, const FGuid& /*Showed Item ID*/)
+DECLARE_DELEGATE_OneParam(FOnItemClicked, const FGuid& /*Equip Item ID*/)
 
 /**
  * 
@@ -25,6 +25,10 @@ public:
 	FORCEINLINE void SetItemData(UItemDataAsset* InItemData) { ItemData = InItemData; }
 
 	FORCEINLINE void SetEquipSlot(EEquipmentSlot InSlot) { EquipSlot = InSlot; }
+
+	FORCEINLINE const FGuid& GetInstanceID() const { return InstanceID; }
+
+	FORCEINLINE void SetInstanceID(FGuid InID) { InstanceID = InID; }
 
 	UFUNCTION()
 	void OnButtonHovered();
@@ -45,6 +49,9 @@ protected:
 private:
 	UPROPERTY()
 	TObjectPtr<UItemDataAsset> ItemData;
+
+	UPROPERTY()
+	FGuid InstanceID;
 
 	UPROPERTY()
 	EEquipmentSlot EquipSlot = EEquipmentSlot::None;

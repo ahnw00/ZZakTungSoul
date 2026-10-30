@@ -732,7 +732,7 @@ void AWarriorController::CloseBonfireMenu()
 	}
 }
 
-void AWarriorController::EquipItem(UItemDataAsset* InItemData, EEquipmentSlot InSlot)
+void AWarriorController::EquipItem(const FGuid& InID, EEquipmentSlot InSlot)
 {
 	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
 	if (!Warrior)
@@ -741,7 +741,7 @@ void AWarriorController::EquipItem(UItemDataAsset* InItemData, EEquipmentSlot In
 	}
 
 	// Todo: 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
-	Warrior->EquipWeapon(InItemData, InSlot);
+	Warrior->EquipWeapon(InID, InSlot);
 
 	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
 	if (!BeltWidget)

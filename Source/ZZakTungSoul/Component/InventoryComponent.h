@@ -39,11 +39,13 @@ public:
 	UInventoryComponent();
 
 	FORCEINLINE const TArray<FInventoryItem>& GetItems() const { return Items; }
-	void AddItem(UItemDataAsset* ItemData);
+	void AddItem(UItemDataAsset* ItemData, FGuid InID);
 
 	UItemDataAsset* GetItemData(const FInventoryItem& Item) const;
 
 	const FInventoryItem* FindItemByInstanceID(const FGuid& InInstanceID) const;
+
+	const UItemDataAsset* FindItemDataByInstanceID(const FGuid& InInstanceID) const;
 
 protected:
 	// Called when the game starts

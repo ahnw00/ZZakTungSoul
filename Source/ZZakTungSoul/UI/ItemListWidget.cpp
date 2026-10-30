@@ -66,7 +66,7 @@ void UItemListWidget::ListItemsByFilter(EItemListFilter InFilter)
 
         if (IsAllowed(InFilter, ItemData))
         {
-            AddItemButton(ItemData, Index);
+            AddItemButton(Item.InstanceID, Index);
             ++Index;
         }
     }
@@ -131,9 +131,9 @@ void UItemListWidget::CreateFilterButtons()
     }
 }
 
-void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
+void UItemListWidget::AddItemButton(const FGuid& InstanceID, int32 Index)
 {
-    if (!InItemData || !ItemButtonClass || !ItemContainer)
+    if (!ItemButtonClass || !ItemContainer)
     {
         return;
     }
@@ -155,7 +155,8 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
         ItemButton->OnItemClicked.BindUObject(this, &UItemListWidget::EquipItem);
     }
 
-    ItemButton->SetItemData(InItemData);
+    //ItemButton->SetItemData(InItemData);
+    ItemButton->SetInstanceID(InstanceID);
 
     const int32 Row = Index / ContainerWidth;
     const int32 Column = Index % ContainerWidth;
@@ -175,8 +176,7 @@ void UItemListWidget::ListAllItems()
 
     for (int i = 0; i < Count; ++i)
     {
-        UItemDataAsset* ItemData = LoadItemData(Items[i]);
-        AddItemButton(ItemData, i);
+        AddItemButton(Items[i].InstanceID, i);
     }
 }
 
@@ -312,10 +312,17 @@ bool UItemListWidget::IsAllowed(EItemListFilter InFilterType, UItemDataAsset* It
     return false;
 }
 
-void UItemListWidget::ShowInfo(UItemDataAsset* ItemData)
+void UItemListWidget::ShowInfo(const FGuid& InstanceID)
 {
     // 정보 초기화
     ResetInfo();
+
+    // InstanceID로 ItemData 가져오기
+    const UItemDataAsset* ItemData = Inventory->FindItemDataByInstanceID(InstanceID);
+    if (!ItemData)
+    {
+        return;
+    }
 
     // 정보로 표시할 변수들 이름값으로 가져와
     for (TFieldIterator<FProperty> PropIt(ItemData->GetClass()); PropIt; ++PropIt)
@@ -406,7 +413,7 @@ void UItemListWidget::SetEquipmentSlotByFilter(EItemListFilter InFilter)
     }
 }
 
-void UItemListWidget::EquipItem(UItemDataAsset* ItemData)
+void UItemListWidget::EquipItem(const FGuid& InstanceID)
 {
     //equipmentcomponent->EquipItem(ItemData->InstanceID, CurrentEquipSlot);
     AWarriorController* WC = Cast<AWarriorController>(GetOwningPlayer());
@@ -415,6 +422,6 @@ void UItemListWidget::EquipItem(UItemDataAsset* ItemData)
         return;
     }
 
-    WC->EquipItem(ItemData, CurrentEquipSlot);
+    WC->EquipItem(InstanceID, CurrentEquipSlot);
     UE_LOG(LogTemp, Log, TEXT("Equip Item"));
 }

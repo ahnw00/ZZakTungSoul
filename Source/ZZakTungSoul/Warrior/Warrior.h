@@ -180,7 +180,7 @@ protected:
 
 	// 아이템 관련 함수
 public:
-	void EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot);
+	void EquipWeapon(const FGuid& InID, EEquipmentSlot Slot);
 
 	// Inherited via IItemInterface
 	void ObtainItem(class UItemDataAsset* detectedItem) override;

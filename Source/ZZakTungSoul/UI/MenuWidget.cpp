@@ -226,6 +226,10 @@ UTexture2D* UMenuWidget::GetTexture(FGuid InstanceID)
     }
 
     const FInventoryItem* Item = Inventory->FindItemByInstanceID(InstanceID);
+    if (!Item)
+    {
+        return nullptr;
+    }
 
     // FGuid로 아이템 데이터 가져오기
     UItemDataAsset* ItemData = Inventory->GetItemData(*Item);

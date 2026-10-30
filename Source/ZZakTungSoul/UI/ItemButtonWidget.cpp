@@ -15,12 +15,12 @@ void UItemButtonWidget::NativeConstruct()
 
 void UItemButtonWidget::OnButtonHovered()
 {
-	OnItemSelected.ExecuteIfBound(ItemData);
+	OnItemSelected.ExecuteIfBound(InstanceID);
 }
 
 void UItemButtonWidget::OnButtonClicked()
 {
-	OnItemClicked.ExecuteIfBound(ItemData);
+	OnItemClicked.ExecuteIfBound(InstanceID);
 }
 
 void UItemButtonWidget::ResetButtonImage()

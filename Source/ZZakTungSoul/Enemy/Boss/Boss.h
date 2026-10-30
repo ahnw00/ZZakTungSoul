@@ -53,6 +53,9 @@ public:
     //
     //---------------------------------------------------------------
     const UBossAIData* GetBossAIData() const { return BossAIData; }
+
+    virtual void UpdateMovementSpeed();
+
 protected:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -76,8 +79,12 @@ protected:
     EBossPhase BossPhase = EBossPhase::Intro;
 
 private:
+    UPROPERTY()
+    TObjectPtr<UAnimMontage> FastChaseMontage;
+
     TWeakObjectPtr<AActor> EncounterTarget;
     bool bEncounterStarted = false;
+
 
 
 };

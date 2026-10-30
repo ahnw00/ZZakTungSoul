@@ -16,6 +16,9 @@ class ZZAKTUNGSOUL_API UBossAnimInstance : public UAnimInstance
 public:
 	UBossAnimInstance();
 
+	float GetSpeed() const { return Speed; }
+	void SetSpeed(float NewSpeed) { Speed = NewSpeed; }
+
 protected:
 	virtual void NativeInitializeAnimation() override;
 

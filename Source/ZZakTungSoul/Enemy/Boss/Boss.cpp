@@ -14,6 +14,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Anim/"
 
 ABoss::ABoss()
 {
@@ -38,10 +39,79 @@ ABoss::ABoss()
 		{
 			GetMesh()->SetAnimInstanceClass(AnimClassRef.Class);
 		}
-	
 	}
+
+    static ConstructorHelpers::FObjectFinder<UAnimMontage> FastChaseMontageRef(
+        TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Dodge_Montage.Warrior_SwordAndShield_Dodge_Montage")
+    );
+    if (FastChaseMontageRef.Succeeded())
+    {
+        FastChaseMontage = FastChaseMontageRef.Object;
+    }
 }
 
+
+void ABoss::UpdateMovementSpeed()
+{
+    UCharacterMovementComponent* Movement = GetCharacterMovement();
+    if (!Movement || !EnemyStatComponet)
+    {
+        return;
+    }
+
+    switch (CurrentState)
+    {
+    case EEnemyState::Idle:
+        Movement->MaxWalkSpeed = 0.0f;
+        break;
+
+    case EEnemyState::Patrol:
+        Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
+        break;
+
+    case EEnemyState::Chase:
+        Movement->MaxWalkSpeed = EnemyStatComponet->GetChaseSpeed();
+        break;
+
+    case EEnemyState::Strafe:
+        Movement->MaxWalkSpeed = EnemyStatComponet->GetStrafeSpeed();
+        break;
+
+    case EEnemyState::Attack:
+        Movement->MaxWalkSpeed = 0.0f;
+        break;
+
+    case EEnemyState::Search:
+        Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
+        break;
+
+    case EEnemyState::Hit:
+        Movement->MaxWalkSpeed = 0.0f;
+        break;
+
+    case EEnemyState::Dead:
+        Movement->MaxWalkSpeed = 0.0f;
+        break;
+
+    case EEnemyState::FastChase:
+    {
+
+        UAnimInstance* Anim = Cast<> GetMesh()->GetAnimInstance();
+        
+        if (Anim)
+        {
+            Anim->SetSpeed();
+            Anim->Montage_JumpToSection("StartLoop", FastChaseMontage);
+        }
+
+    }
+        break;
+
+
+    default:
+        break;
+    }
+}
 
 //---------------------------------------------------------------
 // 기존 초기화를 실행하고 HP 변경 이벤트 연결.

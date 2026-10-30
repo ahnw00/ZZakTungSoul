@@ -176,6 +176,10 @@ void ABoss::EnterCombatPhase(EBossPhase NewPhase)
     BossPhase = NewPhase;
     UBehaviorTree* Tree = NewPhase == EBossPhase::Phase2 ? BossAIData->Phase2BT.Get() : BossAIData->Phase1BT.Get();
     UBlackboardComponent* BB = AI->GetBlackboardComponent();
+
+
+    UE_LOG(LogTemp, Log, TEXT("Boss: %s"), *Tree->GetName());
+
     if (!Tree || !Tree->BlackboardAsset || !AI->UseBlackboard(Tree->BlackboardAsset, BB))
     {
         SetEnemyState(EEnemyState::Idle);
@@ -186,6 +190,7 @@ void ABoss::EnterCombatPhase(EBossPhase NewPhase)
     BB->SetValueAsVector(BBKEY_HOMELOCATION, GetActorLocation());
     BB->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
     SetEnemyState(EEnemyState::Chase);
+
     if (!AI->RunBehaviorTree(Tree))
     {
         SetEnemyState(EEnemyState::Idle);
@@ -256,7 +261,11 @@ void ABoss::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 //---------------------------------------------------------------
 void ABoss::HandleAttackTraceHit(const FHitResult& Hit)
 {
-    if (BossPhase == EBossPhase::Intro || IsDead()) return;
+    if (BossPhase == EBossPhase::Intro || IsDead())
+    {
+        return;
+    }
+
     if (BossPhase != EBossPhase::OpeningAttack)
     {
         Super::HandleAttackTraceHit(Hit);
@@ -277,7 +286,10 @@ void ABoss::InitializeWeapon()
     // 맨손 공격은 본체 메시의 TraceStart와 TraceEnd 소켓 사용.
     //
     //---------------------------------------------------------------
-    if (!WeaponMesh && AttackTraceComponent) AttackTraceComponent->SetTraceMesh(GetMesh());
+    if (!WeaponMesh && AttackTraceComponent) 
+    {
+        AttackTraceComponent->SetTraceMesh(GetMesh());
+    }
 }
 
 //---------------------------------------------------------------

@@ -22,3 +22,21 @@ void UMenuButtonWidget::OnButtonClicked()
 		MenuWidget->OpenMenu(MenuType);
 	}
 }
+
+void UMenuButtonWidget::ResetButtonImage()
+{
+	FButtonStyle Style = MenuButton->GetStyle();
+
+	Style.Normal.SetResourceObject(nullptr);
+
+	MenuButton->SetStyle(Style);
+}
+
+void UMenuButtonWidget::SetButtonImage(UTexture2D* InTexture)
+{
+	FButtonStyle Style = MenuButton->GetStyle();
+
+	Style.Normal.SetResourceObject(InTexture);
+
+	MenuButton->SetStyle(Style);
+}

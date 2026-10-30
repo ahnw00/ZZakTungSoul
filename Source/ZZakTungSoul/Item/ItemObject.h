@@ -42,6 +42,8 @@ private:
 public:
 	class UItemDataAsset* GetItemData() const { return Item.Get(); }
 
+	FORCEINLINE FGuid GetInstanceID() const { return InstanceID; }
+
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Box")
 	TObjectPtr<class UBoxComponent> Trigger;
@@ -51,6 +53,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Item")
 	TObjectPtr<class UItemDataAsset> Item;
+
+	UPROPERTY()
+	FGuid InstanceID;
 
 	// Inherited via IInteractableInterface
 	void Interact(AActor* detectedActor) override;

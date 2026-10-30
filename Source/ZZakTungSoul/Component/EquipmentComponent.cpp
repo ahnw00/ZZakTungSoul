@@ -6,12 +6,18 @@
 // Sets default values for this component's properties
 UEquipmentComponent::UEquipmentComponent()
 {
+    
+}
 
-	// ...
+void UEquipmentComponent::InitializeComponent()
+{
+    Super::InitializeComponent();
+
 }
 
 void UEquipmentComponent::EquipItem(FGuid InstanceID, EEquipmentSlot Slot)
 {
+    // 이미 장착된건 또 장착하려고 하면 넘어가
     if (FGuid* EquippedID = EquippedItems.Find(Slot))
     {
         if (*EquippedID == InstanceID)
@@ -20,9 +26,21 @@ void UEquipmentComponent::EquipItem(FGuid InstanceID, EEquipmentSlot Slot)
         }
     }
 
+    // 다른 슬롯에 장착되어있는 아이템을 장착하려고 하면
+    // 그 전의 슬롯에서 해제해줘
+    for (TPair<EEquipmentSlot, FGuid>& Pair : EquippedItems)
+    {
+        if (Pair.Key != Slot && Pair.Value == InstanceID)
+        {
+            Pair.Value.Invalidate();
+            break;
+        }
+    }
+
     EquippedItems.Add(Slot, InstanceID);
 
     OnEquipItem.Broadcast(InstanceID, Slot);
+    OnEquipItemImageChanged.Broadcast();
 }
 
 void UEquipmentComponent::UnequipItem(EEquipmentSlot Slot)

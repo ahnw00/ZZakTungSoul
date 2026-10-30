@@ -801,14 +801,12 @@ void AWarrior::HandleAttackTraceHit(const FHitResult& Hit)
 	HitTarget->ReceiveDamage(DamageInfo, Hit);
 }
 
-void AWarrior::EquipWeapon(UItemDataAsset* InItem, EEquipmentSlot Slot)
+void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 {
-	if (!InItem)
-		return;
+	Equipment->EquipItem(InID, Slot);
 
-	Equipment->EquipItem(InItem->InstanceID, Slot);
-
-	UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(InItem);
+	const UItemDataAsset* InItem = Inventory->FindItemDataByInstanceID(InID);
+	const UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(InItem);
 
 	if (!WeaponData)
 		return;
@@ -834,12 +832,12 @@ void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
 
 	// 마지막으로 추가된걸 상호작용
 	int32 lastIndex = DetectedActors.Num() - 1;
-	AItemObject* ItemData = Cast<AItemObject>(DetectedActors[lastIndex].Get());
-	if (!ItemData)
+	AItemObject* ItemObject = Cast<AItemObject>(DetectedActors[lastIndex].Get());
+	if (!ItemObject)
 		return;
 
 	// 인벤토리에 추가
-	Inventory->AddItem(ItemData->GetItemData());
+	Inventory->AddItem(ItemObject->GetItemData(), ItemObject->GetInstanceID());
 }
 
 //float AWarrior::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

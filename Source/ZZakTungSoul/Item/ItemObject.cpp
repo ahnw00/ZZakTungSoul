@@ -60,7 +60,9 @@ void AItemObject::PostInitializeComponents()
 	}
 
 	// 로드한 애셋을 기반으로 아이템 데이터 설정
+	InstanceID = FGuid::NewGuid();
 	Item = Cast<UItemDataAsset>(AssetPtr.Get());
+	//Item->InstanceID = InstanceID;
 
 	// 확인 - 아이템 값이 제대로 설정됐는지
 	ensureAlways(Item);

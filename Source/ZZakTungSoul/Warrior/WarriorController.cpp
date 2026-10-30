@@ -29,6 +29,10 @@
 #include <UI/MenuWidget.h>
 #include <UI/BonfireMenuWidget.h>
 #include <Interactable/BonFire.h>
+#include <UI/BeltWidget.h>
+
+// [Equipment]
+#include <Component/EquipmentComponent.h>
 
 // test
 #include <Engine/DamageEvents.h>
@@ -177,6 +181,12 @@ void AWarriorController::BeginPlay()
 		if (PlayerHUDWidget)
 		{
 			PlayerHUDWidget->AddToViewport();
+
+			if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+			{
+				PlayerHUDWidget->GetBeltWidget()->SetEquipment(Warrior->GetEquipment());
+				PlayerHUDWidget->GetBeltWidget()->SetInventory(Warrior->GetInventory());
+			}
 		}
 	}
 	if (MenuWidgetClass)
@@ -186,6 +196,10 @@ void AWarriorController::BeginPlay()
 		if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 		{
 			MenuWidget->SetInventory(Warrior->GetInventory());
+			MenuWidget->SetEquipment(Warrior->GetEquipment());
+
+			Warrior->GetEquipment()->OnEquipItemImageChanged.AddUObject(
+				MenuWidget, &UMenuWidget::ChangeButtonsImage);
 		}
 	}
 }
@@ -256,6 +270,13 @@ void AWarriorController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
 	// [디버그] 소울 획득 키.
 	InputComponent->BindKey(EKeys::F1, IE_Pressed, this, &AWarriorController::DebugAddSouls);
+}
+
+void AWarriorController::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	//sif(!PlayerHUDWidget)
 }
 
 void AWarriorController::DebugAddSouls()
@@ -548,7 +569,7 @@ void AWarriorController::TriggerDebugNum1()
 
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		Warrior->ToggleTwoHanded();
+		Warrior->SetWeaponState(EWeaponState::None);
 	}
 }
 
@@ -558,11 +579,12 @@ void AWarriorController::TriggerDebugNum2()
 
 	if (!Test)
 		return;
-
+	//{
 	auto ActorCom = Cast<UEnemyStatComponent>(Test->GetComponentByClass(UEnemyStatComponent::StaticClass()));
-
+	//}
 	if (!ActorCom)
 		return;
+		Warrior->ToggleTwoHanded();
 
 	ActorCom->SetCurrentHp(10);
 }
@@ -721,7 +743,7 @@ void AWarriorController::CloseBonfireMenu()
 	}
 }
 
-void AWarriorController::EquipItem(UItemDataAsset* InItemData, EEquipmentSlot InSlot)
+void AWarriorController::EquipItem(const FGuid& InID, EEquipmentSlot InSlot)
 {
 	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
 	if (!Warrior)
@@ -730,7 +752,15 @@ void AWarriorController::EquipItem(UItemDataAsset* InItemData, EEquipmentSlot In
 	}
 
 	// Todo: 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
-	Warrior->EquipWeapon(InItemData, InSlot);
+	Warrior->EquipWeapon(InID, InSlot);
+
+	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
+	if (!BeltWidget)
+	{
+		return;
+	}
+
+	BeltWidget->OnEquipmentChanged();
 }
 
 void AWarriorController::ToggleMenuWindow()

@@ -45,6 +45,11 @@ public:
 	}
 
 public:
+	void ResetButtonImage();
+
+	void SetButtonImage(UTexture2D* InTexture);
+
+public:
 	// 버튼마다 열 메뉴의 타입을 꼭 에디터에서 지정해줘야함!!
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widget")
 	EMenuType MenuType;

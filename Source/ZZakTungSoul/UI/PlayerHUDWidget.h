@@ -39,6 +39,10 @@ protected:
 	UFUNCTION()
 	void UpdateStamina(float CurrentStamina, float MaxStamina);
 
+public:
+	//Getter
+	FORCEINLINE class UBeltWidget* GetBeltWidget() const { return WBP_BeltWidget; }
+
 protected:
 	// [바인딩 컴포넌트 기억]
 	UPROPERTY()

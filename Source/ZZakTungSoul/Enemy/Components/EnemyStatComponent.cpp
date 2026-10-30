@@ -57,6 +57,8 @@ void UEnemyStatComponent::ApplyDamage(const FDamageInfo& DamageInfo)
 
 	bIsPoiseOver = Poise < InPoiseDamage;
 	bIsStanceOver = MaxStance <= CurrentStance;
+
+	UE_LOG(LogTemp, Log, TEXT("Current HP: %f"), CurrentHp);
 }
 
 void UEnemyStatComponent::InitializeEnemyStat()

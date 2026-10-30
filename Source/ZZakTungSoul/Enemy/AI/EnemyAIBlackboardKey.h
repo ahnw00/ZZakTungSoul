@@ -17,3 +17,6 @@
 #define BBKEY_PATROLLOCATION TEXT("PatrolLocation")
 #define BBKEY_HOMELOCATION TEXT("HomeLocation")
 #define BBKEY_STRAFELOCATION TEXT("StrafeLocation")
+
+// Enum
+#define BBKEY_COMBATACTION TEXT("CombatAction")

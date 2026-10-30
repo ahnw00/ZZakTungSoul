@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Character/CharacterBase.h"
 #include "EnemyStates.h"
+#include <Data/DamageInfo.h>
+#include <Interface/AIDataInterface.h>
 #include "EnemyBase.generated.h"
 
 // 전방 선언
@@ -16,7 +18,7 @@ class UCharacterStatComponent;
  * 
  */
 UCLASS()
-class ZZAKTUNGSOUL_API AEnemyBase : public ACharacterBase
+class ZZAKTUNGSOUL_API AEnemyBase : public ACharacterBase, public IAIDataInterface
 {
 	GENERATED_BODY()
 	
@@ -30,21 +32,27 @@ protected:
 	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit) override;
 
 	// 상태에 따라 이동속도 변경 함수
-	void UpdateMovementSpeed();
+	virtual void UpdateMovementSpeed();
 
 	// 상태에 따라 회전 상태 변경 함수
-	void UpdateRotationMode();
+	virtual void UpdateRotationMode();
 
 	// Trace에 걸린 액터 처리 함수
-	void HandleAttackTraceHit(const FHitResult& Hit);
+	virtual void HandleAttackTraceHit(const FHitResult& Hit);
 
 	// 무기 초기화 함수
-	void InitializeWeapon();
+	virtual void InitializeWeapon();
 
 public:
 	// Getter / Setter
 	// 현재 적 상태 반환
 	EEnemyState GetEnemyState() const { return CurrentState; }
+
+	//---------------------------------------------------------------
+	// Possess 시 BT 자동 실행 여부 반환.
+	//
+	//---------------------------------------------------------------
+	virtual bool ShouldAutoStartAI() const { return true; }
 
 	// 사망 여부
 	bool IsDead() const { return CurrentState == EEnemyState::Dead; }
@@ -56,6 +64,9 @@ public:
 	const UEnemyAIData* GetEnemyAIData() const { return EnemyAIData; }
 	const UEnemyAnimationData* GetEnemyAnimationData() const { return EnemyAnimationData; }
 
+	// 적 현재 데미지 데이터 설정
+	void SetCurrentDamageInfo(const FDamageInfo& NewDamageInfo) { CurrentDamageInfo = NewDamageInfo; }
+
 public:
 	// 적 상태 변경
 	void SetEnemyState(EEnemyState NewState);
@@ -63,10 +74,20 @@ public:
 	// Strafe 상태일 때 캐릭터 매쉬 회전 관련 플래그 설정 함수
 	void SetStrafeMode(bool bEnable);
 
+////// 인터페이스 섹션
 protected:
-	// 타겟의 스탯 컴포넌트
-	UPROPERTY()
-	TWeakObjectPtr<UCharacterStatComponent> TargetStatComp;
+	// Inherited via IAIDataInterface
+	virtual float GetCombatRangeData() override;
+	virtual float GetAttackRangeData() override;
+	virtual float GetMinMaintainDistanceData() override;
+
+	virtual UEnemyAnimationData* GetAnimationData() override;
+
+	virtual void SetCurrentDamageInfoInterface(const struct FDamageInfo& NewDamageInfo) override;
+
+protected:
+	// 공격할 때 사용할 데미지 정보 저장 변수
+	FDamageInfo CurrentDamageInfo;
 
 protected:
 	// 적의 현재 상태

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include <Enemy/Data/EnemyAttackData.h>
 #include "EnemyAnimationData.generated.h"
 
 // 전방 선언
@@ -19,19 +20,23 @@ class ZZAKTUNGSOUL_API UEnemyAnimationData : public UDataAsset
 	
 ////// Montage Section
 public:
+	// 회피
+	UPROPERTY(EditAnywhere, Category = "Montage|Avoid")
+	FEnemyAttackData Avoid;
+
 	// 일반 공격
 	UPROPERTY(EditAnywhere, Category = "Montage|Attack")
-	TObjectPtr<UAnimMontage> NormalAttack;
+	FEnemyAttackData NormalAttack;
 
-	// 강 공격
 	UPROPERTY(EditAnywhere, Category = "Montage|Attack")
-	TObjectPtr<UAnimMontage> StrongAttack;
+	FEnemyAttackData StrongAttack;
 
-	// 하나로 이어져 있는 콤보 공격
 	UPROPERTY(EditAnywhere, Category = "Montage|Attack")
-	TObjectPtr<UAnimMontage> ComboAttack;
+	TArray<FEnemyAttackData> ComboAttack01;
 
-	// 콤보 공격에 사용할 Montage 배열
 	UPROPERTY(EditAnywhere, Category = "Montage|Attack")
-	TArray<TObjectPtr<UAnimMontage>> ComboAttackArray;
+	TArray<FEnemyAttackData> ComboAttack02;
+
+	UPROPERTY(EditAnywhere, Category = "Montage|Attack")
+	TArray<FEnemyAttackData> ComboAttack03;
 };

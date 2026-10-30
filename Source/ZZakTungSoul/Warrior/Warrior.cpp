@@ -399,6 +399,11 @@ void AWarrior::BlockEnd()
 	//AnimInstance->StopBlockMontage();
 }
 
+void AWarrior::Parry()
+{
+	UE_LOG(LogTemp, Log, TEXT("Parry"));
+}
+
 void AWarrior::Attack()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("Attack()== Start"));
@@ -486,6 +491,11 @@ void AWarrior::OnComboTransition()
 	{
 		FinishAttack();
 	}
+}
+
+void AWarrior::ChargeAttack()
+{
+	UE_LOG(LogTemp, Log, TEXT("ChargeAttack End"));
 }
 
 // 이때 당시에 애니메이션 애셋이 이상해서 위치를 직접 조정해주었는데
@@ -733,37 +743,41 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 
 	if (!AnimInstance && !CharacterStatComponent)
 	{
-		float Poise = CharacterStatComponent->GetPoise();
-		float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
+		return;
+	}
 
-		if (Poise < DamageInfo.PoiseDamage)
+	float Poise = CharacterStatComponent->GetPoise();
+	float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
+
+	if (Poise < DamageInfo.PoiseDamage)
+	{
+		// 스텐스 낮추기.
+		bool StanceIsZero = CharacterStatComponent->TakeStanceDamage(DamageInfo.StanceDamage);
+
+		if (StanceIsZero)
 		{
-			// 스텐스 낮추기.
-			bool StanceIsZero = CharacterStatComponent->TakeStanceDamage(DamageInfo.StanceDamage);
-
-			if (StanceIsZero)
-			{
-				SetActionState(EActionState::Stun);
-			}
-			else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
-			{
-				CharacterStatComponent->SetCurrentStance(0);
-				SetActionState(EActionState::Stun);
-				AnimInstance->PlayActionMontage();
-				CharacterStatComponent->ApplyDamage(DamageInfo);
-			}
-			else
-			{
-				SetActionState(EActionState::Hit);
-				AnimInstance->PlayActionMontage();
-				CharacterStatComponent->ApplyDamage(DamageInfo);
-			}
+			SetActionState(EActionState::Stun);
+		}
+		else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
+		{
+			CharacterStatComponent->SetCurrentStance(0);
+			SetActionState(EActionState::Stun);
+			AnimInstance->PlayActionMontage();
+			CharacterStatComponent->ApplyDamage(DamageInfo);
 		}
 		else
 		{
-			// 맞았는데, 강인도가 높아서 액션 취소 안됨.
+			SetActionState(EActionState::Hit);
+			AnimInstance->PlayActionMontage();
 			CharacterStatComponent->ApplyDamage(DamageInfo);
 		}
+	}
+	else
+	{
+		// 맞았는데, 강인도가 높아서 액션 취소 안됨.
+		SetActionState(EActionState::Hit);
+		AnimInstance->PlayActionMontage();
+		CharacterStatComponent->ApplyDamage(DamageInfo);
 	}
 }
 

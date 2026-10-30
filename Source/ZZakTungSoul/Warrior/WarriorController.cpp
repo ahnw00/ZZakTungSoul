@@ -36,6 +36,9 @@
 
 // test
 #include <Engine/DamageEvents.h>
+#include "Kismet/GameplayStatics.h"
+#include <Enemy/Boss/Boss.h>
+#include <Enemy/Components/EnemyStatComponent.h>
 
 AWarriorController::AWarriorController()
 {
@@ -53,8 +56,12 @@ AWarriorController::AWarriorController()
 	if (ia_dodgedash.Succeeded()) IA_DodgeDash = ia_dodgedash.Object;
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_block(TEXT("/Game/Input/IA_Block.IA_Block"));
 	if (ia_block.Succeeded()) IA_Block = ia_block.Object;
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_parry(TEXT("/Game/Input/IA_Parry.IA_Parry"));
+	if (ia_parry.Succeeded()) IA_Parry = ia_parry.Object;
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_attack(TEXT("/Game/Input/IA_Attack.IA_Attack"));
 	if (ia_attack.Succeeded()) IA_Attack = ia_attack.Object;
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_chargeattack(TEXT("/Game/Input/IA_ChargeAttack.IA_ChargeAttack"));
+	if (ia_chargeattack.Succeeded()) IA_ChargeAttack = ia_chargeattack.Object;
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_lockon(TEXT("/Game/Input/IA_LockOn.IA_LockOn"));
 	if (ia_lockon.Succeeded()) IA_LockOn = ia_lockon.Object;
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_changelockon(TEXT("/Game/Input/IA_ChangeLockOn.IA_ChangeLockOn"));
@@ -231,7 +238,9 @@ void AWarriorController::SetupInputComponent()
 	EnhancedInput->BindAction(IA_DodgeDash, ETriggerEvent::Completed, this, &AWarriorController::ActionReleased);
 	EnhancedInput->BindAction(IA_Block, ETriggerEvent::Started, this, &AWarriorController::BlockStart);
 	EnhancedInput->BindAction(IA_Block, ETriggerEvent::Completed, this, &AWarriorController::BlockEnd);
+	EnhancedInput->BindAction(IA_Parry, ETriggerEvent::Started, this, &AWarriorController::Parry);
 	EnhancedInput->BindAction(IA_Attack, ETriggerEvent::Started, this, &AWarriorController::Attack);
+	EnhancedInput->BindAction(IA_ChargeAttack, ETriggerEvent::Started, this, &AWarriorController::ChargeStart);
 	EnhancedInput->BindAction(IA_LockOn, ETriggerEvent::Completed, this, &AWarriorController::LockOn);
 	EnhancedInput->BindAction(IA_ChangeLockOn, ETriggerEvent::Triggered, this, &AWarriorController::ChangeLockOn);
 	EnhancedInput->BindAction(IA_Interact, ETriggerEvent::Completed, this, &AWarriorController::Interact);
@@ -404,6 +413,14 @@ void AWarriorController::BlockEnd()
 	}
 }
 
+void AWarriorController::Parry()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->Parry();
+	}
+}
+
 void AWarriorController::Dodge()
 {
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
@@ -457,6 +474,19 @@ void AWarriorController::Attack()
 		Warrior->Attack();
 	}
 	//UE_LOG(LogTemp, Log, TEXT("Attack"));
+}
+
+void AWarriorController::ChargeStart()
+{
+	UE_LOG(LogTemp, Log, TEXT("ChargeStart"));
+}
+
+void AWarriorController::ChargeEnd()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->ChargeAttack();
+	}
 }
 
 void AWarriorController::LockOn()
@@ -562,6 +592,8 @@ void AWarriorController::TriggerDebugToggle()
 
 void AWarriorController::TriggerDebugNum1()
 {
+	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(""));
+
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
 		Warrior->SetWeaponState(EWeaponState::None);
@@ -570,62 +602,52 @@ void AWarriorController::TriggerDebugNum1()
 
 void AWarriorController::TriggerDebugNum2()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(""));
+	auto Test = Cast<ABoss>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoss::StaticClass()));
 
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->SetWeaponState(EWeaponState::Katana);
-	}
+	if (!Test)
+		return;
+
+	auto ActorCom = Cast<UEnemyStatComponent>(Test->GetComponentByClass(UEnemyStatComponent::StaticClass()));
+
+	if (!ActorCom)
+		return;
+
+	ActorCom->SetCurrentHp(10);
 }
 
 void AWarriorController::TriggerDebugNum3()
 {
 
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->SetWeaponState(EWeaponState::OneHandWithShield);
-	}
 }
 
 void AWarriorController::TriggerDebugNum4()
 {
 
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->SetWeaponState(EWeaponState::TwoHand);
-	}
 }
 
 void AWarriorController::TriggerDebugNum5()
 {
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->TakeDamaged(20.f, 10.f, 10.f, false, false);
-	}
+
 }
 
 void AWarriorController::TriggerDebugNum6()
 {
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->TakeDamageTest_1(20.f, 10.f, 10.f, false, false);
-	}
+
 }
 
 void AWarriorController::TriggerDebugNum7()
 {
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->TakeDamageTest_2(20.f, 10.f, 10.f, false, false);
-	}
+
 }
 
 void AWarriorController::TriggerDebugNum8()
 {
+
 }
 
 void AWarriorController::TriggerDebugNum9()
 {
+
 }
 
 

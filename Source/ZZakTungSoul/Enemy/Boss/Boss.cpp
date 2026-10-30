@@ -14,7 +14,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "UObject/ConstructorHelpers.h"
-#include "Anim/"
+//#include "Anim/"
 
 ABoss::ABoss()
 {
@@ -96,13 +96,13 @@ void ABoss::UpdateMovementSpeed()
     case EEnemyState::FastChase:
     {
 
-        UAnimInstance* Anim = Cast<> GetMesh()->GetAnimInstance();
+        //UAnimInstance* Anim = Cast<> GetMesh()->GetAnimInstance();
         
-        if (Anim)
-        {
-            Anim->SetSpeed();
-            Anim->Montage_JumpToSection("StartLoop", FastChaseMontage);
-        }
+        //if (Anim)
+        //{
+        //    Anim->SetSpeed();
+        //    Anim->Montage_JumpToSection("StartLoop", FastChaseMontage);
+        //}
 
     }
         break;

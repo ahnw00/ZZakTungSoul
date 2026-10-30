@@ -49,7 +49,7 @@ EBTNodeResult::Type UBTTask_DashAttack::ExecuteTask(UBehaviorTreeComponent& Owne
 	}
 
 	// 일반 공격 Montage 가져오기
-	AttackMontage = AnimationData->NormalAttack.Get();
+	AttackMontage = AnimationData->NormalAttack.Montage.Get();
 	if (!IsValid(AttackMontage))
 	{
 		return EBTNodeResult::Failed;

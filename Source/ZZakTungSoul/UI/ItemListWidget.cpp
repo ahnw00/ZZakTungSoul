@@ -66,7 +66,7 @@ void UItemListWidget::ListItemsByFilter(EItemListFilter InFilter)
 
         if (IsAllowed(InFilter, ItemData))
         {
-            AddItemButton(ItemData, Index);
+            AddItemButton(Item.InstanceID, Index);
             ++Index;
         }
     }
@@ -79,7 +79,16 @@ void UItemListWidget::CreateFilterButtons()
 
     TArray<EItemListFilter> Filters;
 
-    if (ListMode == EItemListMode::EquipmentSlot)
+    if(ListMode == EItemListMode::Inventory)
+    {
+        Filters = {
+            EItemListFilter::All,
+            EItemListFilter::Consumable,
+            EItemListFilter::Weapon,
+            EItemListFilter::Armor
+        };
+    }
+    else if (ListMode == EItemListMode::EquipmentSlot)
     {
         Filters = {
             EItemListFilter::LeftHand,
@@ -90,13 +99,11 @@ void UItemListWidget::CreateFilterButtons()
             EItemListFilter::Legs
         };
     }
-    else
+    else //if (ListMode == EItemListMode::BeltSlot)
     {
         Filters = {
-            EItemListFilter::All,
-            EItemListFilter::Consumable,
-            EItemListFilter::Weapon,
-            EItemListFilter::Armor
+            EItemListFilter::UpperBelt,
+            EItemListFilter::LowerBelt
         };
     }
 
@@ -124,9 +131,9 @@ void UItemListWidget::CreateFilterButtons()
     }
 }
 
-void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
+void UItemListWidget::AddItemButton(const FGuid& InstanceID, int32 Index)
 {
-    if (!InItemData || !ItemButtonClass || !ItemContainer)
+    if (!ItemButtonClass || !ItemContainer)
     {
         return;
     }
@@ -140,7 +147,7 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
     // 델리게이트에 ShowInfo 바인드해주기
     ItemButton->OnItemSelected.BindUObject(this, &UItemListWidget::ShowInfo);
 
-    if (ListMode == EItemListMode::EquipmentSlot)
+    if (ListMode != EItemListMode::Inventory)
     {
         ItemButton->SetEquipSlot(CurrentEquipSlot);
 
@@ -148,14 +155,8 @@ void UItemListWidget::AddItemButton(UItemDataAsset* InItemData, int32 Index)
         ItemButton->OnItemClicked.BindUObject(this, &UItemListWidget::EquipItem);
     }
 
-    ItemButton->SetItemData(InItemData);
-    
-    // 벨트 슬롯에 끼는거면 벨트 UI 아이콘 세팅도 같이 해줘야해(함수 바인드해주기)
-    if (CurrentEquipSlot == EEquipmentSlot::UpperBelt || 
-        CurrentEquipSlot == EEquipmentSlot::LowerBelt)
-    {
-        //BeltWidget->setupperbeltimage
-    }
+    //ItemButton->SetItemData(InItemData);
+    ItemButton->SetInstanceID(InstanceID);
 
     const int32 Row = Index / ContainerWidth;
     const int32 Column = Index % ContainerWidth;
@@ -175,8 +176,7 @@ void UItemListWidget::ListAllItems()
 
     for (int i = 0; i < Count; ++i)
     {
-        UItemDataAsset* ItemData = LoadItemData(Items[i]);
-        AddItemButton(ItemData, i);
+        AddItemButton(Items[i].InstanceID, i);
     }
 }
 
@@ -291,6 +291,20 @@ bool UItemListWidget::IsAllowed(EItemListFilter InFilterType, UItemDataAsset* It
         }
         break;
 
+    case EItemListFilter::UpperBelt:
+        if (ItemData->AllowedSlots.Find(EEquipmentSlot::UpperBelt) != INDEX_NONE)
+        {
+            return true;
+        }
+        break;
+
+    case EItemListFilter::LowerBelt:
+        if (ItemData->AllowedSlots.Find(EEquipmentSlot::UpperBelt) != INDEX_NONE)
+        {
+            return true;
+        }
+        break;
+
     default:
         break;
     }
@@ -298,10 +312,17 @@ bool UItemListWidget::IsAllowed(EItemListFilter InFilterType, UItemDataAsset* It
     return false;
 }
 
-void UItemListWidget::ShowInfo(UItemDataAsset* ItemData)
+void UItemListWidget::ShowInfo(const FGuid& InstanceID)
 {
     // 정보 초기화
     ResetInfo();
+
+    // InstanceID로 ItemData 가져오기
+    const UItemDataAsset* ItemData = Inventory->FindItemDataByInstanceID(InstanceID);
+    if (!ItemData)
+    {
+        return;
+    }
 
     // 정보로 표시할 변수들 이름값으로 가져와
     for (TFieldIterator<FProperty> PropIt(ItemData->GetClass()); PropIt; ++PropIt)
@@ -392,7 +413,7 @@ void UItemListWidget::SetEquipmentSlotByFilter(EItemListFilter InFilter)
     }
 }
 
-void UItemListWidget::EquipItem(UItemDataAsset* ItemData)
+void UItemListWidget::EquipItem(const FGuid& InstanceID)
 {
     //equipmentcomponent->EquipItem(ItemData->InstanceID, CurrentEquipSlot);
     AWarriorController* WC = Cast<AWarriorController>(GetOwningPlayer());
@@ -401,6 +422,6 @@ void UItemListWidget::EquipItem(UItemDataAsset* ItemData)
         return;
     }
 
-    WC->EquipItem(ItemData, CurrentEquipSlot);
+    WC->EquipItem(InstanceID, CurrentEquipSlot);
     UE_LOG(LogTemp, Log, TEXT("Equip Item"));
 }

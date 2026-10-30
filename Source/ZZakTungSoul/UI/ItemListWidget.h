@@ -11,7 +11,8 @@ UENUM(BlueprintType)
 enum class EItemListMode : uint8
 {
 	Inventory,
-	EquipmentSlot
+	EquipmentSlot,
+	BeltSlot
 };
 
 UENUM(BlueprintType)
@@ -81,18 +82,18 @@ private:
 	void CreateFilterButtons();
 	
 	// 리스트 창에 띄워질 아이템 버튼 생성 함수
-	void AddItemButton(UItemDataAsset* InItemData, int32 Index);
+	void AddItemButton(const FGuid& InstanceID, int32 Index);
 
 	UItemDataAsset* LoadItemData(const struct FInventoryItem& Item);
 
 	bool IsAllowed(EItemListFilter InFilterType, UItemDataAsset* ItemData);
 
 	// 정보 표시
-	void ShowInfo(UItemDataAsset* ItemData);
+	void ShowInfo(const FGuid& InstanceID);
 
 	void SetEquipmentSlotByFilter(EItemListFilter InFilter);
 
-	void EquipItem(UItemDataAsset* ItemData);
+	void EquipItem(const FGuid& InstanceID);
 
 public:
 	FORCEINLINE void SetEquipSlot(EEquipmentSlot InSlot) { CurrentEquipSlot = InSlot; }

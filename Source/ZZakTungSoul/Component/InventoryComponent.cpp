@@ -13,17 +13,17 @@ UInventoryComponent::UInventoryComponent()
 	// ...
 }
 
-void UInventoryComponent::AddItem(UItemDataAsset* ItemData)
+void UInventoryComponent::AddItem(UItemDataAsset* ItemData, FGuid InID)
 {
 	if (!ItemData)
 		return;
 
 	FInventoryItem AddedItem;
-	AddedItem.InstanceID = FGuid::NewGuid();
-	ItemData->InstanceID = AddedItem.InstanceID;
+
+	// 여러개 가질 수 있는 아이템 처리를 위한 FGuid 값
+	AddedItem.InstanceID = InID;
 
 	AddedItem.AssetID = ItemData->GetPrimaryAssetId();
-	// Todo: 여러개 가질 수 있는 아이템 처리
 
 	Items.Add(AddedItem);
 
@@ -43,6 +43,28 @@ UItemDataAsset* UInventoryComponent::GetItemData(const FInventoryItem& Item) con
 	}
 
 	UItemDataAsset* ItemData = Cast<UItemDataAsset>(AssetPtr.Get());
+	return ItemData;
+}
+
+const FInventoryItem* UInventoryComponent::FindItemByInstanceID(const FGuid& InInstanceID) const
+{
+	return Items.FindByPredicate(
+		[&InInstanceID](const FInventoryItem& Item)
+		{
+			return Item.InstanceID == InInstanceID;
+		}
+	);
+}
+
+const UItemDataAsset* UInventoryComponent::FindItemDataByInstanceID(const FGuid& InInstanceID) const
+{
+	const FInventoryItem* Item = FindItemByInstanceID(InInstanceID);
+	if (!Item)
+	{
+		return nullptr;
+	}
+
+	UItemDataAsset* ItemData = GetItemData(*Item);
 	return ItemData;
 }
 

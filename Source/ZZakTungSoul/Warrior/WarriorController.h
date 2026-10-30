@@ -51,7 +51,11 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* IA_Block;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* IA_Parry;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* IA_Attack;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* IA_ChargeAttack;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* IA_LockOn;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -115,11 +119,14 @@ private:
 
 	void BlockStart();
 	void BlockEnd();
+	void Parry();
 
 	void Dodge();
 	void Roll();
 	void BackStep();
 	void Attack();
+	void ChargeStart();
+	void ChargeEnd();
 
 	void LockOn();
 	void ChangeLockOn(const struct FInputActionValue& InputValue);

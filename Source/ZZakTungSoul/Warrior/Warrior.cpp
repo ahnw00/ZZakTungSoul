@@ -399,6 +399,11 @@ void AWarrior::BlockEnd()
 	//AnimInstance->StopBlockMontage();
 }
 
+void AWarrior::Parry()
+{
+	UE_LOG(LogTemp, Log, TEXT("Parry"));
+}
+
 void AWarrior::Attack()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("Attack()== Start"));
@@ -486,6 +491,11 @@ void AWarrior::OnComboTransition()
 	{
 		FinishAttack();
 	}
+}
+
+void AWarrior::ChargeAttack()
+{
+	UE_LOG(LogTemp, Log, TEXT("ChargeAttack End"));
 }
 
 // 이때 당시에 애니메이션 애셋이 이상해서 위치를 직접 조정해주었는데

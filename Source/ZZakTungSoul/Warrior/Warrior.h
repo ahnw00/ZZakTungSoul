@@ -51,7 +51,7 @@ private:
 	class UArrowComponent* LockOnPoint;
 
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
-	TObjectPtr<class UCharacterStatComponent> CharacterStatComponent;
+	TObjectPtr<UCharacterStatComponent> CharacterStatComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon")
 	class USkeletalMeshComponent* Weapon;
@@ -102,11 +102,13 @@ public:
 
 	void BlockStart();
 	void BlockEnd();
+	void Parry();
 
 	void Attack();
 	void FinishAttack();
 	void SetComboWindow(bool bOpen);
 	void OnComboTransition();
+	void ChargeAttack();
 	FORCEINLINE bool IsAttacking() const { return bIsAttacking; }
 
 	FORCEINLINE  bool IsAttackKeyDown() const { return bIsAttacking; }

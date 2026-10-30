@@ -67,7 +67,11 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 
 	// Enemy 검사
 	AEnemyBase* Enemy = Cast<AEnemyBase>(InPawn);
-	if (!Enemy)
+	//---------------------------------------------------------------
+	// 자동 실행을 사용하지 않는 적은 BT 시작을 건너뜀.
+	//
+	//---------------------------------------------------------------
+	if (!Enemy || !Enemy->ShouldAutoStartAI())
 	{
 		return;
 	}

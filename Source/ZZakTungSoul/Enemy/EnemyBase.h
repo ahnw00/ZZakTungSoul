@@ -46,6 +46,12 @@ public:
 	// 현재 적 상태 반환
 	EEnemyState GetEnemyState() const { return CurrentState; }
 
+	//---------------------------------------------------------------
+	// Possess 시 BT 자동 실행 여부 반환.
+	//
+	//---------------------------------------------------------------
+	virtual bool ShouldAutoStartAI() const { return true; }
+
 	// 사망 여부
 	bool IsDead() const { return CurrentState == EEnemyState::Dead; }
 

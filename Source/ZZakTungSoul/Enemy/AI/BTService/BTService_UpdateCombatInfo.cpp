@@ -5,6 +5,8 @@
 #include <Enemy/AI/EnemyAIBlackboardKey.h>
 
 #include <AIController.h>
+#include "Enemy/Boss/Boss.h"
+#include "Enemy/Boss/Data/BossAIData.h"
 #include <BehaviorTree/BlackboardComponent.h>
 
 UBTService_UpdateCombatInfo::UBTService_UpdateCombatInfo()
@@ -27,7 +29,12 @@ void UBTService_UpdateCombatInfo::TickNode(UBehaviorTreeComponent& OwnerComp, ui
 	}
 
 	// Get EnemyPawn
-	APawn* ControllingPawn = OwnerComp.GetAIOwner()->GetPawn();
+	//---------------------------------------------------------------
+	// AIController 유효성을 확인하여 조종 중인 Pawn을 가져옴.
+	//
+	//---------------------------------------------------------------
+	AAIController* AI = OwnerComp.GetAIOwner();
+	APawn* ControllingPawn = AI ? AI->GetPawn() : nullptr;
 
 	// Blackboard에 저장된 TargetActor 가져오기
 	AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(BBKEY_TARGETACTOR));
@@ -35,6 +42,11 @@ void UBTService_UpdateCombatInfo::TickNode(UBehaviorTreeComponent& OwnerComp, ui
 	// 조종하는 Pawn이나 TargetActor가 존재하지 않거나 파괴 중이면 값 초기화후 건너뛰기
 	if (!IsValid(ControllingPawn) || !IsValid(TargetActor))
 	{
+		//---------------------------------------------------------------
+		// 유효한 대상이 없으면 보스의 시야 정보 초기화.
+		//
+		//---------------------------------------------------------------
+		if (Cast<ABoss>(ControllingPawn)) BlackboardComp->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
 		// 이전에 저장된 거리 및 범위정보 초기화
 		BlackboardComp->SetValueAsFloat(BBKEY_TARGETDISTANCE, -1.0f);
 		BlackboardComp->SetValueAsBool(BBKEY_ISINCOMBATRANGE, false);
@@ -47,14 +59,23 @@ void UBTService_UpdateCombatInfo::TickNode(UBehaviorTreeComponent& OwnerComp, ui
 	// ControllingPawn과 TargetActor 사이의 거리
 	const float Distance = FVector::Dist(ControllingPawn->GetActorLocation(), TargetActor->GetActorLocation());
 
+	//---------------------------------------------------------------
+	// 보스는 BossAIData의 거리값을 사용하고 타깃 시야를 갱신.
+	// 일반 적은 기존 서비스 노드의 거리 설정 사용.
+	//
+	//---------------------------------------------------------------
+	const ABoss* Boss = Cast<ABoss>(ControllingPawn);
+	const UBossAIData* Data = Boss ? Boss->GetBossAIData() : nullptr;
+	if (Boss) BlackboardComp->SetValueAsBool(BBKEY_HASLINEOFSIGHT, AI->LineOfSightTo(TargetActor));
+
 	// 전투 상태 범위 진입 판정
-	const bool bInCombatRange = Distance <= CombatRange;
+	const bool bInCombatRange = Distance <= (Data ? Data->CombatRange : CombatRange);
 
 	// 공격 범위 진입 판정
-	const bool bInAttackRange = Distance <= Attackrange;
+	const bool bInAttackRange = Distance <= (Data ? Data->AttackRange : Attackrange);
 
 	// 플레이어와 최소 유지 거리 판정
-	const bool bTooClose = Distance <= MinMaintainDistance;
+	const bool bTooClose = Distance <= (Data ? Data->MinMaintainDistance : MinMaintainDistance);
 
 	// Blackboard 거리값 갱신
 	BlackboardComp->SetValueAsFloat(BBKEY_TARGETDISTANCE, Distance);

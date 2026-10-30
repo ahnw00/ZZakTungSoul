@@ -16,19 +16,47 @@ class ZZAKTUNGSOUL_API UBossAIData : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BehaviorTree|Main")
-	TObjectPtr<UBehaviorTree> WelcomeBT;
+	//---------------------------------------------------------------
+	// 페이즈 1에서 실행할 BT.
+	//
+	//---------------------------------------------------------------
+	UPROPERTY(EditAnywhere, Category = "Boss|Phase")
+	TObjectPtr<UBehaviorTree> Phase1BT;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BehaviorTree|Main")
-	TArray<TObjectPtr<UBehaviorTree>> PhaseOneBT;
+	//---------------------------------------------------------------
+	// 페이즈 2에서 실행할 BT.
+	//
+	//---------------------------------------------------------------
+	UPROPERTY(EditAnywhere, Category = "Boss|Phase")
+	TObjectPtr<UBehaviorTree> Phase2BT;
 
-public:
+	//---------------------------------------------------------------
+	// 컷씬 종료 후 한 번 실행할 폭주 공격 몽타주.
+	//
+	//---------------------------------------------------------------
+	UPROPERTY(EditAnywhere, Category = "Boss|Opening")
+	TObjectPtr<class UAnimMontage> OpeningAttackMontage;
+
+	//---------------------------------------------------------------
+	// 폭주 공격의 타격 구간당 데미지.
+	//
+	//---------------------------------------------------------------
+	UPROPERTY(EditAnywhere, Category = "Boss|Opening", meta = (ClampMin = "0"))
+	float OpeningAttackDamage = 70.0f;
+
+	//---------------------------------------------------------------
+	// 페이즈 2로 전환할 HP 비율.
+	//
+	//---------------------------------------------------------------
+	UPROPERTY(EditAnywhere, Category = "Boss|Phase", meta = (ClampMin = "0.01", ClampMax = "0.99"))
+	float Phase2HpRatio = 0.5f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range|Combat")
-	float CombatRange;
+	float CombatRange = 1500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range|Attack")
-	float AttackRange;
+	float AttackRange = 250.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Range|MaintainDistance")
-	float MinMaintainDistance;
+	float MinMaintainDistance = 150.0f;
 };

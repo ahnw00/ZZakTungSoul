@@ -3,6 +3,8 @@
 
 #include "Enemy/AI/BTTask/BTTask_NormalAttack.h"
 #include <Enemy/EnemyBase.h>
+#include "Enemy/Components/AttackTraceComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include <Enemy/Data/EnemyAnimationData.h>
 
 #include <AIController.h>
@@ -57,6 +59,14 @@ EBTNodeResult::Type UBTTask_NormalAttack::ExecuteTask(UBehaviorTreeComponent& Ow
 	{
 		return EBTNodeResult::Failed;
 	}
+
+	//---------------------------------------------------------------
+	// 공격 중인 적을 저장하고 이동 중단 후 공격 상태로 전환.
+	//
+	//---------------------------------------------------------------
+	AttackingEnemy = Enemy;
+	AIController->StopMovement();
+	Enemy->SetEnemyState(EEnemyState::Attack);
 
 	// Montage 재생
 	if (AnimInstance->Montage_Play(AttackMontage.Get()) <= 0.0f)
@@ -114,6 +124,19 @@ void UBTTask_NormalAttack::CleanUp(bool bStopMontage)
 		}
 	}
 
+	//---------------------------------------------------------------
+	// 공격 종료 시 남아 있는 공격 판정을 정리.
+	//
+	//---------------------------------------------------------------
+	if (AEnemyBase* Enemy = AttackingEnemy.Get())
+	{
+		if (UAttackTraceComponent* Trace = Enemy->FindComponentByClass<UAttackTraceComponent>())
+		{
+			Trace->EndTrace();
+		}
+	}
+	AttackingEnemy.Reset();
+	AttackMontage = nullptr;
 	OwnerBTComp.Reset();
 	OwnerAnimInstance.Reset();
 }

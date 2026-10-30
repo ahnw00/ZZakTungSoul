@@ -31,9 +31,7 @@ void UAttackTraceComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
 }
-
 
 // Called every frame
 void UAttackTraceComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

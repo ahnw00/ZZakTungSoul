@@ -733,37 +733,41 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 
 	if (!AnimInstance && !CharacterStatComponent)
 	{
-		float Poise = CharacterStatComponent->GetPoise();
-		float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
+		return;
+	}
 
-		if (Poise < DamageInfo.PoiseDamage)
+	float Poise = CharacterStatComponent->GetPoise();
+	float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
+
+	if (Poise < DamageInfo.PoiseDamage)
+	{
+		// 스텐스 낮추기.
+		bool StanceIsZero = CharacterStatComponent->TakeStanceDamage(DamageInfo.StanceDamage);
+
+		if (StanceIsZero)
 		{
-			// 스텐스 낮추기.
-			bool StanceIsZero = CharacterStatComponent->TakeStanceDamage(DamageInfo.StanceDamage);
-
-			if (StanceIsZero)
-			{
-				SetActionState(EActionState::Stun);
-			}
-			else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
-			{
-				CharacterStatComponent->SetCurrentStance(0);
-				SetActionState(EActionState::Stun);
-				AnimInstance->PlayActionMontage();
-				CharacterStatComponent->ApplyDamage(DamageInfo);
-			}
-			else
-			{
-				SetActionState(EActionState::Hit);
-				AnimInstance->PlayActionMontage();
-				CharacterStatComponent->ApplyDamage(DamageInfo);
-			}
+			SetActionState(EActionState::Stun);
+		}
+		else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
+		{
+			CharacterStatComponent->SetCurrentStance(0);
+			SetActionState(EActionState::Stun);
+			AnimInstance->PlayActionMontage();
+			CharacterStatComponent->ApplyDamage(DamageInfo);
 		}
 		else
 		{
-			// 맞았는데, 강인도가 높아서 액션 취소 안됨.
+			SetActionState(EActionState::Hit);
+			AnimInstance->PlayActionMontage();
 			CharacterStatComponent->ApplyDamage(DamageInfo);
 		}
+	}
+	else
+	{
+		// 맞았는데, 강인도가 높아서 액션 취소 안됨.
+		SetActionState(EActionState::Hit);
+		AnimInstance->PlayActionMontage();
+		CharacterStatComponent->ApplyDamage(DamageInfo);
 	}
 }
 

@@ -9,7 +9,7 @@
 // 전방 선언
 class UAnimMontage;
 class UAnimInstance;
-
+class AEnemyBase;
 /**
  * 
  */
@@ -46,5 +46,12 @@ protected:
 	TWeakObjectPtr<UBehaviorTreeComponent> OwnerBTComp;
 
 	// 재생할 Montage
+	UPROPERTY(Transient)
 	TObjectPtr<UAnimMontage> AttackMontage;
+
+	//---------------------------------------------------------------
+	// 공격 종료 시 판정을 정리할 적 참조.
+	//
+	//---------------------------------------------------------------
+	TWeakObjectPtr<AEnemyBase> AttackingEnemy;
 };

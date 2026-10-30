@@ -36,6 +36,9 @@
 
 // test
 #include <Engine/DamageEvents.h>
+#include "Kismet/GameplayStatics.h"
+#include <Enemy/Boss/Boss.h>
+#include <Enemy/Components/EnemyStatComponent.h>
 
 AWarriorController::AWarriorController()
 {
@@ -562,6 +565,8 @@ void AWarriorController::TriggerDebugToggle()
 
 void AWarriorController::TriggerDebugNum1()
 {
+	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(""));
+
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
 		Warrior->SetWeaponState(EWeaponState::None);
@@ -570,62 +575,52 @@ void AWarriorController::TriggerDebugNum1()
 
 void AWarriorController::TriggerDebugNum2()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(""));
+	auto Test = Cast<ABoss>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoss::StaticClass()));
 
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->SetWeaponState(EWeaponState::Katana);
-	}
+	if (!Test)
+		return;
+
+	auto ActorCom = Cast<UEnemyStatComponent>(Test->GetComponentByClass(UEnemyStatComponent::StaticClass()));
+
+	if (!ActorCom)
+		return;
+
+	ActorCom->SetCurrentHp(10);
 }
 
 void AWarriorController::TriggerDebugNum3()
 {
 
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->SetWeaponState(EWeaponState::OneHandWithShield);
-	}
 }
 
 void AWarriorController::TriggerDebugNum4()
 {
 
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->SetWeaponState(EWeaponState::TwoHand);
-	}
 }
 
 void AWarriorController::TriggerDebugNum5()
 {
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->TakeDamaged(20.f, 10.f, 10.f, false, false);
-	}
+
 }
 
 void AWarriorController::TriggerDebugNum6()
 {
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->TakeDamageTest_1(20.f, 10.f, 10.f, false, false);
-	}
+
 }
 
 void AWarriorController::TriggerDebugNum7()
 {
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->TakeDamageTest_2(20.f, 10.f, 10.f, false, false);
-	}
+
 }
 
 void AWarriorController::TriggerDebugNum8()
 {
+
 }
 
 void AWarriorController::TriggerDebugNum9()
 {
+
 }
 
 

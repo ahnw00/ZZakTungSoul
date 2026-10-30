@@ -33,6 +33,13 @@ public:
 	FORCEINLINE bool IsPoiseOver() const { return bIsPoiseOver; }
 	FORCEINLINE bool IsStanceOver() const { return bIsStanceOver; }
 
+	//---------------------------------------------------------------
+	// 현재 HP와 최대 HP 게터 추가.
+	//
+	//---------------------------------------------------------------
+	float GetCurrentHp() const { return CurrentHp; }
+	float GetMaxHp() const { return MaxHp; }
+
 	// Movement Speed
 	FORCEINLINE float GetWalkSpeed() const { return WalkSpeed; }
 	FORCEINLINE float GetChaseSpeed() const { return ChaseSpeed; }

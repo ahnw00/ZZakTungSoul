@@ -15,5 +15,6 @@ enum class EEnemyState : uint8
 	Search		/*수색*/,
 	Hit			/*피격*/,
 	Avoid		/*회피*/,
-	Dead		/*사망*/
+	Dead		/*사망*/,
+	FastChase	/*빠른추격*/
 };

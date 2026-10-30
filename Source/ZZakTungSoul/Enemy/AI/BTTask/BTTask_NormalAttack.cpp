@@ -59,7 +59,7 @@ EBTNodeResult::Type UBTTask_NormalAttack::ExecuteTask(UBehaviorTreeComponent& Ow
 	}
 
 	// 공격 데미지 데이터 보내기
-	Enemy->SetCurrentDamageInfo(AnimationData->NormalAttack.DamageInfo);
+	Enemy->SetCurrentDamageInfo(AnimationData->NormalAttack.DamageInfo[0]);
 
 	// Montage 재생
 	if (AnimInstance->Montage_Play(AttackMontage.Get()) <= 0.0f)

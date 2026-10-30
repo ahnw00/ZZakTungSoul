@@ -75,6 +75,8 @@ protected:
 	virtual float GetAttackRangeData() override;
 	virtual float GetMinMaintainDistanceData() override;
 
+	virtual void SetCurrentDamageInfoInterface(const struct FDamageInfo& NewDamageInfo) override;
+
 protected:
 	// 공격할 때 사용할 데미지 정보 저장 변수
 	FDamageInfo CurrentDamageInfo;

@@ -30,4 +30,7 @@ public:
 
 	// 최소 유지 거리 데이터
 	virtual float GetMinMaintainDistanceData() = 0;
+
+	// 데미지 수치 정보 설정
+	virtual void SetCurrentDamageInfoInterface(const struct FDamageInfo& NewDamageInfo) = 0;
 };

@@ -317,3 +317,8 @@ float AEnemyBase::GetMinMaintainDistanceData()
 {
 	return EnemyAIData->MinMaintainDistance;
 }
+
+void AEnemyBase::SetCurrentDamageInfoInterface(const FDamageInfo& NewDamageInfo)
+{
+	CurrentDamageInfo = NewDamageInfo;
+}

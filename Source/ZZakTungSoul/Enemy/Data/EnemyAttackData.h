@@ -16,5 +16,5 @@ public:
 
 	// 공격 데이터 수치
 	UPROPERTY(EditAnywhere)
-	FDamageInfo DamageInfo;
+	TArray<FDamageInfo> DamageInfo;
 };

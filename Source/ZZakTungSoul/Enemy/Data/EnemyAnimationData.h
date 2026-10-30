@@ -20,6 +20,10 @@ class ZZAKTUNGSOUL_API UEnemyAnimationData : public UDataAsset
 	
 ////// Montage Section
 public:
+	// 회피
+	UPROPERTY(EditAnywhere, Category = "Montage|Avoid")
+	FEnemyAttackData Avoid;
+
 	// 일반 공격
 	UPROPERTY(EditAnywhere, Category = "Montage|Attack")
 	FEnemyAttackData NormalAttack;
@@ -28,5 +32,11 @@ public:
 	FEnemyAttackData StrongAttack;
 
 	UPROPERTY(EditAnywhere, Category = "Montage|Attack")
-	TArray<FEnemyAttackData> ComboAttack;
+	TArray<FEnemyAttackData> ComboAttack01;
+
+	UPROPERTY(EditAnywhere, Category = "Montage|Attack")
+	TArray<FEnemyAttackData> ComboAttack02;
+
+	UPROPERTY(EditAnywhere, Category = "Montage|Attack")
+	TArray<FEnemyAttackData> ComboAttack03;
 };

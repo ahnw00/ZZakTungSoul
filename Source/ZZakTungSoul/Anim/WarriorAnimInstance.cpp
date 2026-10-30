@@ -46,6 +46,14 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 		StunMontage = UnarmedStunMontageMontageRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ParryMontageRef(
+		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Parry_Montage.Warrior_SwordAndShield_Parry_Montage")
+	);
+	if (ParryMontageRef.Succeeded())
+	{
+		ParryMontage = ParryMontageRef.Object;
+	}
+
 	const int32 NoneAttackMontageMaxCount = 4;
 
 	for (int32 i = 1; i <= NoneAttackMontageMaxCount; i++)

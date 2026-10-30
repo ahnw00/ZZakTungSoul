@@ -56,6 +56,9 @@ private:
 	TArray<UAnimMontage*> AttackMontage;
 
 	UPROPERTY()
+	UAnimMontage* ParryMontage;
+
+	UPROPERTY()
 	//TMap<EWeaponState, FAnimMontageArrayWrapper> HitMontage;
 	UAnimMontage* HitMontage;
 

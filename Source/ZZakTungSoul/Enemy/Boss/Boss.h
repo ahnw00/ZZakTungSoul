@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "CoreMinimal.h"
-#include "Enemy/EnemyBase.h"
+#include <CoreMinimal.h>
+#include <Enemy/EnemyBase.h>
 #include "Boss.generated.h"
 
 class UBossAIData;
@@ -35,12 +35,14 @@ public:
     //---------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Boss")
     bool StartEncounter(AActor* Target);
+
     //---------------------------------------------------------------
     // 컷씬 정상 종료 또는 스킵 시 호출.
     //
     //---------------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Boss")
     void FinishIntro();
+
     //---------------------------------------------------------------
     // 블루프린트에서 컷씬 연출을 연결할 이벤트.
     //
@@ -54,7 +56,14 @@ public:
     //---------------------------------------------------------------
     const UBossAIData* GetBossAIData() const { return BossAIData; }
 
-    virtual void UpdateMovementSpeed();
+    //---------------------------------------------------------------
+    // 현재 보스 페이즈 반환.
+    //
+    //---------------------------------------------------------------
+    UFUNCTION(BlueprintPure, Category = "Boss|Phase")
+    EBossPhase GetBossPhase() const { return BossPhase; }
+
+    virtual void UpdateMovementSpeed() override;
 
 protected:
     virtual void BeginPlay() override;
@@ -79,9 +88,6 @@ protected:
     EBossPhase BossPhase = EBossPhase::Intro;
 
 private:
-    UPROPERTY()
-    TObjectPtr<UAnimMontage> FastChaseMontage;
-
     TWeakObjectPtr<AActor> EncounterTarget;
     bool bEncounterStarted = false;
 

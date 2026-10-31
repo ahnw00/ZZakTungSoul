@@ -1,53 +1,28 @@
-﻿#include "Enemy/Boss/Boss.h"
-#include "Enemy/Boss/Data/BossAIData.h"
-#include "Enemy/Components/EnemyStatComponent.h"
-#include "Enemy/Components/AttackTraceComponent.h"
-#include "Enemy/AI/EnemyAIBlackboardKey.h"
-#include "Enemy/EnemyAIController.h"
-#include "Interface/CombatDamageInterface.h"
-#include "Data/DamageInfo.h"
-#include "BehaviorTree/BehaviorTree.h"
-#include "BehaviorTree/BehaviorTreeComponent.h"
-#include "BehaviorTree/BlackboardComponent.h"
-#include "Animation/AnimInstance.h"
-#include "Animation/AnimMontage.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "UObject/ConstructorHelpers.h"
-//#include "Anim/"
+﻿#include <Enemy/Boss/Boss.h>
+#include <Enemy/Boss/Data/BossAIData.h>
+#include <Enemy/Components/EnemyStatComponent.h>
+#include <Enemy/Components/AttackTraceComponent.h>
+#include <Enemy/AI/EnemyAIBlackboardKey.h>
+#include <Enemy/Boss/AI/BossAIController.h>
+#include <Interface/CombatDamageInterface.h>
+#include <Data/DamageInfo.h>
+#include <BehaviorTree/BehaviorTree.h>
+#include <BehaviorTree/BehaviorTreeComponent.h>
+#include <BehaviorTree/BlackboardComponent.h>
+#include <Animation/AnimInstance.h>
+#include <Animation/AnimMontage.h>
+#include <Components/SkeletalMeshComponent.h>
+#include <GameFramework/CharacterMovementComponent.h>
 
 ABoss::ABoss()
 {
-	// Mesh setting
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SkeletonMeshRef(
-		TEXT("/Game/Assets/Clown_monster/Meshes/base_mesh/SKM_base_mesh.SKM_base_mesh")
-	);
+    //---------------------------------------------------------------
+    // 보스 공통 AIController 설정.
+    //
+    //---------------------------------------------------------------
+    AIControllerClass = ABossAIController::StaticClass();
 
-	if (SkeletonMeshRef.Succeeded())
-	{
-		GetMesh()->SetSkeletalMesh(SkeletonMeshRef.Object);
-
-		GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
-		GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
-
-		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-		static ConstructorHelpers::FClassFinder<UAnimInstance> AnimClassRef(
-			TEXT("/Game/Blueprints/Enemy/Boss/Anim/ABP_Boss.ABP_Boss_C")
-		);
-
-		if (AnimClassRef.Succeeded())
-		{
-			GetMesh()->SetAnimInstanceClass(AnimClassRef.Class);
-		}
-	}
-
-    static ConstructorHelpers::FObjectFinder<UAnimMontage> FastChaseMontageRef(
-        TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Dodge_Montage.Warrior_SwordAndShield_Dodge_Montage")
-    );
-    if (FastChaseMontageRef.Succeeded())
-    {
-        FastChaseMontage = FastChaseMontageRef.Object;
-    }
+    AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 
@@ -94,19 +69,7 @@ void ABoss::UpdateMovementSpeed()
         break;
 
     case EEnemyState::FastChase:
-    {
-
-        //UAnimInstance* Anim = Cast<> GetMesh()->GetAnimInstance();
-        
-        //if (Anim)
-        //{
-        //    Anim->SetSpeed();
-        //    Anim->Montage_JumpToSection("StartLoop", FastChaseMontage);
-        //}
-
-    }
         break;
-
 
     default:
         break;

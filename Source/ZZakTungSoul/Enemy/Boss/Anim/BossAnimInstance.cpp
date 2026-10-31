@@ -1,11 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Enemy/Boss/Anim/BossAnimInstance.h"
-#include <Enemy/Boss/Boss.h>
-
-#include <GameFramework/CharacterMovementComponent.h>
-
+#include <Enemy/Boss/Anim/BossAnimInstance.h>
 
 UBossAnimInstance::UBossAnimInstance()
 {
@@ -14,13 +10,43 @@ UBossAnimInstance::UBossAnimInstance()
 
 void UBossAnimInstance::NativeInitializeAnimation()
 {
+	Super::NativeInitializeAnimation();
+
+	//---------------------------------------------------------------
+	// 애니메이션을 사용하는 보스 확인.
+	//
+	//---------------------------------------------------------------
 	Owner = Cast<ABoss>(TryGetPawnOwner());
+
+	Velocity = FVector::ZeroVector;
+	Speed = 0.0f;
+	Direction = 0.0f;
+	BossPhase = EBossPhase::Intro;
 }
 
 void UBossAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
-	if (!Owner)
+	Super::NativeUpdateAnimation(DeltaSeconds);
+
+	//---------------------------------------------------------------
+	// 초기화 시 소유자를 얻지 못했다면 다시 확인.
+	//
+	//---------------------------------------------------------------
+	if (!IsValid(Owner.Get()))
 	{
+		Owner = Cast<ABoss>(TryGetPawnOwner());
+	}
+
+	//---------------------------------------------------------------
+	// 프리뷰 등 보스 소유자가 없는 경우 기본값 유지.
+	//
+	//---------------------------------------------------------------
+	if (!IsValid(Owner.Get()))
+	{
+		Velocity = FVector::ZeroVector;
+		Speed = 0.0f;
+		Direction = 0.0f;
+		BossPhase = EBossPhase::Intro;
 		return;
 	}
 
@@ -32,12 +58,18 @@ void UBossAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	//---------------------------------------------------------------
 	Speed = Velocity.Size2D();
 	Direction = 0.0f;
+
 	if (!Velocity.IsNearlyZero())
 	{
 		FRotator MoveRot = Velocity.Rotation();
-
 		FRotator PawnRot = Owner->GetActorRotation();
 
 		Direction = FMath::FindDeltaAngleDegrees(PawnRot.Yaw, MoveRot.Yaw);
 	}
+
+	//---------------------------------------------------------------
+	// 페이즈 변경은 보스가 담당하고 애니메이션에서는 조회만 수행.
+	//
+	//---------------------------------------------------------------
+	BossPhase = Owner->GetBossPhase();
 }

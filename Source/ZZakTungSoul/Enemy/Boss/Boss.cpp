@@ -444,6 +444,11 @@ void ABoss::EnterCombatPhase(EBossPhase NewPhase)
 
 	SetEnemyState(EEnemyState::Chase);
 
+	if (StartBossCombatBehavior(EncounterTarget.Get()))
+	{
+		return;
+	}
+
 	if (!AI->RunBehaviorTree(Tree))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Boss: phase tree failed to run."));
@@ -458,6 +463,11 @@ void ABoss::EnterCombatPhase(EBossPhase NewPhase)
 // BT, 이동, 공격 판정 정리.
 //
 //---------------------------------------------------------------
+bool ABoss::StartBossCombatBehavior(AActor* Target)
+{
+	return false;
+}
+
 void ABoss::StopCombat()
 {
 	if (AEnemyAIController* AI = Cast<AEnemyAIController>(GetController()))

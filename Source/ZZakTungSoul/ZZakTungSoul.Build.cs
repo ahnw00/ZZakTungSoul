@@ -35,6 +35,13 @@ public class ZZakTungSoul : ModuleRules
 		}
 		);
 
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(new string[] {
+				"UnrealEd", "AssetTools", "AnimationBlueprintLibrary"
+			});
+		}
+
 		PublicIncludePaths.AddRange(new string[] {
 			"ZZakTungSoul"
 		});

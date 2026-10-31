@@ -124,6 +124,13 @@ protected:
 	//---------------------------------------------------------------
 	virtual void ResetBossGimmicks();
 
+	//---------------------------------------------------------------
+	// 자식 보스가 전투 행동 선택을 직접 관리하면 true 반환.
+	// 기본 보스는 기존 페이즈 BT 사용.
+	//
+	//---------------------------------------------------------------
+	virtual bool StartBossCombatBehavior(AActor* Target);
+
 private:
 	bool ValidateEncounter() const;
 	void HandleHpChanged(float CurrentHp, float MaxHp);

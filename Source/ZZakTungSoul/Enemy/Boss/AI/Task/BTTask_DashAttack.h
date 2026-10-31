@@ -1,18 +1,17 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
-#include "CoreMinimal.h"
-#include "BehaviorTree/BTTaskNode.h"
+#include <CoreMinimal.h>
+#include <BehaviorTree/BTTaskNode.h>
+#include <Enemy/Boss/Clown/Data/BossClownAnimationData.h>
 #include "BTTask_DashAttack.generated.h"
 
-// 전방 선언
-class UAnimMontage;
-class UAnimInstance;
-class AEnemyBase;
-/**
- *
- */
+class ABossClown;
+
+//---------------------------------------------------------------
+// 기존 보스 Task 파일을 광대 공격 실행용으로 재사용.
+// 클래스 이름은 기존 BT 참조 유지를 위해 유지.
+//
+//---------------------------------------------------------------
 UCLASS()
 class ZZAKTUNGSOUL_API UBTTask_DashAttack : public UBTTaskNode
 {
@@ -22,36 +21,18 @@ public:
 	UBTTask_DashAttack();
 
 protected:
-	// 공격 Task 실행 함수
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-
-	// BehavioTree에 의해 중단 되었을 때 처리할 함수
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-
-	// Task 완료시 초기화 처리 함수
 	virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
 
+	UPROPERTY(EditAnywhere, Category = "Clown|Attack")
+	EBossClownAttack AttackType = EBossClownAttack::HammerSweep;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Target")
+	FName TargetActorKey = TEXT("TargetActor");
+
 private:
-	// 실행 상태 정리 함수
-	void CleanUp(bool bStopMontage);
-
-	// Montage종료 Delegate
-	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
-protected:
-	// 현재 Montage를 재생하는 AnimInstance
-	TWeakObjectPtr<UAnimInstance> OwnerAnimInstance;
-
-	// 현재 Task를 실행하는 BehaviorTree
-	TWeakObjectPtr<UBehaviorTreeComponent> OwnerBTComp;
-
-	// 재생할 Montage
-	UPROPERTY(Transient)
-	TObjectPtr<UAnimMontage> AttackMontage;
-
-	//---------------------------------------------------------------
-	// 공격 종료 시 판정을 정리할 적 참조.
-	//
-	//---------------------------------------------------------------
-	TWeakObjectPtr<AEnemyBase> AttackingEnemy;
+	TWeakObjectPtr<ABossClown> AttackingClown;
+	int32 ExecutionID = INDEX_NONE;
 };

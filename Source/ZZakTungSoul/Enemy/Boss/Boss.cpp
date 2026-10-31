@@ -1,7 +1,7 @@
-﻿#include <Enemy/Boss/Boss.h>
+#include <Enemy/Boss/Boss.h>
 #include <Enemy/Boss/AI/BossAIController.h>
 #include <Enemy/Boss/Data/BossAIData.h>
-#include <Enemy/Boss/Data/BossAnimationData.h>
+#include <Enemy/Data/EnemyAttackData.h>
 #include <Enemy/Components/EnemyStatComponent.h>
 #include <Enemy/Components/AttackTraceComponent.h>
 #include <Enemy/AI/EnemyAIBlackboardKey.h>
@@ -118,9 +118,9 @@ void ABoss::UpdateMovementSpeed()
 	}
 }
 
-const UBossAnimationData* ABoss::GetBossAnimationData() const
+const FEnemyAttackData* ABoss::GetOpeningAttackData() const
 {
-	return Cast<UBossAnimationData>(EnemyAnimationData.Get());
+	return nullptr;
 }
 
 float ABoss::GetCombatRangeData()
@@ -164,12 +164,12 @@ bool ABoss::ValidateEncounter() const
 		return false;
 	}
 
-	const UBossAnimationData* AnimationData = GetBossAnimationData();
+	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData();
 
-	if (!AnimationData || !AnimationData->OpeningAttack.Montage ||
-		!AnimationData->OpeningAttack.DamageInfo.IsValidIndex(0))
+	if (!OpeningAttack || !OpeningAttack->Montage ||
+		!OpeningAttack->DamageInfo.IsValidIndex(0))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Boss: BossAnimationData, opening montage and DamageInfo[0] are required."));
+		UE_LOG(LogTemp, Error, TEXT("Boss: opening attack montage and DamageInfo[0] are required."));
 		return false;
 	}
 
@@ -345,8 +345,8 @@ void ABoss::BeginOpeningAttack()
 		return;
 	}
 
-	const UBossAnimationData* AnimationData = GetBossAnimationData();
-	UAnimMontage* OpeningMontage = AnimationData->OpeningAttack.Montage.Get();
+	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData();
+	UAnimMontage* OpeningMontage = OpeningAttack->Montage.Get();
 
 	BossPhase = EBossPhase::OpeningAttack;
 	SetEnemyState(EEnemyState::Attack);
@@ -491,14 +491,14 @@ void ABoss::StopOpening()
 	}
 
 	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
-	const UBossAnimationData* AnimationData = GetBossAnimationData();
+	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData();
 
-	if (!Anim || !AnimationData || !AnimationData->OpeningAttack.Montage)
+	if (!Anim || !OpeningAttack || !OpeningAttack->Montage)
 	{
 		return;
 	}
 
-	UAnimMontage* OpeningMontage = AnimationData->OpeningAttack.Montage.Get();
+	UAnimMontage* OpeningMontage = OpeningAttack->Montage.Get();
 
 	FOnMontageEnded EmptyDelegate;
 	Anim->Montage_SetEndDelegate(EmptyDelegate, OpeningMontage);
@@ -674,36 +674,25 @@ void ABoss::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 void ABoss::HandleAttackTraceHit(const FHitResult& Hit)
 {
 	//---------------------------------------------------------------
-	// 전투가 아닌 상태에서는 공격 피해 차단.
+	// 공통 보스에서는 첫 공격 피해만 처리.
+	// 일반 전투 공격은 보스 자식 클래스에서 처리.
 	//
 	//---------------------------------------------------------------
-	if (!bEncounterStarted || bLifecycleChanging || IsDead() ||
-		BossPhase == EBossPhase::Waiting || BossPhase == EBossPhase::Intro ||
-		BossPhase == EBossPhase::PhaseTransition)
+	if (!bEncounterStarted || bLifecycleChanging || IsDead() || BossPhase != EBossPhase::OpeningAttack)
 	{
 		return;
 	}
 
-	if (BossPhase != EBossPhase::OpeningAttack)
-	{
-		Super::HandleAttackTraceHit(Hit);
-		return;
-	}
+	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData();
 
-	const UBossAnimationData* AnimationData = GetBossAnimationData();
-
-	if (!AnimationData || !AnimationData->OpeningAttack.DamageInfo.IsValidIndex(0))
+	if (!OpeningAttack || !OpeningAttack->DamageInfo.IsValidIndex(0))
 	{
 		return;
 	}
 
-	//---------------------------------------------------------------
-	// 첫 공격은 보스 애니메이션 데이터의 데미지 정보 사용.
-	//
-	//---------------------------------------------------------------
 	if (ICombatDamageInterface* Target = Cast<ICombatDamageInterface>(Hit.GetActor()))
 	{
-		Target->ReceiveDamage(AnimationData->OpeningAttack.DamageInfo[0], Hit);
+		Target->ReceiveDamage(OpeningAttack->DamageInfo[0], Hit);
 	}
 }
 

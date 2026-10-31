@@ -1,11 +1,11 @@
-﻿#pragma once
+#pragma once
 
 #include <CoreMinimal.h>
 #include <Enemy/EnemyBase.h>
 #include "Boss.generated.h"
 
 class UBossAIData;
-class UBossAnimationData;
+struct FEnemyAttackData;
 class UAnimMontage;
 
 UENUM(BlueprintType)
@@ -73,7 +73,7 @@ public:
 	//
 	//---------------------------------------------------------------
 	const UBossAIData* GetBossAIData() const { return BossAIData; }
-	const UBossAnimationData* GetBossAnimationData() const;
+	virtual const FEnemyAttackData* GetOpeningAttackData() const;
 
 	//---------------------------------------------------------------
 	// 현재 보스 페이즈 반환.

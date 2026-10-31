@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -21,8 +21,11 @@ public class ZZakTungSoul : ModuleRules
 			"NavigationSystem",
 			"GameplayTasks",
 			"GameplayTags",
-			"AssetRegistry"
-		});
+			"AssetRegistry",
+
+            "LevelSequence",
+            "MovieScene"
+        });
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] 

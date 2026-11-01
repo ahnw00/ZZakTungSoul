@@ -14,9 +14,11 @@
 
 // Vector
 #define BBKEY_LASTKNOWNLOCATION TEXT("LastKnownLocation")
+#define BBKEY_LASTKNOWNDIRECTION TEXT("LastKnownDirection")
 #define BBKEY_PATROLLOCATION TEXT("PatrolLocation")
 #define BBKEY_HOMELOCATION TEXT("HomeLocation")
 #define BBKEY_STRAFELOCATION TEXT("StrafeLocation")
+#define BBKEY_SEARCHLOCATION TEXT("SearchLocation")
 
 // Enum
 #define BBKEY_COMBATACTION TEXT("CombatAction")

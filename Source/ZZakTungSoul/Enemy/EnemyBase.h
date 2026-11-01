@@ -43,6 +43,12 @@ protected:
 	// 무기 초기화 함수
 	virtual void InitializeWeapon();
 
+	// 사망 처리 함수
+	virtual void SetDead() override;
+
+	// 사망 시 실제 실행될 로직 함수 -> 자식 클래스에서 각자 구현
+	virtual void DeadStart();
+
 public:
 	// Getter / Setter
 	// 현재 적 상태 반환

@@ -2,6 +2,7 @@
 
 
 #include "Character/CharacterBase.h"
+#include <GameFramework/CharacterMovementComponent.h>
 
 // Sets default values
 ACharacterBase::ACharacterBase()
@@ -30,6 +31,15 @@ void ACharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+}
+
+void ACharacterBase::SetDead()
+{
+	// 움직이지 않도록 처리
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+
+	// 콜리전 끄기 -> 레그돌 고민중
+	//SetActorEnableCollision(false);
 }
 
 void ACharacterBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)

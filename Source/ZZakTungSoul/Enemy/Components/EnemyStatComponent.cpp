@@ -43,6 +43,12 @@ void UEnemyStatComponent::SetCurrentStance(float NewStance)
 
 void UEnemyStatComponent::ApplyDamage(const FDamageInfo& DamageInfo)
 {
+	// Hp가 이미 0인 경우
+	if (CurrentHp <= 0.0f)
+	{
+		return;
+	}
+
 	// Damage Info 받아오기
 	float InDamage = DamageInfo.AttackDamage;
 	float InPoiseDamage = DamageInfo.PoiseDamage;
@@ -57,6 +63,12 @@ void UEnemyStatComponent::ApplyDamage(const FDamageInfo& DamageInfo)
 
 	bIsPoiseOver = Poise < InPoiseDamage;
 	bIsStanceOver = MaxStance <= CurrentStance;
+
+	// Hp가 0이 되었는지 확인
+	if (CurrentHp <= 0.0f)
+	{
+		OnEnemyHpZero.Broadcast();
+	}
 
 	UE_LOG(LogTemp, Log, TEXT("Current HP: %f"), CurrentHp);
 }

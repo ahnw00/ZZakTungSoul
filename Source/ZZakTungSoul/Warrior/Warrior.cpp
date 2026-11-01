@@ -9,6 +9,7 @@
 #include "GameFrameWork/CharacterMovementComponent.h"
 
 #include "Components/ArrowComponent.h"
+#include <Components/CapsuleComponent.h>
 
 // DataTable
 //#include "Data/CharacterStatData.h"
@@ -26,7 +27,7 @@
 #include "Interface/InteractionInterface.h"
 
 // Damage
-#include  <Data/DamageInfo.h>
+#include <Data/DamageInfo.h>
 #include <Interface/CombatDamageInterface.h>
 #include <Enemy/Components/AttackTraceComponent.h>
 
@@ -83,6 +84,20 @@ AWarrior::AWarrior()
 	// 스켈레탈 메시 컴포넌트 생성
 	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon"));
 	Weapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket"));
+
+	LeftHandWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeapon"));
+	LeftHandWeapon->SetupAttachment(GetMesh(), TEXT("hand_lSocket"));
+
+	// TraceComponent가 판정할 수 있는 캡슐 컴포넌트(무기마다 크기 조정 필요)
+	// 방패를 들때만 방패 크기에 맞춰 커질거고
+	// 만약 왼손에 무기나 아무것도 안들고 있다면 그냥 기본 캡슐 크기가 되어야함
+	LeftHandCapsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("LeftHandCapsule"));
+	LeftHandCapsule->SetupAttachment(GetMesh(), TEXT("hand_lSocket"));
+	LeftHandCapsule->SetCapsuleHalfHeight(70.f);
+	LeftHandCapsule->SetCapsuleRadius(70.f);
+	//LeftHandCapsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LeftHandCapsule->SetCollisionObjectType(ECC_Pawn);
+	LeftHandCapsule->ComponentTags.Add(TEXT("ParryCollision"));
 
 	// [스탯 컴포넌트].
 	CharacterStatComponent = CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStatComponent"));
@@ -301,7 +316,7 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 	//	bComboQueued = false;
 	//	bCanComboInput = false;
 	//}
-	
+
 	if(ActionState != EActionState::Attack)
 		SetActionState(EActionState::None);
 
@@ -401,7 +416,12 @@ void AWarrior::BlockEnd()
 
 void AWarrior::Parry()
 {
-	UE_LOG(LogTemp, Log, TEXT("Parry"));
+	// 다른 행동을 하고 있으면 무시
+	if (ActionState != EActionState::None)
+		return;
+
+	SetActionState(EActionState::Parry);
+	AnimInstance->PlayActionMontage();
 }
 
 void AWarrior::Attack()

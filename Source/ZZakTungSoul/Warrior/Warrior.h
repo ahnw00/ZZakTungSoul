@@ -56,6 +56,12 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Weapon")
 	class USkeletalMeshComponent* Weapon;
 
+	UPROPERTY(VisibleAnywhere, Category = "LeftHandWeapon")
+	class USkeletalMeshComponent* LeftHandWeapon;
+
+	UPROPERTY(VisibleAnywhere, Category = "LeftHandCapsule")
+	class UCapsuleComponent* LeftHandCapsule;
+
 	UPROPERTY(VisibleAnywhere, Category = "Equipment")
 	class UEquipmentComponent* Equipment;
 
@@ -178,6 +184,9 @@ protected:
 	// 공격 판정을 위한 Trace Component
 	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
 	TObjectPtr<class UAttackTraceComponent> AttackTraceComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
+	TObjectPtr<class UAttackTraceComponent> ParryTraceComponent;
 	
 
 	// 아이템 관련 함수

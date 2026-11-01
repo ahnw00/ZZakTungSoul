@@ -21,7 +21,9 @@ enum class EActionState : uint8
 	Roll,
 	BackStep,
 	Attack,
+	ChargeAttack,
 	Block,
+	Parry,
 	Hit,
 	Stun,
 };

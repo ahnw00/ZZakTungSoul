@@ -47,7 +47,7 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> ParryMontageRef(
-		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Parry_Montage.Warrior_SwordAndShield_Parry_Montage")
+		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Parry_Montage1.Warrior_SwordAndShield_Parry_Montage1")
 	);
 	if (ParryMontageRef.Succeeded())
 	{
@@ -311,6 +311,28 @@ void UWarriorAnimInstance::PlayMontage(const EActionState CurrentActionState)
 
 }
 
+const UWeaponDataAsset* UWarriorAnimInstance::GetWeaponData(AWarrior* Warrior)
+{
+	if (!Warrior)
+		return nullptr;
+
+	UEquipmentComponent* Equipment = Warrior->FindComponentByClass<UEquipmentComponent>();
+	UInventoryComponent* Inventory = Warrior->FindComponentByClass<UInventoryComponent>();
+
+	if (!Equipment || !Inventory)
+		return nullptr;
+
+	const FGuid ItemID = Equipment->GetEquippedItem(EEquipmentSlot::RightHand);
+	if (!ItemID.IsValid())
+		return nullptr;
+
+	const UItemDataAsset* ItemData = Inventory->FindItemDataByInstanceID(ItemID);
+	if (!ItemData)
+		return nullptr;
+
+	return Cast<UWeaponDataAsset>(ItemData);
+}
+
 bool UWarriorAnimInstance::PlayActionMontage()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("PlayActionMontage()== Start "));
@@ -336,124 +358,43 @@ bool UWarriorAnimInstance::PlayActionMontage()
 		break;
 	case EActionState::Roll:
 	{
-		if (!Warrior)
-			return false;
-
-		//AActor* Owner = GetOwningActor();
-
-		//if (!Owner)
-		//	return false;
-
-		UEquipmentComponent* Equipment = Warrior->FindComponentByClass<UEquipmentComponent>();
-
-		UInventoryComponent* Inventory = Warrior->FindComponentByClass<UInventoryComponent>();
-
-		if (!Equipment || !Inventory)
-			return false;
-
-		FGuid ItemID = Equipment->GetEquippedItem(EEquipmentSlot::RightHand);
-
-		if (!ItemID.IsValid())
-		{
-			return Montage_Play(RollMontage) > 0.f;
-		}
-
-		const FInventoryItem* FoundItem = Inventory->GetItems().FindByPredicate([&ItemID](const FInventoryItem& Item)
-		{
-			return Item.InstanceID == ItemID;
-		});
-
-		if (!FoundItem)
-			return false;
-
-		UItemDataAsset* ItemData = Inventory->GetItemData(*FoundItem);
-
-		UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(ItemData);
-
+		const UWeaponDataAsset* WeaponData = GetWeaponData(Warrior);
 		if (!WeaponData)
-			return false;
+			return Montage_Play(RollMontage) > 0.f;
 
-		const TSoftObjectPtr<UAnimMontage>& RollMontageEquip = Warrior->IsTwoHanded() ? WeaponData->TwoHandRollMontage : WeaponData->OneHandRollMontage;
+		const TSoftObjectPtr<UAnimMontage>& RollMontageEquip 
+			= Warrior->IsTwoHanded() ? WeaponData->TwoHandRollMontage : WeaponData->OneHandRollMontage;
 
 		UAnimMontage* Montage = RollMontageEquip.LoadSynchronous();
-
 		if (!Montage)
 			return false;
 
 		return Montage_Play(Montage) > 0.f;
 	}
-		break;
+
 	case EActionState::BackStep:
 	{
-		if (!Warrior)
-			return false;
-
-		//AActor* Owner = GetOwningActor();
-
-		//if (!Owner)
-		//	return false;
-
-		UEquipmentComponent* Equipment = Warrior->FindComponentByClass<UEquipmentComponent>();
-
-		UInventoryComponent* Inventory = Warrior->FindComponentByClass<UInventoryComponent>();
-
-		if (!Equipment || !Inventory)
-			return false;
-
-		FGuid ItemID = Equipment->GetEquippedItem(EEquipmentSlot::RightHand);
-
-		if (!ItemID.IsValid())
-		{
-			return Montage_Play(BackStepMontage) > 0.f;
-		}
-
-		const FInventoryItem* FoundItem = Inventory->GetItems().FindByPredicate([&ItemID](const FInventoryItem& Item)
-		{
-			return Item.InstanceID == ItemID;
-		});
-
-		if (!FoundItem)
-			return false;
-
-		UItemDataAsset* ItemData = Inventory->GetItemData(*FoundItem);
-
-		UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(ItemData);
-
+		const UWeaponDataAsset* WeaponData = GetWeaponData(Warrior);
 		if (!WeaponData)
-			return false;
+			return Montage_Play(BackStepMontage) > 0.f;
 
-		const TSoftObjectPtr<UAnimMontage>& BackStepMontageEquip = Warrior->IsTwoHanded() ? WeaponData->TwoHandBackStepMontage : WeaponData->OneHandBackStepMontage;
+		const TSoftObjectPtr<UAnimMontage>& BackStepMontageEquip 
+			= Warrior->IsTwoHanded() ? WeaponData->TwoHandBackStepMontage : WeaponData->OneHandBackStepMontage;
 
 		UAnimMontage* Montage = BackStepMontageEquip.LoadSynchronous();
-
 		if (!Montage)
 			return false;
 
 		return Montage_Play(Montage) > 0.f;
 	}
-		break;
+
 	case EActionState::Attack:
 	{
-		if (!Warrior)
-			return false;
+		const UWeaponDataAsset* WeaponData = GetWeaponData(Warrior);
+		const int32 ComboIndex = Warrior->GetCombo();
 
-		//AActor* Owner = GetOwningActor();
-
-		//if (!Owner)
-		//	return false;
-
-		UEquipmentComponent* Equipment = Warrior->FindComponentByClass<UEquipmentComponent>();
-		UInventoryComponent* Inventory = Warrior->FindComponentByClass<UInventoryComponent>();
-
-		if (!Equipment || !Inventory)
-			return false;
-
-		FGuid ItemID = Equipment->GetEquippedItem(EEquipmentSlot::RightHand);
-
-		if (!ItemID.IsValid())
+		if (!WeaponData)
 		{
-			const int32 ComboIndex = Warrior->GetCombo();
-
 			if (!AttackMontage.IsValidIndex(ComboIndex))
 			{
 				return false;
@@ -462,144 +403,64 @@ bool UWarriorAnimInstance::PlayActionMontage()
 			return Montage_Play(AttackMontage[ComboIndex]) > 0.f;;
 		}
 
-		const FInventoryItem* FoundItem = Inventory->GetItems().FindByPredicate(
-			[&ItemID](const FInventoryItem& Item)
-		{
-			return Item.InstanceID == ItemID;
-		});
-
-		if (!FoundItem)
-			return false;
-
-		UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(Inventory->GetItemData(*FoundItem));
-
-		if (!WeaponData)
-			return false;
-
-		const int32 ComboIndex = Warrior->GetCombo();
-		//const EWeaponState CurWeaponState = Warrior->GetWeaponState();
-
 		const auto& AttackMontageEquip =
-			Warrior->IsTwoHanded()
-			? WeaponData->TwoHandAttackMontages
-			: WeaponData->OneHandAttackMontages;
+			Warrior->IsTwoHanded() ? WeaponData->TwoHandAttackMontages : WeaponData->OneHandAttackMontages;
 
 		if (!AttackMontageEquip.IsValidIndex(ComboIndex))
 			return false;
 
 		UAnimMontage* Montage = AttackMontageEquip[ComboIndex].LoadSynchronous();
-
 		if (!Montage)
 			return false;
 
 		return Montage_Play(Montage) > 0.f;
 	}
-		break;
+
+	case EActionState::Parry:
+	{
+		UE_LOG(LogTemp, Log, TEXT("Parry"));
+		return Montage_Play(ParryMontage) > 0.f;
+	}
+
 	case EActionState::Hit:
 		//Montage_Play();
 	{
-		if (!Warrior)
-			return false;
-
-		//AActor* Owner = GetOwningActor();
-
-		//if (!Owner)
-		//	return false;
-
-		UEquipmentComponent* Equipment = Warrior->FindComponentByClass<UEquipmentComponent>();
-
-		UInventoryComponent* Inventory = Warrior->FindComponentByClass<UInventoryComponent>();
-
-		if (!Equipment || !Inventory)
-			return false;
-
-		FGuid ItemID = Equipment->GetEquippedItem(EEquipmentSlot::RightHand);
-
-		if (!ItemID.IsValid())
-		{
-			return Montage_Play(HitMontage) > 0.f;
-		}
-
-		const FInventoryItem* FoundItem = Inventory->GetItems().FindByPredicate([&ItemID](const FInventoryItem& Item)
-		{
-			return Item.InstanceID == ItemID;
-		});
-
-		if (!FoundItem)
-			return false;
-
-		UItemDataAsset* ItemData = Inventory->GetItemData(*FoundItem);
-
-		UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(ItemData);
-
+		const UWeaponDataAsset* WeaponData = GetWeaponData(Warrior);
 		if (!WeaponData)
-			return false;
+			return Montage_Play(HitMontage) > 0.f;
 
-		const TSoftObjectPtr<UAnimMontage>& HitMontageEquip = Warrior->IsTwoHanded() ? WeaponData->TwoHandHitMontage : WeaponData->OneHandHitMontage;
+		const TSoftObjectPtr<UAnimMontage>& HitMontageEquip 
+			= Warrior->IsTwoHanded() ? WeaponData->TwoHandHitMontage : WeaponData->OneHandHitMontage;
 
 		UAnimMontage* Montage = HitMontageEquip.LoadSynchronous();
-
 		if (!Montage)
 			return false;
 
 		return Montage_Play(Montage) > 0.f;
 	}
-		break;
+
 	case EActionState::Stun:
 		//Montage_Play();
 	{
-		if (!Warrior)
-			return false;
-
-		//AActor* Owner = GetOwningActor();
-
-		//if (!Owner)
-		//	return false;
-
-		UEquipmentComponent* Equipment = Warrior->FindComponentByClass<UEquipmentComponent>();
-
-		UInventoryComponent* Inventory = Warrior->FindComponentByClass<UInventoryComponent>();
-
-		if (!Equipment || !Inventory)
-			return false;
-
-		FGuid ItemID = Equipment->GetEquippedItem(EEquipmentSlot::RightHand);
-
-		if (!ItemID.IsValid())
-		{
-			return Montage_Play(StunMontage) > 0.f;
-		}
-
-		const FInventoryItem* FoundItem = Inventory->GetItems().FindByPredicate([&ItemID](const FInventoryItem& Item)
-		{
-			return Item.InstanceID == ItemID;
-		});
-
-		if (!FoundItem)
-			return false;
-
-		UItemDataAsset* ItemData = Inventory->GetItemData(*FoundItem);
-
-		UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(ItemData);
-
+		const UWeaponDataAsset* WeaponData = GetWeaponData(Warrior);
 		if (!WeaponData)
-			return false;
+			return Montage_Play(StunMontage) > 0.f;
 
-		const TSoftObjectPtr<UAnimMontage>& StunMontageEquip = Warrior->IsTwoHanded() ? WeaponData->TwoHandStunMontage : WeaponData->OneHandStunMontage;
+		const TSoftObjectPtr<UAnimMontage>& StunMontageEquip 
+			= Warrior->IsTwoHanded() ? WeaponData->TwoHandStunMontage : WeaponData->OneHandStunMontage;
 
 		UAnimMontage* Montage = StunMontageEquip.LoadSynchronous();
-
 		if (!Montage)
 			return false;
 
 		return Montage_Play(Montage) > 0.f;
 	}
-	break;
+
 	default:
 		break;
 	}
 
-	return true;
+	return false;
 }
 
 void UWarriorAnimInstance::PlayRollMontage()

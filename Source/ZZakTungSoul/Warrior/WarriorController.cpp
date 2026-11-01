@@ -326,6 +326,8 @@ void AWarriorController::Move(const FInputActionValue& InputValue)
 			[[fallthrough]];
 		case EActionState::Hit:
 			return;
+		case EActionState::Parry:
+			return;
 		case EActionState::Block:
 		{
 			if (Warrior->GetWeaponState() == EWeaponState::TwoHand)

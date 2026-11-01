@@ -78,6 +78,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	EWeaponState WeaponState = EWeaponState::None;
 
+private:
+	const class UWeaponDataAsset* GetWeaponData(class AWarrior* Warrior);
+
 public:
 	UFUNCTION()
 	void AnimNotify_ActionEnd();

@@ -27,7 +27,7 @@ EBTNodeResult::Type UBTTask_ClownEvade::ExecuteTask(UBehaviorTreeComponent& Owne
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	AActor* Target = BlackboardComp ? Cast<AActor>(BlackboardComp->GetValueAsObject(TargetActorKey)) : nullptr;
 
-	if (!IsValid(Clown) || !IsValid(Target) || Clown->GetBossPhase() != EBossPhase::Phase1)
+	if (!IsValid(Clown) || !IsValid(Target) || !Clown->IsClownCombatPhase())
 	{
 		return EBTNodeResult::Failed;
 	}
@@ -38,7 +38,7 @@ void UBTTask_ClownEvade::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 {
 	ABossClown* Clown = AttackingClown.Get();
 	AActor* Target = TacticalTarget.Get();
-	if (!Clown || !IsValid(Target) || Clown->IsDead() || Clown->GetBossPhase() != EBossPhase::Phase1)
+	if (!Clown || !IsValid(Target) || Clown->IsDead() || !Clown->IsClownCombatPhase())
 	{
 		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
 		return;
@@ -64,6 +64,21 @@ void UBTTask_ClownEvade::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 			if (FVector::Dist2D(Clown->GetActorLocation(), Home) > Clown->GetClownAnimationData()->TacticalLeashRadius)
 			{
 				Direction = (Home - Clown->GetActorLocation()).GetSafeNormal2D();
+			}
+		}
+		if (Elapsed >= NextOrbitProbeTime)
+		{
+			NextOrbitProbeTime = Elapsed + 0.2f;
+			FVector SafeGoal;
+			if (!FindSafeGoal(OwnerComp, Clown, Target, Clown->GetActorLocation() + Direction * 120.0f, SafeGoal))
+			{
+				OrbitSign = -OrbitSign;
+				Direction = (-Tangent + Forward * FMath::Clamp((Gap - 340.0f) / 150.0f, -1.5f, 1.5f)).GetSafeNormal();
+				if (!FindSafeGoal(OwnerComp, Clown, Target, Clown->GetActorLocation() + Direction * 120.0f, SafeGoal))
+				{
+					FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+					return;
+				}
 			}
 		}
 		Move->MaxWalkSpeed = FMath::FInterpTo(Move->MaxWalkSpeed, 260.0f, DeltaSeconds, 5.0f);
@@ -114,7 +129,7 @@ bool UBTTask_ClownEvade::FindSafeGoal(UBehaviorTreeComponent& OwnerComp, ABossCl
 	}
 	const float Half = Clown->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	FNavLocation NavGoal;
-	if (!Nav || !Nav->ProjectPointToNavigation(Desired - FVector(0.0f, 0.0f, Half), NavGoal, FVector(100.0f, 100.0f, 200.0f)))
+	if (Action == EClownEvadeAction::Backjump || !Nav || !Nav->ProjectPointToNavigation(Desired - FVector(0.0f, 0.0f, Half), NavGoal, FVector(100.0f, 100.0f, 200.0f)))
 	{
 		FCollisionQueryParams GroundParams(SCENE_QUERY_STAT(ClownEvadeGround), false, Clown);
 		GroundParams.AddIgnoredActor(Target);
@@ -128,6 +143,7 @@ bool UBTTask_ClownEvade::FindSafeGoal(UBehaviorTreeComponent& OwnerComp, ABossCl
 	OutGoal = NavGoal.Location + FVector(0.0f, 0.0f, Half + 3.0f);
 	if (FVector::Dist2D(OutGoal, Desired) > 100.0f || FMath::Abs(OutGoal.Z - Clown->GetActorLocation().Z) > 60.0f)
 	{
+		UE_LOG(LogTemp, Verbose, TEXT("Clown evade: landing projection rejected. XY %.1f, Z %.1f"), FVector::Dist2D(OutGoal, Desired), OutGoal.Z - Clown->GetActorLocation().Z);
 		return false;
 	}
 	if (UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent())
@@ -139,23 +155,37 @@ bool UBTTask_ClownEvade::FindSafeGoal(UBehaviorTreeComponent& OwnerComp, ABossCl
 	}
 	FVector HitLocation;
 	const FVector StartFoot = Clown->GetActorLocation() - FVector(0.0f, 0.0f, Half - 10.0f);
-	if (Nav && Nav->GetDefaultNavDataInstance() && UNavigationSystemV1::NavigationRaycast(Clown, StartFoot, NavGoal.Location, HitLocation, nullptr, OwnerComp.GetAIOwner()))
+	if (Action != EClownEvadeAction::Backjump && Nav && Nav->GetDefaultNavDataInstance() && UNavigationSystemV1::NavigationRaycast(Clown, StartFoot, NavGoal.Location, HitLocation, nullptr, OwnerComp.GetAIOwner()))
 	{
+		UE_LOG(LogTemp, Verbose, TEXT("Clown evade: navigation path blocked."));
 		return false;
 	}
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ClownTacticalPath), false, Clown);
 	Params.AddIgnoredActor(Target);
 	FHitResult Hit;
 	const FCollisionShape Shape = FCollisionShape::MakeCapsule(Clown->GetCapsuleComponent()->GetScaledCapsuleRadius() + 3.0f, Half);
-	return !Clown->GetWorld()->SweepSingleByChannel(Hit, Clown->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f), OutGoal + FVector(0.0f, 0.0f, 5.0f), FQuat::Identity, ECC_Pawn, Shape, Params);
+	if (Action == EClownEvadeAction::Backjump)
+	{
+		// 점프는 지상 경로가 아니라 착지 공간과 BuildJumpVelocity의 포물선 검사 사용.
+		return !Clown->GetWorld()->OverlapBlockingTestByChannel(OutGoal + FVector(0.0f, 0.0f, 5.0f), FQuat::Identity, ECC_Pawn, Shape, Params);
+	}
+	if (Clown->GetWorld()->SweepSingleByChannel(Hit, Clown->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f), OutGoal + FVector(0.0f, 0.0f, 5.0f), FQuat::Identity, ECC_Pawn, Shape, Params))
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("Clown evade: capsule path blocked by %s."), *GetNameSafe(Hit.GetActor()));
+		return false;
+	}
+	return true;
 }
 
 bool UBTTask_ClownEvade::BuildJumpVelocity(ABossClown* Clown, AActor* Target, FVector& OutVelocity)
 {
 	const float Gravity = FMath::Max(-Clown->GetCharacterMovement()->GetGravityZ(), 1.0f);
-	const float FlightTime = FMath::Sqrt(8.0f * FMath::Max(Clown->GetClownAnimationData()->BackjumpHeight, 1.0f) / Gravity);
-	OutVelocity = (MoveGoal - Clown->GetActorLocation()).GetSafeNormal2D() * (FVector::Dist2D(MoveGoal, Clown->GetActorLocation()) / FlightTime);
-	OutVelocity.Z = Gravity * FlightTime * 0.5f;
+	const FVector Displacement = MoveGoal - Clown->GetActorLocation();
+	const float Height = FMath::Max(Clown->GetClownAnimationData()->BackjumpHeight, FMath::Max(Displacement.Z, 0.0f) + 10.0f);
+	const float UpSpeed = FMath::Sqrt(2.0f * Gravity * Height);
+	const float FlightTime = (UpSpeed + FMath::Sqrt(FMath::Max(UpSpeed * UpSpeed - 2.0f * Gravity * Displacement.Z, 0.0f))) / Gravity;
+	OutVelocity = Displacement.GetSafeNormal2D() * (Displacement.Size2D() / FlightTime);
+	OutVelocity.Z = UpSpeed;
 	Duration = FlightTime + 0.25f;
 
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ClownJumpArc), false, Clown);
@@ -170,6 +200,7 @@ bool UBTTask_ClownEvade::BuildJumpVelocity(ABossClown* Clown, AActor* Target, FV
 		FHitResult Hit;
 		if (Clown->GetWorld()->SweepSingleByChannel(Hit, Previous, Next, FQuat::Identity, ECC_Pawn, Shape, Params))
 		{
+			UE_LOG(LogTemp, Verbose, TEXT("Clown jump: arc segment %d blocked by %s. Start Z %.1f, End Z %.1f, Half %.1f"), Index, *GetNameSafe(Hit.GetActor()), Previous.Z, Next.Z, Clown->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 			return false;
 		}
 		Previous = Next;
@@ -236,13 +267,17 @@ bool UBTTask_ClownEvade::BeginTactical(UBehaviorTreeComponent& OwnerComp, ABossC
 	TacticalTarget = Target;
 	TacticalMontage = Montage;
 	Elapsed = 0.0f;
+	NextOrbitProbeTime = 0.0f;
 	bTacticalActive = true;
-	SavedSpeed = Move->MaxWalkSpeed;
 	bSavedOrient = Move->bOrientRotationToMovement;
 	bSavedDesired = Move->bUseControllerDesiredRotation;
 	bSavedYaw = Clown->bUseControllerRotationYaw;
 	OwnerComp.GetAIOwner()->StopMovement();
-	Move->StopMovementImmediately();
+	Clown->ConsumeMovementInputVector();
+	if (Action != EClownEvadeAction::Orbit)
+	{
+		Move->StopMovementImmediately();
+	}
 	Move->bOrientRotationToMovement = false;
 	Move->bUseControllerDesiredRotation = false;
 	Clown->bUseControllerRotationYaw = false;
@@ -277,10 +312,14 @@ void UBTTask_ClownEvade::FinishTactical(bool bAbort)
 			Trace->EndTrace();
 		}
 		UCharacterMovementComponent* Move = Clown->GetCharacterMovement();
-		Move->MaxWalkSpeed = SavedSpeed;
 		Move->bOrientRotationToMovement = bSavedOrient;
 		Move->bUseControllerDesiredRotation = bSavedDesired;
 		Clown->bUseControllerRotationYaw = bSavedYaw;
+		if (!bAbort && Clown->IsClownCombatPhase())
+		{
+			Clown->SetEnemyState(EEnemyState::Chase);
+		}
+		Clown->RefreshClownMovement();
 		if (bAbort)
 		{
 			Move->StopMovementImmediately();

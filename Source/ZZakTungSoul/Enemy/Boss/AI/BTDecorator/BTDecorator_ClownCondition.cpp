@@ -33,10 +33,6 @@ bool UBTDecorator_ClownCondition::CalculateRawConditionValue(UBehaviorTreeCompon
 	}
 	if (bCheckAttackData)
 	{
-		if (bAvoidRecentRepeat && Clown->HasRecentClownAttack(AttackType, (AttackType == EBossClownAttack::SpawnCards || AttackType == EBossClownAttack::CubeBarrage) ? 18.0f : (AttackType == EBossClownAttack::TripleBalls || AttackType == EBossClownAttack::ClapWave ? 10.0f : 4.0f)))
-		{
-			return false;
-		}
 		const FClownPhaseOnePattern* Pattern = Clown->GetPhaseOnePattern(AttackType);
 		if (!Pattern || !Pattern->bEnabled || !Pattern->Attack.Montage || !Pattern->Attack.DamageInfo.IsValidIndex(0))
 		{

@@ -111,6 +111,7 @@ void ABossRoom::BeginPlay()
 	{
 		InitialBossClass = BossActor->GetClass();
 		BossInitialTransform = BossActor->GetActorTransform();
+		InitialBossArena = BossActor->GetEncounterArena();
 	}
 	else
 	{
@@ -221,7 +222,7 @@ bool ABossRoom::IsPlayerAlive(AWarrior* Player) const
 	}
 
 	const UCharacterStatComponent* Stat = Player->GetCharacterStatComponent();
-	return Stat && Stat->GetCurrentHP() > 0.0f;
+	return true;//Stat && Stat->GetCurrentHP() > 0.0f;
 }
 
 void ABossRoom::OnFirstEntryBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -603,11 +604,13 @@ void ABossRoom::DebugResetRoom()
 
 	//---------------------------------------------------------------
 	// 재생성은 보스 BP 클래스 기본값 사용.
-	// 레벨 인스턴스에서만 바꾼 설정은 복사하지 않음.
+	// 전투 영역은 다시 연결하고 배치한 스케일을 그대로 사용.
 	//
 	//---------------------------------------------------------------
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	Params.TransformScaleMethod = ESpawnActorScaleMethod::OverrideRootScale;
 
 	ABoss* NewBoss = GetWorld()->SpawnActor<ABoss>(InitialBossClass.Get(), BossInitialTransform, Params);
 
@@ -624,6 +627,7 @@ void ABossRoom::DebugResetRoom()
 		BossActor->Destroy();
 	}
 
+	NewBoss->SetEncounterArena(InitialBossArena.Get());
 	BossActor = NewBoss;
 
 	GetRoomSubsystem()->ResetRoom(RoomID);

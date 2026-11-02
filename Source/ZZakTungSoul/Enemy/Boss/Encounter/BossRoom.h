@@ -161,6 +161,7 @@ private:
 	TSubclassOf<ABoss> InitialBossClass;
 
 	FTransform BossInitialTransform = FTransform::Identity;
+	TWeakObjectPtr<AActor> InitialBossArena;
 
 	TWeakObjectPtr<AWarrior> EncounterPlayer;
 	TWeakObjectPtr<APlayerController> LockedController;

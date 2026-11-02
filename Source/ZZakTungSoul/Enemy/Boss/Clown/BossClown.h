@@ -47,9 +47,11 @@ public:
 	void SetClownAttackDamage(int32 DamageIndex, UAnimSequenceBase* SourceAnimation);
 
 	const FClownPhaseOnePattern* GetPhaseOnePattern(EBossClownAttack AttackType) const;
-	float GetTargetSurfaceDistance(const AActor* Target) const;
+	virtual AActor* GetEncounterArena() const override { return CubeArena.Get(); }
+	virtual void SetEncounterArena(AActor* Arena) override { CubeArena = Arena; }
+	void RefreshClownMovement();
+	bool IsClownCombatPhase() const;
 	void FaceClownTarget(AActor* Target, float DeltaTime);
-	bool HasRecentClownAttack(EBossClownAttack Type, float Seconds) const;
 	void PreferClownRangedAttack();
 	bool PrefersClownRangedAttack() const;
 
@@ -74,19 +76,19 @@ private:
 	void ToggleClownTraceDebug();
 	bool bTraceDebugInputReady = false;
 	bool bDrawClownTraces = true;
+	bool bTraceDebugDirty = true;
 	bool PlayCurrentClownMontage();
 	void BeginClownApproach();
 	void BeginClownRecovery();
 	void StopFastChaseAnimation();
 	UClownProjectileComponent* CreateClownProjectile(TSubclassOf<AActor> Class, const FVector& Location, const FRotator& Rotation, float Speed, float LifeTime);
-	void PrepareClownBalls();
+	bool PrepareClownBalls();
 	bool PrepareClownCubeMarch();
-	void PrepareClownCards();
+	bool PrepareClownCards();
 	void TickClownSpecial(float MontageTime);
 	void ClearClownProjectiles(bool bIncludeLaunched);
 	void RestoreClownMovement();
 
-	bool IsClownCombatPhase() const;
 	const FEnemyAttackData* GetClownAttackData(EBossClownAttack AttackType) const;
 	void FinishClownAttack(EBossClownAttackResult Result, bool bStopMontage, bool bRestoreState = true);
 	void OnClownAttackEnded(UAnimMontage* Montage, bool bInterrupted, int32 ExecutionID);
@@ -137,11 +139,7 @@ private:
 	FVector DashStartLocation = FVector::ZeroVector;
 	float AttackStageTime = 0.0f;
 	float CurrentRecoveryScale = 1.0f;
-	EBossClownAttack LastCompletedAttack = EBossClownAttack::HammerSweep;
-	double LastCompletedAttackTime = -1000.0;
-	TMap<EBossClownAttack, double> CompletedAttackTimes;
 	double RangedPreferenceUntil = 0.0;
-	float SavedWalkSpeed = 0.0f;
 	bool bSavedOrientToMovement = false;
 	bool bSavedControllerDesiredRotation = false;
 	bool bSavedControllerYaw = false;

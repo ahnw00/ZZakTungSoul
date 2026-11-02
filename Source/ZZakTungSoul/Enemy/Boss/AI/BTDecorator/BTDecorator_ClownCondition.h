@@ -24,9 +24,6 @@ protected:
 	bool bCheckAttackData = true;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Condition")
-	bool bAvoidRecentRepeat = true;
-
-	UPROPERTY(EditAnywhere, Category = "Clown|Condition")
 	EBossClownAttack AttackType = EBossClownAttack::HammerSweep;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Condition", meta = (ClampMin = "0"))

@@ -37,7 +37,7 @@ void UBTService_BossCombatInfo::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 	}
 
 	// 보스전에서는 시야나 가림 여부로 타깃을 잃지 않음.
-	const float Distance = FVector::Dist2D(Boss->GetActorLocation(), Target->GetActorLocation());
+	const float Distance = Boss->GetTargetSurfaceDistance(Target);
 	BB->SetValueAsObject(BBKEY_TARGETACTOR, Target);
 	BB->SetValueAsBool(BBKEY_HASLINEOFSIGHT, true);
 	BB->SetValueAsFloat(BBKEY_TARGETDISTANCE, Distance);

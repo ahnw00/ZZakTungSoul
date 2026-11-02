@@ -48,9 +48,9 @@ private:
 	FVector MoveGoal = FVector::ZeroVector;
 	FVector TacticalStart = FVector::ZeroVector;
 	float Elapsed = 0.0f;
+	float NextOrbitProbeTime = 0.0f;
 	float Duration = 1.0f;
 	float MoveDuration = 0.55f;
-	float SavedSpeed = 0.0f;
 	bool bSavedOrient = false;
 	bool bSavedDesired = false;
 	bool bSavedYaw = false;

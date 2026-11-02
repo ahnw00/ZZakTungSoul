@@ -74,6 +74,9 @@ public:
 	//---------------------------------------------------------------
 	const UBossAIData* GetBossAIData() const { return BossAIData; }
 	virtual const FEnemyAttackData* GetOpeningAttackData() const;
+	float GetTargetSurfaceDistance(const AActor* Target) const;
+	virtual AActor* GetEncounterArena() const { return nullptr; }
+	virtual void SetEncounterArena(AActor* Arena) {}
 
 	//---------------------------------------------------------------
 	// 현재 보스 페이즈 반환.

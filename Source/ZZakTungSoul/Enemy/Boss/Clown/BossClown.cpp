@@ -145,7 +145,6 @@ bool ABossClown::StartClownAttack(EBossClownAttack AttackType, AActor* Target, i
 
 	SetStrafeMode(false);
 
-	SavedWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
 	bSavedOrientToMovement = GetCharacterMovement()->bOrientRotationToMovement;
 	bSavedControllerDesiredRotation = GetCharacterMovement()->bUseControllerDesiredRotation;
 	bSavedControllerYaw = bUseControllerRotationYaw;
@@ -161,7 +160,7 @@ bool ABossClown::StartClownAttack(EBossClownAttack AttackType, AActor* Target, i
 		AI->ClearFocus(EAIFocusPriority::Gameplay);
 	}
 
-	GetCharacterMovement()->StopMovementImmediately();
+	ConsumeMovementInputVector();
 	AttackTraceComponent->EndTrace();
 
 	FVector Direction = Target->GetActorLocation() - GetActorLocation();
@@ -244,12 +243,6 @@ void ABossClown::BeginClownApproach()
 	GetWorld()->GetTimerManager().SetTimer(AttackTimeoutHandle, this, &ABossClown::OnClownAttackTimeout, FMath::Max(AttackTimeout, 0.1f), false);
 }
 
-bool ABossClown::HasRecentClownAttack(EBossClownAttack Type, float Seconds) const
-{
-	const double* Time = CompletedAttackTimes.Find(Type);
-	return Time && GetWorld() && GetWorld()->GetTimeSeconds() - *Time < Seconds;
-}
-
 bool ABossClown::PlayCurrentClownMontage()
 {
 	UAnimInstance* Anim = AttackAnimInstance.Get();
@@ -305,12 +298,23 @@ bool ABossClown::PlayCurrentClownMontage()
 		}
 		else if (CurrentAttackType == EBossClownAttack::TripleBalls)
 		{
-			PrepareClownBalls();
+			if (!PrepareClownBalls())
+			{
+				FinishClownAttack(EBossClownAttackResult::Failed, true);
+				return false;
+			}
+			// 발사 시간은 누적하고 지휘 동작만 반복. 모든 공을 발사한 뒤 현재 마디를 마무리.
+			const FName Section = Montage->GetSectionName(0);
+			Anim->Montage_SetNextSection(Section, Section, Montage);
 		}
 
 		if (CurrentAttackType == EBossClownAttack::SpawnCards)
 		{
-			PrepareClownCards();
+			if (!PrepareClownCards())
+			{
+				FinishClownAttack(EBossClownAttackResult::Failed, true);
+				return false;
+			}
 		}
 
 	}
@@ -330,19 +334,9 @@ const FClownPhaseOnePattern* ABossClown::GetPhaseOnePattern(EBossClownAttack Att
 	return Data ? Data->PhaseOnePatterns.FindByPredicate([AttackType](const FClownPhaseOnePattern& Pattern) { return Pattern.AttackType == AttackType; }) : nullptr;
 }
 
-float ABossClown::GetTargetSurfaceDistance(const AActor* Target) const
+void ABossClown::RefreshClownMovement()
 {
-	if (!IsValid(Target))
-	{
-		return TNumericLimits<float>::Max();
-	}
-
-	float TargetRadius = 0.0f;
-	if (const ACharacter* Character = Cast<ACharacter>(Target))
-	{
-		TargetRadius = Character->GetCapsuleComponent()->GetScaledCapsuleRadius();
-	}
-	return FMath::Max(0.0f, FVector::Dist2D(GetActorLocation(), Target->GetActorLocation()) - GetCapsuleComponent()->GetScaledCapsuleRadius() - TargetRadius);
+	UpdateMovementSpeed();
 }
 
 void ABossClown::FaceClownTarget(AActor* Target, float DeltaTime)
@@ -385,6 +379,7 @@ void ABossClown::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ABossClown::ToggleClownTraceDebug()
 {
 	bDrawClownTraces = !bDrawClownTraces;
+	bTraceDebugDirty = true;
 }
 
 void ABossClown::UpdateClownTraceDebug()
@@ -404,6 +399,11 @@ void ABossClown::UpdateClownTraceDebug()
 			bTraceDebugInputReady = true;
 		}
 	}
+	if (!bTraceDebugDirty)
+	{
+		return;
+	}
+	bTraceDebugDirty = false;
 	TArray<UAttackTraceComponent*> Traces;
 	GetComponents<UAttackTraceComponent>(Traces);
 	for (UAttackTraceComponent* Trace : Traces)
@@ -455,7 +455,7 @@ void ABossClown::TickClownAttack(float DeltaTime)
 			const double Now = GetWorld()->GetTimeSeconds();
 			if (Now >= NextChasePathTime && AI->GetMoveStatus() != EPathFollowingStatus::Moving)
 			{
-				if (AI->MoveToActor(Target, Data->FastChaseStopDistance, true) == EPathFollowingRequestResult::Failed)
+				if (AI->MoveToActor(Target, FMath::Max(Data->FastChaseStopDistance - 10.0f, 0.0f), true) == EPathFollowingRequestResult::Failed)
 				{
 					FinishClownAttack(EBossClownAttackResult::Failed, false);
 					return;
@@ -483,6 +483,10 @@ void ABossClown::TickClownAttack(float DeltaTime)
 	UAnimInstance* Anim = AttackAnimInstance.Get();
 	const float MontageTime = Anim ? Anim->Montage_GetPosition(CurrentClownAttack.Montage.Get()) : 0.0f;
 	TickClownSpecial(MontageTime);
+	if (ActiveAttackID == INDEX_NONE)
+	{
+		return;
+	}
 	if (CurrentAttackType != EBossClownAttack::DashSweep && MontageTime < Pattern->TrackingTime)
 	{
 		FaceClownTarget(Target, DeltaTime);
@@ -505,7 +509,12 @@ void ABossClown::TickClownAttack(float DeltaTime)
 		else
 		{
 			// CharacterMovement의 충돌 처리를 사용하며 돌진 중 목표 방향은 변경하지 않음.
-			GetCharacterMovement()->Velocity = DashDirection * Data->DashSpeed;
+			const float DashTime = MontageTime - Data->DashStartTime;
+			const float BlendTime = FMath::Min(0.15f, Data->DashDuration * 0.25f);
+			const float BlendIn = BlendTime > 0.0f ? FMath::Clamp(DashTime / BlendTime, 0.0f, 1.0f) : 1.0f;
+			const float BlendOut = BlendTime > 0.0f ? FMath::Clamp((Data->DashDuration - DashTime) / BlendTime, 0.0f, 1.0f) : 1.0f;
+			const float SpeedScale = FMath::Min(BlendIn, BlendOut);
+			GetCharacterMovement()->Velocity = DashDirection * Data->DashSpeed * SpeedScale;
 			AddMovementInput(DashDirection, 1.0f);
 		}
 	}
@@ -534,12 +543,6 @@ void ABossClown::RestoreClownMovement()
 	{
 		return;
 	}
-	if (AAIController* AI = Cast<AAIController>(GetController()))
-	{
-		AI->StopMovement();
-	}
-	GetCharacterMovement()->StopMovementImmediately();
-	GetCharacterMovement()->MaxWalkSpeed = SavedWalkSpeed;
 	ConsumeMovementInputVector();
 	GetCharacterMovement()->bOrientRotationToMovement = bSavedOrientToMovement;
 	GetCharacterMovement()->bUseControllerDesiredRotation = bSavedControllerDesiredRotation;
@@ -650,12 +653,6 @@ void ABossClown::FinishClownAttack(EBossClownAttackResult Result, bool bStopMont
 	// 종료 콜백보다 먼저 실행 번호 무효화.
 	//
 	//---------------------------------------------------------------
-	if (Result == EBossClownAttackResult::Succeeded)
-	{
-		LastCompletedAttack = CurrentAttackType;
-		LastCompletedAttackTime = GetWorld()->GetTimeSeconds();
-		CompletedAttackTimes.Add(CurrentAttackType, LastCompletedAttackTime);
-	}
 	LastAttackID = ActiveAttackID;
 	LastAttackResult = Result;
 	ActiveAttackID = INDEX_NONE;
@@ -668,7 +665,7 @@ void ABossClown::FinishClownAttack(EBossClownAttackResult Result, bool bStopMont
 
 		if (bStopMontage)
 		{
-			Anim->Montage_Stop(0.0f, Montage);
+			Anim->Montage_Stop(IsClownCombatPhase() ? 0.15f : 0.0f, Montage);
 		}
 	}
 
@@ -684,18 +681,17 @@ void ABossClown::FinishClownAttack(EBossClownAttackResult Result, bool bStopMont
 	bDashStarted = false;
 	bDashEnded = false;
 
+	RestoreClownMovement();
 	if (bRestoreState && !IsActorBeingDestroyed() && IsClownCombatPhase() &&
 		(GetEnemyState() == EEnemyState::Attack || GetEnemyState() == EEnemyState::FastChase))
 	{
 		SetEnemyState(EEnemyState::Chase);
 	}
-	RestoreClownMovement();
+	RefreshClownMovement();
 }
 
 void ABossClown::ResetBossGimmicks()
 {
-	LastCompletedAttackTime = -1000.0;
-	CompletedAttackTimes.Reset();
 	LastPlayedAttackMontage.Reset();
 	RangedPreferenceUntil = 0.0;
 	ClearClownProjectiles(true);
@@ -786,11 +782,12 @@ UClownProjectileComponent* ABossClown::CreateClownProjectile(TSubclassOf<AActor>
 		return nullptr;
 	}
 	Projectile->Initialize(CurrentClownAttack.DamageInfo[0], Speed, LifeTime);
+	bTraceDebugDirty = true;
 	ClownProjectiles.Add(Actor);
 	return Projectile;
 }
 
-void ABossClown::PrepareClownBalls()
+bool ABossClown::PrepareClownBalls()
 {
 	ClearClownProjectiles(false);
 	const UBossClownAnimationData* Data = GetClownAnimationData();
@@ -805,6 +802,7 @@ void ABossClown::PrepareClownBalls()
 	const FVector Up = FVector::UpVector;
 	const float MarkerRadius = 210.0f;
 
+	int32 SpawnedBalls = 0;
 	for (int32 Index = 0; Index < Count; ++Index)
 	{
 		const double StartAngle = 2.0 * PI * Index / Count;
@@ -812,21 +810,23 @@ void ABossClown::PrepareClownBalls()
 
 		if (UClownProjectileComponent* Ball = CreateClownProjectile(Data->BallClass, Position, Facing.Rotator(), Data->BallSpeed, 6.0f))
 		{
+			++SpawnedBalls;
 			const FVector Axis = FMath::VRand();
 			const float Rate = FMath::FRandRange(140.0f, 320.0f);
 			Ball->SetVisualSpin(FRotator(Axis.X * Rate, Axis.Y * Rate, Axis.Z * Rate));
 		}
 	}
+	return SpawnedBalls == Count;
 }
 
-void ABossClown::PrepareClownCards()
+bool ABossClown::PrepareClownCards()
 {
 	ClearClownProjectiles(false);
 	const UBossClownAnimationData* Data = GetClownAnimationData();
 	AActor* Target = ClownAttackTarget.Get();
 	if (!Data || !Data->CardClass || !IsValid(Target) || Data->CardFaces.IsEmpty() || Data->HeartFaces.IsEmpty())
 	{
-		return;
+		return false;
 	}
 
 	// 모든 낙하 방향은 소환 순간의 플레이어 위치로 고정. 이후 추적하지 않음.
@@ -854,10 +854,11 @@ void ABossClown::PrepareClownCards()
 	}
 	if (Positions.IsEmpty())
 	{
-		return;
+		return false;
 	}
 	// 실제 생성 가능한 위치 중 하트를 먼저 생성. 실패하면 나머지 위험 카드도 생성하지 않음.
 	Positions.Swap(0, FMath::RandRange(0, Positions.Num() - 1));
+	int32 SpawnedCards = 0;
 	for (int32 Index = 0; Index < Positions.Num(); ++Index)
 	{
 		const bool bSafe = Index == 0 || FMath::FRand() < 0.12f;
@@ -870,16 +871,21 @@ void ABossClown::PrepareClownCards()
 		{
 			if (Index == 0)
 			{
-				return;
+				return false;
 			}
 			continue;
 		}
 		Projectile->ArmCard(Positions[Index], Data->CardFirstLaunchTime, Height, Width, Data->CardFallTime, Face, bSafe);
+		if (!Projectile->GetOwner()->IsActorBeingDestroyed())
+		{
+			++SpawnedCards;
+		}
 		if (Projectile->GetOwner()->IsActorBeingDestroyed() && Index == 0)
 		{
-			return;
+			return false;
 		}
 	}
+	return SpawnedCards >= 2;
 }
 
 void ABossClown::TickClownSpecial(float MontageTime)
@@ -915,6 +921,13 @@ void ABossClown::TickClownSpecial(float MontageTime)
 				}
 			}
 			++BallsLaunched;
+		}
+		if (BallsLaunched >= FMath::Clamp(Data->BallCount, 1, 16))
+		{
+			if (UAnimInstance* Anim = AttackAnimInstance.Get())
+			{
+				Anim->Montage_SetNextSection(CurrentClownAttack.Montage->GetSectionName(0), NAME_None, CurrentClownAttack.Montage.Get());
+			}
 		}
 	}
 	else if (CurrentAttackType == EBossClownAttack::ClapWave && !bClapReleased && MontageTime >= Data->ClapImpactTime)

@@ -14,6 +14,7 @@
 #include <Animation/AnimInstance.h>
 #include <Animation/AnimMontage.h>
 #include <Components/SkeletalMeshComponent.h>
+#include <Components/CapsuleComponent.h>
 #include <GameFramework/CharacterMovementComponent.h>
 
 ABoss::ABoss()
@@ -116,6 +117,21 @@ void ABoss::UpdateMovementSpeed()
 	default:
 		break;
 	}
+}
+
+float ABoss::GetTargetSurfaceDistance(const AActor* Target) const
+{
+	if (!IsValid(Target))
+	{
+		return TNumericLimits<float>::Max();
+	}
+
+	float TargetRadius = 0.0f;
+	if (const ACharacter* Character = Cast<ACharacter>(Target))
+	{
+		TargetRadius = Character->GetCapsuleComponent()->GetScaledCapsuleRadius();
+	}
+	return FMath::Max(0.0f, FVector::Dist2D(GetActorLocation(), Target->GetActorLocation()) - GetCapsuleComponent()->GetScaledCapsuleRadius() - TargetRadius);
 }
 
 const FEnemyAttackData* ABoss::GetOpeningAttackData() const

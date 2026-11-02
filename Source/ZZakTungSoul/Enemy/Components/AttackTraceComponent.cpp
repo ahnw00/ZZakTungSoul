@@ -219,6 +219,7 @@ void UAttackTraceComponent::CheckTrace(const FVector& Start, const FVector& End)
 		if (HitComponent->ComponentHasTag(TEXT("ParryCollision")))
 		{
 			UE_LOG(LogTemp, Log, TEXT("Parry Completed!"));
+			OnGetParried.Broadcast();
 			EndTrace();
 			return;
 		}

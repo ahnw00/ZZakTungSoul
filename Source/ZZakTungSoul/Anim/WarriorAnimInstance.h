@@ -56,6 +56,9 @@ private:
 	TArray<UAnimMontage*> AttackMontage;
 
 	UPROPERTY()
+	TObjectPtr<UAnimMontage> FatalAttackMontage;
+
+	UPROPERTY()
 	UAnimMontage* ParryMontage;
 
 	UPROPERTY()

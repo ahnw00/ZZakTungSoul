@@ -26,7 +26,7 @@ enum class EBossClownAttack : uint8
 UENUM(BlueprintType)
 enum class EClownAttackStyle : uint8
 {
-	Normal, Immediate, DelayedPursuit
+	Normal, Immediate, DelayedPursuit UMETA(Hidden)
 };
 
 USTRUCT(BlueprintType)
@@ -109,8 +109,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior")
 	TObjectPtr<UAnimMontage> EvadeRightMontage;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior")
-	TObjectPtr<UAnimMontage> FeintMontage;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Balls", meta = (ClampMin = "1", ClampMax = "16"))
 	int32 BallCount = 5;

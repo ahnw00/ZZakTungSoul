@@ -14,7 +14,7 @@
 
 UBTTask_ClownEvade::UBTTask_ClownEvade()
 {
-	NodeName = TEXT("Clown Evade / Feint");
+	NodeName = TEXT("Clown Evade / Orbit");
 	bCreateNodeInstance = true;
 	bNotifyTick = true;
 	bNotifyTaskFinished = true;
@@ -68,21 +68,6 @@ void UBTTask_ClownEvade::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		}
 		Move->MaxWalkSpeed = FMath::FInterpTo(Move->MaxWalkSpeed, 260.0f, DeltaSeconds, 5.0f);
 		Clown->AddMovementInput(Direction);
-	}
-	else if (Action == EClownEvadeAction::Feint)
-	{
-		// 실제 타격 전에 자세를 유지하고 취소. 공격 판정은 켜지지 않음.
-		if (UAnimInstance* Anim = Clown->GetMesh()->GetAnimInstance())
-		{
-			if (Anim->Montage_GetPosition(TacticalMontage.Get()) >= FeintPoseTime)
-			{
-				Anim->Montage_Pause(TacticalMontage.Get());
-			}
-		}
-		if (UAttackTraceComponent* Trace = Clown->FindComponentByClass<UAttackTraceComponent>())
-		{
-			Trace->EndTrace();
-		}
 	}
 	else if (Action != EClownEvadeAction::Backjump && Elapsed < MoveDuration)
 	{
@@ -197,7 +182,7 @@ bool UBTTask_ClownEvade::BeginTactical(UBehaviorTreeComponent& OwnerComp, ABossC
 	const UBossClownAnimationData* Data = Clown->GetClownAnimationData();
 	UCharacterMovementComponent* Move = Clown->GetCharacterMovement();
 	UAnimInstance* Anim = Clown->GetMesh()->GetAnimInstance();
-	if (!Data || !Anim || !Move->IsMovingOnGround())
+	if (!Data || !Anim || !Move->IsMovingOnGround() || Action == EClownEvadeAction::Feint)
 	{
 		return false;
 	}
@@ -220,28 +205,18 @@ bool UBTTask_ClownEvade::BeginTactical(UBehaviorTreeComponent& OwnerComp, ABossC
 		Offset = FVector::CrossProduct(FVector::UpVector, Forward) * Side * Data->SideEvadeDistance;
 		Montage = Side < 0.0f ? Data->EvadeLeftMontage.Get() : Data->EvadeRightMontage.Get();
 		break;
-	case EClownEvadeAction::Feint:
-		// 같은 공격의 준비 동작을 보여 줘야 실제 공격과 헷갈릴 수 있음.
-		if (const FClownPhaseOnePattern* Pattern = Clown->GetPhaseOnePattern(EBossClownAttack::HammerSlam))
-		{
-			Montage = Pattern->Attack.Montage.Get();
-		}
-		if (!Montage)
-		{
-			Montage = Data->FeintMontage.Get();
-		}
-		break;
+
 	}
 	if (!Montage && Action != EClownEvadeAction::Orbit)
 	{
 		return false;
 	}
-	if (Action != EClownEvadeAction::Feint && Action != EClownEvadeAction::Orbit && !FindSafeGoal(OwnerComp, Clown, Target, Clown->GetActorLocation() + Offset, MoveGoal))
+	if (Action != EClownEvadeAction::Orbit && !FindSafeGoal(OwnerComp, Clown, Target, Clown->GetActorLocation() + Offset, MoveGoal))
 	{
 		return false;
 	}
 
-	Duration = Action == EClownEvadeAction::Orbit ? FMath::FRandRange(3.0f, 4.5f) : (Action == EClownEvadeAction::Feint ? 0.65f : 0.8f);
+	Duration = Action == EClownEvadeAction::Orbit ? FMath::FRandRange(3.0f, 4.5f) : 0.8f;
 	MoveDuration = 0.7f;
 	TacticalStart = Clown->GetActorLocation();
 	OrbitSign = Side;
@@ -260,7 +235,6 @@ bool UBTTask_ClownEvade::BeginTactical(UBehaviorTreeComponent& OwnerComp, ABossC
 	AttackingClown = Clown;
 	TacticalTarget = Target;
 	TacticalMontage = Montage;
-	FeintPoseTime = ABossClown::GetAnticipationPoseTime(Montage);
 	Elapsed = 0.0f;
 	bTacticalActive = true;
 	SavedSpeed = Move->MaxWalkSpeed;
@@ -278,7 +252,7 @@ bool UBTTask_ClownEvade::BeginTactical(UBehaviorTreeComponent& OwnerComp, ABossC
 		Move->MaxWalkSpeed = JumpVelocity.Size2D();
 		Clown->LaunchCharacter(JumpVelocity, true, true);
 	}
-	else if (Action != EClownEvadeAction::Feint && Action != EClownEvadeAction::Orbit)
+	else if (Action != EClownEvadeAction::Orbit)
 	{
 		Move->MaxWalkSpeed = Offset.Size2D() / MoveDuration;
 	}

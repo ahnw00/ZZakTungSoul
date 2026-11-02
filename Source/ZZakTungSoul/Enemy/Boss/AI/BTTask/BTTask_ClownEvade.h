@@ -10,11 +10,11 @@ class UAnimMontage;
 UENUM(BlueprintType)
 enum class EClownEvadeAction : uint8
 {
-	Backstep, Backjump, SideEvade, Feint, Orbit
+	Backstep, Backjump, SideEvade, Feint UMETA(Hidden), Orbit
 };
 
 //---------------------------------------------------------------
-// BT가 선택한 회피 / 페인트의 물리 이동과 몽타주만 실행.
+// BT가 선택한 회피 / 주변 이동의 물리 이동과 몽타주만 실행.
 //
 //---------------------------------------------------------------
 UCLASS()
@@ -55,7 +55,6 @@ private:
 	bool bSavedDesired = false;
 	bool bSavedYaw = false;
 	bool bTacticalActive = false;
-	float FeintPoseTime = 0.0f;
 	float OrbitSign = 1.0f;
 
 	TWeakObjectPtr<ABossClown> AttackingClown;

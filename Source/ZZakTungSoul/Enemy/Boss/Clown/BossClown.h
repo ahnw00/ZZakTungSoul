@@ -24,6 +24,9 @@ class ZZAKTUNGSOUL_API ABossClown : public ABoss
 
 public:
 	ABossClown();
+
+	UPROPERTY(EditInstanceOnly, Category = "Clown|Arena")
+	TObjectPtr<AActor> CubeArena;
 	virtual void Tick(float DeltaTime) override;
 
 	const UBossClownAnimationData* GetClownAnimationData() const;
@@ -46,7 +49,6 @@ public:
 	const FClownPhaseOnePattern* GetPhaseOnePattern(EBossClownAttack AttackType) const;
 	float GetTargetSurfaceDistance(const AActor* Target) const;
 	void FaceClownTarget(AActor* Target, float DeltaTime);
-	static float GetAnticipationPoseTime(const UAnimMontage* Montage);
 	bool HasRecentClownAttack(EBossClownAttack Type, float Seconds) const;
 	void PreferClownRangedAttack();
 	bool PrefersClownRangedAttack() const;
@@ -124,7 +126,7 @@ private:
 	//---------------------------------------------------------------
 	enum class EClownAttackStage : uint8
 	{
-		None, Approach, Anticipation, Montage, Recovery
+		None, Approach, Montage, Recovery
 	};
 
 	TWeakObjectPtr<AActor> ClownAttackTarget;
@@ -135,8 +137,6 @@ private:
 	FVector DashStartLocation = FVector::ZeroVector;
 	float AttackStageTime = 0.0f;
 	float CurrentRecoveryScale = 1.0f;
-	EClownAttackStyle CurrentStyle = EClownAttackStyle::Normal;
-	bool bPursuitUsed = false;
 	EBossClownAttack LastCompletedAttack = EBossClownAttack::HammerSweep;
 	double LastCompletedAttackTime = -1000.0;
 	TMap<EBossClownAttack, double> CompletedAttackTimes;

@@ -19,10 +19,10 @@
 #include <Engine/World.h>
 #include <UObject/ConstructorHelpers.h>
 #include <Components/CapsuleComponent.h>
+#include <Components/BoxComponent.h>
 #include <Navigation/PathFollowingComponent.h>
 #include <Enemy/Boss/Clown/Components/ClownProjectileComponent.h>
 
-#include <Anim/AnimNotifyState/AnimNotifyState_AttackTrace.h>
 
 ABossClown::ABossClown()
 {
@@ -172,9 +172,7 @@ bool ABossClown::StartClownAttack(EBossClownAttack AttackType, AActor* Target, i
 
 	CurrentClownAttack = *AttackData;
 	LastPlayedAttackMontage = AttackData->Montage;
-	CurrentStyle = Style;
 	CurrentRecoveryScale = FMath::Clamp(RecoveryScale, 0.1f, 2.0f);
-	bPursuitUsed = false;
 	CurrentAttackType = AttackType;
 	ClownAttackTarget = Target;
 	AttackStageTime = 0.0f;
@@ -229,7 +227,7 @@ void ABossClown::BeginClownApproach()
 	AttackStageTime = 0.0f;
 	NextChasePathTime = 0.0;
 	SetEnemyState(EEnemyState::FastChase);
-	GetCharacterMovement()->MaxWalkSpeed = GetClownAnimationData()->FastChaseSpeed * (bPursuitUsed ? 0.75f : 1.0f);
+	GetCharacterMovement()->MaxWalkSpeed = GetClownAnimationData()->FastChaseSpeed;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
 	// 이동은 CharacterMovement가 담당하고 달리기만 반복 재생.
@@ -282,14 +280,6 @@ bool ABossClown::PlayCurrentClownMontage()
 		return false;
 	}
 
-	// 타격 직전까지 자세를 먼저 보여 주고 본 동작을 재개.
-	const FClownPhaseOnePattern* Pattern = GetPhaseOnePattern(CurrentAttackType);
-	if (Pattern && CurrentStyle == EClownAttackStyle::DelayedPursuit && !bPursuitUsed && Pattern->AnticipationTime > 0.0f)
-	{
-
-		AttackTraceComponent->EndTrace();
-		ClownAttackStage = EClownAttackStage::Anticipation;
-	}
 
 	if (CurrentAttackType == EBossClownAttack::TripleBalls || CurrentAttackType == EBossClownAttack::CubeBarrage || CurrentAttackType == EBossClownAttack::ClapWave
 		|| CurrentAttackType == EBossClownAttack::SpawnCards)
@@ -332,23 +322,6 @@ bool ABossClown::PlayCurrentClownMontage()
 	GetWorld()->GetTimerManager().SetTimer(AttackTimeoutHandle, this, &ABossClown::OnClownAttackTimeout, FMath::Max(AttackTimeout, 0.1f), false);
 
 	return true;
-}
-
-float ABossClown::GetAnticipationPoseTime(const UAnimMontage* Montage)
-{
-	if (!Montage)
-	{
-		return 0.0f;
-	}
-	float PoseTime = FMath::Min(0.3f, Montage->GetPlayLength() * 0.2f);
-	for (const FAnimNotifyEvent& Notify : Montage->Notifies)
-	{
-		if (Notify.NotifyStateClass && Notify.NotifyStateClass->IsA<UAnimNotifyState_AttackTrace>())
-		{
-			PoseTime = FMath::Min(PoseTime, FMath::Max(0.0f, Notify.GetTriggerTime() - 0.08f));
-		}
-	}
-	return PoseTime;
 }
 
 const FClownPhaseOnePattern* ABossClown::GetPhaseOnePattern(EBossClownAttack AttackType) const
@@ -466,7 +439,7 @@ void ABossClown::TickClownAttack(float DeltaTime)
 	const FClownPhaseOnePattern* Pattern = GetPhaseOnePattern(CurrentAttackType);
 	if (ClownAttackStage == EClownAttackStage::Approach)
 	{
-		if (AttackStageTime >= (bPursuitUsed ? 1.2f : Data->FastChaseMaxTime))
+		if (AttackStageTime >= Data->FastChaseMaxTime)
 		{
 			FinishClownAttack(EBossClownAttackResult::Failed, false);
 			return;
@@ -489,43 +462,6 @@ void ABossClown::TickClownAttack(float DeltaTime)
 				}
 				NextChasePathTime = Now + 0.2;
 			}
-		}
-		return;
-	}
-
-	if (ClownAttackStage == EClownAttackStage::Anticipation)
-	{
-		// 예고 중에만 천천히 조준하고, 돌진 방향은 준비가 끝날 때 고정.
-		FaceClownTarget(Target, DeltaTime);
-		if (UAnimInstance* Anim = AttackAnimInstance.Get())
-		{
-			if (Anim->Montage_GetPosition(CurrentClownAttack.Montage.Get()) >= GetAnticipationPoseTime(CurrentClownAttack.Montage.Get()))
-			{
-				Anim->Montage_Pause(CurrentClownAttack.Montage.Get());
-			}
-		}
-		AttackTraceComponent->EndTrace();
-		if (!Pattern || AttackStageTime >= GetAnticipationPoseTime(CurrentClownAttack.Montage.Get()) + Pattern->AnticipationTime + (CurrentStyle == EClownAttackStyle::DelayedPursuit ? 0.35f : 0.0f))
-		{
-			if (CurrentStyle == EClownAttackStyle::DelayedPursuit && !bPursuitUsed && GetTargetSurfaceDistance(Target) > Data->FastChaseStopDistance + 20.0f)
-			{
-				bPursuitUsed = true;
-				if (UAnimInstance* Anim = AttackAnimInstance.Get())
-				{
-					FOnMontageEnded EmptyDelegate;
-					Anim->Montage_SetEndDelegate(EmptyDelegate, CurrentClownAttack.Montage.Get());
-					Anim->Montage_Stop(0.15f, CurrentClownAttack.Montage.Get());
-				}
-				BeginClownApproach();
-				return;
-			}
-			if (UAnimInstance* Anim = AttackAnimInstance.Get())
-			{
-				Anim->Montage_Resume(CurrentClownAttack.Montage.Get());
-			}
-			DashDirection = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
-			ClownAttackStage = EClownAttackStage::Montage;
-			AttackStageTime = 0.0f;
 		}
 		return;
 	}
@@ -1010,8 +946,18 @@ bool ABossClown::PrepareClownCubeMarch()
 	{
 		return false;
 	}
-	const FVector Center = Target->GetActorLocation();
-	const FVector Forward = (Center - GetActorLocation()).GetSafeNormal2D();
+	FVector Center = Target->GetActorLocation();
+	const UBoxComponent* Arena = CubeArena ? CubeArena->FindComponentByClass<UBoxComponent>() : nullptr;
+	if (Arena)
+	{
+		// 방 가장자리에 있는 플레이어를 그대로 중심으로 삼지 않고, 행진 전체를 방 안에 배치.
+		const FVector Extent = Arena->GetUnscaledBoxExtent();
+		FVector Local = Arena->GetComponentTransform().InverseTransformPosition(Center);
+		Local.X = FMath::Clamp(Local.X, -FMath::Max(Extent.X - 1100.0f, 0.0f), FMath::Max(Extent.X - 1100.0f, 0.0f));
+		Local.Y = FMath::Clamp(Local.Y, -FMath::Max(Extent.Y - 1100.0f, 0.0f), FMath::Max(Extent.Y - 1100.0f, 0.0f));
+		Center = Arena->GetComponentTransform().TransformPosition(Local);
+	}
+	const FVector Forward = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
 	const FVector Assembly = GetActorLocation() + Forward * 180.0f + FVector(0.0f, 0.0f, 480.0f);
 	TArray<FVector> Starts;
 	TArray<FVector> Ends;
@@ -1030,17 +976,26 @@ bool ABossClown::PrepareClownCubeMarch()
 				const FVector Offset = Right * ((Slot - 1.5f) * 240.0f) - Direction * (Row * 145.0f);
 				FVector Start = Center - Direction * 650.0f + Offset;
 				FVector End = Center + Direction * 650.0f + Offset;
-				FHitResult Ground;
-				if (!GetWorld()->LineTraceSingleByChannel(Ground, Start + FVector(0.0f, 0.0f, 400.0f), Start - FVector(0.0f, 0.0f, 700.0f), ECC_Visibility, Query) || Ground.ImpactNormal.Z < 0.9f)
+				if (Arena)
 				{
-					return false;
+					// 전용 평탄 전투 영역을 사용. 소품이나 벽 윗면을 바닥으로 오인하지 않음.
+					Start.Z = Arena->GetComponentLocation().Z - Arena->GetScaledBoxExtent().Z + 52.0f;
+					End.Z = Start.Z;
 				}
-				Start.Z = Ground.ImpactPoint.Z + 52.0f;
-				if (!GetWorld()->LineTraceSingleByChannel(Ground, End + FVector(0.0f, 0.0f, 400.0f), End - FVector(0.0f, 0.0f, 700.0f), ECC_Visibility, Query) || Ground.ImpactNormal.Z < 0.9f || FMath::Abs(Ground.ImpactPoint.Z + 52.0f - Start.Z) > 25.0f)
+				else
 				{
-					return false;
+					FHitResult Ground;
+					if (!GetWorld()->LineTraceSingleByChannel(Ground, Start + FVector(0.0f, 0.0f, 400.0f), Start - FVector(0.0f, 0.0f, 700.0f), ECC_Visibility, Query) || Ground.ImpactNormal.Z < 0.9f)
+					{
+						return false;
+					}
+					Start.Z = Ground.ImpactPoint.Z + 52.0f;
+					if (!GetWorld()->LineTraceSingleByChannel(Ground, End + FVector(0.0f, 0.0f, 400.0f), End - FVector(0.0f, 0.0f, 700.0f), ECC_Visibility, Query) || Ground.ImpactNormal.Z < 0.9f || FMath::Abs(Ground.ImpactPoint.Z + 52.0f - Start.Z) > 25.0f)
+					{
+						return false;
+					}
+					End.Z = Start.Z;
 				}
-				End.Z = Start.Z;
 				Starts.Add(Start);
 				Ends.Add(End);
 			}

@@ -56,16 +56,19 @@ void UBossAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	// 정지 상태에서도 속도와 방향을 갱신하여 이전 값이 남지 않도록 처리.
 	//
 	//---------------------------------------------------------------
-	Speed = Velocity.Size2D();
-	Direction = 0.0f;
+	Speed = FMath::FInterpTo(Speed, Velocity.Size2D(), DeltaSeconds, 10.0f);
+	float DesiredDirection = Direction;
 
 	if (!Velocity.IsNearlyZero())
 	{
 		FRotator MoveRot = Velocity.Rotation();
 		FRotator PawnRot = Owner->GetActorRotation();
 
-		Direction = FMath::FindDeltaAngleDegrees(PawnRot.Yaw, MoveRot.Yaw);
+		DesiredDirection = FMath::FindDeltaAngleDegrees(PawnRot.Yaw, MoveRot.Yaw);
 	}
+
+	Direction = FMath::FInterpTo(Direction, Direction + FMath::FindDeltaAngleDegrees(Direction, DesiredDirection), DeltaSeconds, 10.0f);
+	Direction = FRotator::NormalizeAxis(Direction);
 
 	//---------------------------------------------------------------
 	// 페이즈 변경은 보스가 담당하고 애니메이션에서는 조회만 수행.

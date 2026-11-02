@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Enemy/Components/AttackTraceComponent.h"
@@ -185,10 +185,12 @@ void UAttackTraceComponent::CheckTrace(const FVector& Start, const FVector& End)
 		Params
 	);
 
-#ifdef ENABLE_DRAW_DEBUG
-
-	DrawDebugLine(World, Start, End, FColor::Green, false, 1.0f, 0, 1.0f);
-	DrawDebugSphere(World, End, TraceRadius, 12, bResult ? FColor::Red : FColor::Green, false, 1.0f);
+#if ENABLE_DRAW_DEBUG
+	if (bDrawDebug)
+	{
+		DrawDebugLine(World, Start, End, FColor::Green, false, 0.0f, 0, 1.0f);
+		DrawDebugSphere(World, End, TraceRadius, 8, bResult ? FColor::Red : FColor::Green, false, 0.0f);
+	}
 #endif // ENABLE_DRAW_DEBUG
 
 

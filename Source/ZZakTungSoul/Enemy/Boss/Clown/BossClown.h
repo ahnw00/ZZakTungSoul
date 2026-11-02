@@ -9,7 +9,8 @@
 class UAnimInstance;
 class UAnimMontage;
 class UAnimSequenceBase;
-class ABossClownProjectile;
+class UClownProjectileComponent;
+
 
 enum class EBossClownAttackResult : uint8
 {
@@ -32,7 +33,7 @@ public:
 	// 광대 전용 공격 실행과 중단.
 	//
 	//---------------------------------------------------------------
-	bool StartClownAttack(EBossClownAttack AttackType, AActor* Target, int32& OutExecutionID);
+	bool StartClownAttack(EBossClownAttack AttackType, AActor* Target, int32& OutExecutionID, EClownAttackStyle Style = EClownAttackStyle::Normal, float RecoveryScale = 1.0f);
 	void CancelClownAttack(int32 ExecutionID);
 	EBossClownAttackResult GetClownAttackResult(int32 ExecutionID) const;
 
@@ -42,9 +43,17 @@ public:
 	//---------------------------------------------------------------
 	void SetClownAttackDamage(int32 DamageIndex, UAnimSequenceBase* SourceAnimation);
 
+	const FClownPhaseOnePattern* GetPhaseOnePattern(EBossClownAttack AttackType) const;
+	float GetTargetSurfaceDistance(const AActor* Target) const;
+	void FaceClownTarget(AActor* Target, float DeltaTime);
+	static float GetAnticipationPoseTime(const UAnimMontage* Montage);
+	bool HasRecentClownAttack(EBossClownAttack Type, float Seconds) const;
+	void PreferClownRangedAttack();
+	bool PrefersClownRangedAttack() const;
+
 protected:
-	virtual bool StartBossCombatBehavior(AActor* Target) override;
 	virtual void HandleAttackTraceHit(const FHitResult& Hit) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void ResetBossGimmicks() override;
 
 	//---------------------------------------------------------------
@@ -58,18 +67,22 @@ protected:
 	float AttackTimeout = 15.0f;
 
 private:
-	const FClownPhaseOnePattern* GetPhaseOnePattern(EBossClownAttack AttackType) const;
-	float GetTargetSurfaceDistance(const AActor* Target) const;
-	void TickPhaseOneSelection(float DeltaTime);
 	void TickClownAttack(float DeltaTime);
+	void UpdateClownTraceDebug();
+	void ToggleClownTraceDebug();
+	bool bTraceDebugInputReady = false;
+	bool bDrawClownTraces = true;
 	bool PlayCurrentClownMontage();
+	void BeginClownApproach();
 	void BeginClownRecovery();
 	void StopFastChaseAnimation();
+	UClownProjectileComponent* CreateClownProjectile(TSubclassOf<AActor> Class, const FVector& Location, const FRotator& Rotation, float Speed, float LifeTime);
 	void PrepareClownBalls();
+	bool PrepareClownCubeMarch();
+	void PrepareClownCards();
 	void TickClownSpecial(float MontageTime);
 	void ClearClownProjectiles(bool bIncludeLaunched);
 	void RestoreClownMovement();
-	void FaceClownTarget(AActor* Target, float DeltaTime);
 
 	bool IsClownCombatPhase() const;
 	const FEnemyAttackData* GetClownAttackData(EBossClownAttack AttackType) const;
@@ -81,7 +94,7 @@ private:
 	UPROPERTY(Transient)
 	FEnemyAttackData CurrentClownAttack;
 
-	TArray<TWeakObjectPtr<ABossClownProjectile>> ClownProjectiles;
+	TArray<TWeakObjectPtr<AActor>> ClownProjectiles;
 	TWeakObjectPtr<UAnimMontage> ChaseMontage;
 	int32 BallsLaunched = 0;
 	bool bClapReleased = false;
@@ -89,6 +102,7 @@ private:
 	bool bHidWeapon = false;
 
 	TWeakObjectPtr<UAnimInstance> AttackAnimInstance;
+	TWeakObjectPtr<UAnimMontage> LastPlayedAttackMontage;
 	FTimerHandle AttackTimeoutHandle;
 
 	//---------------------------------------------------------------
@@ -110,29 +124,29 @@ private:
 	//---------------------------------------------------------------
 	enum class EClownAttackStage : uint8
 	{
-		None, Approach, Montage, Recovery
+		None, Approach, Anticipation, Montage, Recovery
 	};
 
-	TWeakObjectPtr<AActor> ClownCombatTarget;
 	TWeakObjectPtr<AActor> ClownAttackTarget;
-	TMap<EBossClownAttack, double> PatternReadyTimes;
 	EBossClownAttack CurrentAttackType = EBossClownAttack::HammerSweep;
-	EBossClownAttack PreviousAttackType = EBossClownAttack::HammerSweep;
 	EClownAttackStage ClownAttackStage = EClownAttackStage::None;
 
 	FVector DashDirection = FVector::ZeroVector;
 	FVector DashStartLocation = FVector::ZeroVector;
 	float AttackStageTime = 0.0f;
+	float CurrentRecoveryScale = 1.0f;
+	EClownAttackStyle CurrentStyle = EClownAttackStyle::Normal;
+	bool bPursuitUsed = false;
+	EBossClownAttack LastCompletedAttack = EBossClownAttack::HammerSweep;
+	double LastCompletedAttackTime = -1000.0;
+	TMap<EBossClownAttack, double> CompletedAttackTimes;
+	double RangedPreferenceUntil = 0.0;
 	float SavedWalkSpeed = 0.0f;
 	bool bSavedOrientToMovement = false;
 	bool bSavedControllerDesiredRotation = false;
 	bool bSavedControllerYaw = false;
 	bool bHasSavedMovement = false;
-	bool bNativePhaseOneActive = false;
-	bool bHasPreviousAttack = false;
 	bool bDashStarted = false;
 	bool bDashEnded = false;
-	double NextPatternDecisionTime = 0.0;
-	double MovementPatternReadyTime = 0.0;
 	double NextChasePathTime = 0.0;
 };

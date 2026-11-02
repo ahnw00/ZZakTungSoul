@@ -1,4 +1,4 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -34,13 +34,6 @@ public class ZZakTungSoul : ModuleRules
 			"SlateCore"
 		}
 		);
-
-		if (Target.bBuildEditor)
-		{
-			PrivateDependencyModuleNames.AddRange(new string[] {
-				"UnrealEd", "AssetTools", "AnimationBlueprintLibrary"
-			});
-		}
 
 		PublicIncludePaths.AddRange(new string[] {
 			"ZZakTungSoul"

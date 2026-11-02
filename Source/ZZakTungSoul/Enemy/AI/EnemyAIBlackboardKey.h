@@ -9,6 +9,9 @@
 #define BBKEY_ISINCOMBATRANGE TEXT("IsInCombatRange")
 #define BBKEY_ISCLOSETOTARGET TEXT("IsCloseToTarget")
 
+// Integer
+#define BBKEY_PATROLINDEX TEXT("PatrolIndex")
+
 // Float
 #define BBKEY_TARGETDISTANCE TEXT("TargetDistance")
 

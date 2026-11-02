@@ -13,6 +13,7 @@
 class UEnemyAIData;
 class UEnemyAnimationData;
 class UCharacterStatComponent;
+class APatrolPath;
 
 /**
  * 
@@ -90,6 +91,8 @@ protected:
 	virtual UEnemyAnimationData* GetAnimationData() override;
 
 	virtual void SetCurrentDamageInfoInterface(const struct FDamageInfo& NewDamageInfo) override;
+
+	virtual APatrolPath* GetPatrolPathData() const override;
 
 protected:
 	// 공격할 때 사용할 데미지 정보 저장 변수

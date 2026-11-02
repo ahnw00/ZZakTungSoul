@@ -376,3 +376,8 @@ void AEnemyBase::SetCurrentDamageInfoInterface(const FDamageInfo& NewDamageInfo)
 {
 	CurrentDamageInfo = NewDamageInfo;
 }
+
+APatrolPath* AEnemyBase::GetPatrolPathData() const
+{
+	return nullptr;
+}

@@ -78,5 +78,10 @@ EBTNodeResult::Type UBTTask_FindPatrolLocation::ExecuteTask(UBehaviorTreeCompone
 	// 값 저장
 	BlackboardComp->SetValueAsVector(BBKEY_PATROLLOCATION, WaypointLocation);
 
+	// Waypoint Index 값 증가
+	const int32 NextIndex = (PatrolIndex + 1) % WaypointCount;
+
+	BlackboardComp->SetValueAsInt(BBKEY_PATROLINDEX, NextIndex);
+
 	return EBTNodeResult::Succeeded;
 }

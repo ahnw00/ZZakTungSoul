@@ -324,7 +324,11 @@ void AWarriorController::Move(const FInputActionValue& InputValue)
 			[[fallthrough]];
 		case EActionState::Attack:
 			[[fallthrough]];
+		case EActionState::FatalAttack:
+			return;
 		case EActionState::Hit:
+			return;
+		case EActionState::Parry:
 			return;
 		case EActionState::Block:
 		{

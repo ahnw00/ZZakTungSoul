@@ -27,6 +27,7 @@ enum class EActionState : uint8
 	Parry,
 	Hit,
 	Stun,
+	PickUp
 };
 
 UENUM(BlueprintType)

@@ -69,6 +69,9 @@ private:
 	//TMap<EWeaponState, FAnimMontageArrayWrapper> StunMontage;
 	UAnimMontage* StunMontage;
 
+	UPROPERTY()
+	UAnimMontage* PickUpMontage;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	float CurrentPawnSpeed;

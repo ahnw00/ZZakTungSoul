@@ -982,6 +982,9 @@ void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
 	if (!ItemObject)
 		return;
 
+	SetActionState(EActionState::PickUp);
+	AnimInstance->PlayActionMontage();
+
 	// 인벤토리에 추가
 	Inventory->AddItem(ItemObject->GetItemData(), ItemObject->GetInstanceID());
 }

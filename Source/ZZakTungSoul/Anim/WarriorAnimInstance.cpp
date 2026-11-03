@@ -62,6 +62,14 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 		FatalAttackMontage = FatalAttackMontageRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> PickUpMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_PickUp_Montage.Warrior_PickUp_Montage")
+	);
+	if (PickUpMontageRef.Succeeded())
+	{
+		PickUpMontage = PickUpMontageRef.Object;
+	}
+
 	const int32 NoneAttackMontageMaxCount = 4;
 
 	for (int32 i = 1; i <= NoneAttackMontageMaxCount; i++)
@@ -431,7 +439,6 @@ bool UWarriorAnimInstance::PlayActionMontage()
 
 	case EActionState::Parry:
 	{
-		UE_LOG(LogTemp, Log, TEXT("Parry"));
 		return Montage_Play(ParryMontage) > 0.f;
 	}
 
@@ -467,6 +474,11 @@ bool UWarriorAnimInstance::PlayActionMontage()
 			return false;
 
 		return Montage_Play(Montage) > 0.f;
+	}
+
+	case EActionState::PickUp:
+	{
+		return Montage_Play(PickUpMontage) > 0.f;
 	}
 
 	default:

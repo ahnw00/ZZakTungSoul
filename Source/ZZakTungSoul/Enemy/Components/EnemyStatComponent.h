@@ -7,6 +7,9 @@
 #include "EnemyStatComponent.generated.h"
 
 // 델리게이트 선언
+// Hp가 0이 되었을때 발행
+DECLARE_MULTICAST_DELEGATE(FOnEnemyHpZeroDelegate);
+
 // 스탯에 변화가 생겼을때 발행
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEnemyHpChangedDelegate, float /*CurrentHp*/, float /*MaxHp*/);
 
@@ -61,8 +64,9 @@ protected:
 	void InitializeEnemyStat();
 
 public:
-
 	// Delegate 변수
+	FOnEnemyHpZeroDelegate OnEnemyHpZero;
+
 	FOnEnemyHpChangedDelegate OnEnemyHpChanged;
 
 	// 데이터 테이블 Row 지정 변수

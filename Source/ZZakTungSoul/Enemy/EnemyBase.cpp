@@ -91,12 +91,22 @@ void AEnemyBase::BeginPlay()
 		AttackTraceComponent->OnTraceHit.AddUObject(this, &AEnemyBase::HandleAttackTraceHit);
 	}
 
+	if (EnemyStatComponet)
+	{
+		EnemyStatComponet->OnEnemyHpZero.AddUObject(this, &AEnemyBase::SetDead);
+	}
+
 	AttackTraceComponent->OnGetParried.AddUObject(this, &AEnemyBase::OnGetParried);
 }
 
 void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 {
 	//Super::ReceiveDamage(DamageInfo, Hit);
+
+	if (IsDead())
+	{
+		return;
+	}
 
 	if (nullptr == EnemyStatComponet)
 	{
@@ -289,6 +299,41 @@ void AEnemyBase::InitializeWeapon()
 
 }
 
+void AEnemyBase::SetDead()
+{
+	// 중복 방지
+	if (IsDead())
+	{
+		return;
+	}
+
+	// 사망 상태 설정
+	SetEnemyState(EEnemyState::Dead);
+
+	// AI 중지 처리
+	if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
+	{
+		AIController->StopAIController();
+	}
+
+	// 공격 판정 중지
+	if (IsValid(AttackTraceComponent))
+	{
+		AttackTraceComponent->EndTrace();
+	}
+
+	// 상위 클래스 공통 로직 실행
+	Super::SetDead();
+
+	// 실제 사망 로직 실행
+	DeadStart();
+}
+
+void AEnemyBase::DeadStart()
+{
+
+}
+
 void AEnemyBase::SetEnemyState(EEnemyState NewState)
 {
 	// 상태 검사
@@ -413,4 +458,9 @@ void AEnemyBase::ReceiveFatalAttack(const FDamageInfo DamageInfo)
 
 	// 페이탈 어택 데미지 적용
 	ReceiveDamage(DamageInfo, FHitResult());
+}
+
+APatrolPath* AEnemyBase::GetPatrolPathData() const
+{
+	return nullptr;
 }

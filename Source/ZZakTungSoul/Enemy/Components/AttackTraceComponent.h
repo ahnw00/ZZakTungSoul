@@ -43,7 +43,7 @@ public:
 
 private:
 	// Sweep Trace 실행 함수
-	void CheckTrace(const FVector& Start, const FVector& End);
+	void CheckTrace(const FVector& PreviousCenter, const FVector& CurrentCenter, const FVector& Start, const FVector& End);
 
 	// 충돌 결과 처리 함수
 	void TraceHitResult(const FHitResult& Hit);

@@ -7,6 +7,7 @@
 #include "EnemyStates.h"
 #include <Data/DamageInfo.h>
 #include <Interface/AIDataInterface.h>
+#include <Interface/FatalAttackableInterface.h>
 #include "EnemyBase.generated.h"
 
 // 전방 선언

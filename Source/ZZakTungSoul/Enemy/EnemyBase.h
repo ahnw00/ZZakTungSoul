@@ -119,11 +119,11 @@ protected:
 
 	// 무기 Static Mesh
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Weapon")
-	TObjectPtr<class USkeletalMesh> WeaponMesh;
+	TObjectPtr<class UStaticMesh> WeaponMesh;
 
 	// 무기 Mesh Component
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Weapon")
-	TObjectPtr<class USkeletalMeshComponent> WeaponMeshComponent;
+	TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
 
 	// 무기 부착 Socket 이름
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Weapon")

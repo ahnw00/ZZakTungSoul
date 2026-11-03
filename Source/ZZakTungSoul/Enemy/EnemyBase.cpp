@@ -333,6 +333,27 @@ void AEnemyBase::DeadStart()
 
 }
 
+void AEnemyBase::SetEnemyMoveState(EEnemyMoveState NewMoveState)
+{
+	if (CurrentMoveState == NewMoveState)
+	{
+		return;
+	}
+
+	CurrentMoveState = NewMoveState;
+}
+
+void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
+{
+	// NewActionState와 CurrentActionState가 둘 중 하나라도 None이 아니면 건너뛰기
+	if (NewActionState != EEnemyActionState::None && CurrentActionState != EEnemyActionState::None)
+	{
+		return;
+	}
+
+	CurrentActionState = NewActionState;
+}
+
 void AEnemyBase::SetEnemyState(EEnemyState NewState)
 {
 	// 상태 검사

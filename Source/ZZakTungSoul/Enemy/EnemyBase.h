@@ -55,7 +55,12 @@ protected:
 public:
 	// Getter / Setter
 	// 현재 적 상태 반환
-	EEnemyState GetEnemyState() const { return CurrentState; }
+	FORCEINLINE EEnemyState GetEnemyState() const { return CurrentState; }
+	FORCEINLINE EEnemyMoveState GetEnemyMoveState() const { return CurrentMoveState; }
+	FORCEINLINE EEnemyActionState GetEnemyActionState() const { return CurrentActionState; }
+
+	void SetEnemyMoveState(EEnemyMoveState NewMoveState);
+	void SetEnemyActionState(EEnemyActionState NewActionState);
 
 	//---------------------------------------------------------------
 	// Possess 시 BT 자동 실행 여부 반환.
@@ -108,6 +113,12 @@ protected:
 	// 적의 현재 상태
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|State")
 	EEnemyState CurrentState = EEnemyState::Idle;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|MovementState")
+	EEnemyMoveState CurrentMoveState = EEnemyMoveState::None;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|ActionState")
+	EEnemyActionState CurrentActionState = EEnemyActionState::None;
 
 	// AI Data -> Behavior Tree / Movement Speed
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Data")

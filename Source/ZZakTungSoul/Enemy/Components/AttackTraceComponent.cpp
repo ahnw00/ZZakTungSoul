@@ -188,11 +188,6 @@ void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVec
 
 	const FQuat CapsuleRotation = FRotationMatrix::MakeFromZ(CapsuleDirection).ToQuat();
 
-	// Capsule은 Local Z축을 길이 방향으로 사용한다...
-	const FVector CapsuleDirection = TraceVector.GetSafeNormal();
-
-	const FQuat CapsuleRotation = FRotationMatrix::MakeFromZ(CapsuleDirection).ToQuat();
-
 	// 이전 프레임에서 현재 플레임까지 Sweep
 	const bool bResult = World->SweepMultiByChannel(
 		HitResults,
@@ -207,7 +202,7 @@ void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVec
 #ifdef ENABLE_DRAW_DEBUG
 
 	DrawDebugCapsule(World, CurrentCenter, CapsuleHalfHeight, TraceRadius, CapsuleRotation, bResult ? FColor::Red : FColor::Green, false, 0.5f);
-	DrawDebugLine(World, PreviousCenter, CurrentCenter, FColor::Yellow, false, 0.2f);
+	DrawDebugLine(World, PreviousCenter, CurrentCenter, FColor::Yellow, false, 1.0f);
 #endif // ENABLE_DRAW_DEBUG
 
 
@@ -216,10 +211,35 @@ void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVec
 		return;
 	}
 
+	// 충돌 대상 처리하기 전 우선 패링을 했는지 판단
+	for (const FHitResult& Hit : HitResults)
+	{
+		AActor* HitActor = Hit.GetActor();
+		if (!IsValid(HitActor))
+		{
+			return;
+		}
+
+		// 자기자신 제외
+		if (HitActor == GetOwner())
+		{
+			return;
+		}
+
+		UPrimitiveComponent* HitComponent = Hit.GetComponent();
+		if (HitComponent->ComponentHasTag(TEXT("ParryCollision")))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Parry Completed!"));
+			OnGetParried.Broadcast();
+			EndTrace();
+			return;
+		}
+	}
+
 	// 감지된 충돌 대상 처리
 	for (const FHitResult& Hit : HitResults)
 	{
-		TraceHitResult(Hit);
+		TraceHitResult(Hit);  
 	}
 }
 
@@ -243,6 +263,8 @@ void UAttackTraceComponent::TraceHitResult(const FHitResult& Hit)
 	{
 		return;
 	}
+
+	UE_LOG(LogTemp, Log, TEXT("%s hit"), *HitActor->GetName());
 
 	// 피격 목록에 추가
 	HitActors.Add(CheckHitActor);

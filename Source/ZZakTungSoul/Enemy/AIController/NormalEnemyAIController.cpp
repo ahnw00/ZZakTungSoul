@@ -73,15 +73,62 @@ void ANormalEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimu
 		// 플레이어 감지 성공
 		BlackboardComponent->SetValueAsObject(BBKEY_TARGETACTOR, Actor);
 		BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, true);
+
+		UpdateTargetInfo();
+
+		GetWorldTimerManager().SetTimer(
+			TargetInfoUpdateTimerHandle,
+			this,
+			&ANormalEnemyAIController::UpdateTargetInfo,
+			FMath::Max(0.01f, UpdateInterval),
+			true
+		);
 	}
 	else
 	{
-		// 마지막 감지 위치 저장
-		BlackboardComponent->SetValueAsVector(BBKEY_LASTKNOWNLOCATION, Stimulus.StimulusLocation);
+		GetWorldTimerManager().ClearTimer(TargetInfoUpdateTimerHandle);
+
+		// Blackboard 초기화
 		BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
 
-		//BlackboardComponent->ClearValue(BBBKEY_TARGETACTOR);
+		BlackboardComponent->ClearValue(BBKEY_SEARCHLOCATION);
 	}
 
 
+}
+
+void ANormalEnemyAIController::UpdateTargetInfo()
+{
+	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
+	if (nullptr == BlackboardComp)
+	{
+		return;
+	}
+
+	// 시야 안에 Target이 있을때 만 갱신
+	if (!BlackboardComp->GetValueAsBool(BBKEY_HASLINEOFSIGHT))
+	{
+		return;
+	}
+
+	// TargetActor 가져오기
+	AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(BBKEY_TARGETACTOR));
+	if (!IsValid(TargetActor))
+	{
+		GetWorldTimerManager().ClearTimer(TargetInfoUpdateTimerHandle);
+		return;
+	}
+
+	// Target 정보 갱신
+	// 마지막 관측 위치 갱신
+	BlackboardComp->SetValueAsVector(BBKEY_LASTKNOWNLOCATION, TargetActor->GetActorLocation());
+
+	// Target의 이동방향 갱신
+	FVector TargetVelocity = TargetActor->GetVelocity();
+	TargetVelocity.Z = 0.0f;
+
+	if (TargetVelocity.SizeSquared() >= FMath::Square(MinTargetSpeed))
+	{
+		BlackboardComp->SetValueAsVector(BBKEY_LASTKNOWNDIRECTION, TargetVelocity.GetSafeNormal());
+	}
 }

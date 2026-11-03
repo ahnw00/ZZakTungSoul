@@ -61,6 +61,18 @@ void AEnemyAIController::UpdateAIFocus(EEnemyState PreviousState, EEnemyState Ne
 	}
 }
 
+void AEnemyAIController::StopAIController()
+{
+	UBehaviorTreeComponent* BTComp = Cast< UBehaviorTreeComponent>(BrainComponent);
+	if (BTComp)
+	{
+		BTComp->StopTree(EBTStopMode::Forced);
+	}
+
+	StopMovement();
+	ClearFocus(EAIFocusPriority::Gameplay);
+}
+
 void AEnemyAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);

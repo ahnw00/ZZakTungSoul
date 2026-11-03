@@ -13,6 +13,7 @@
 class UEnemyAIData;
 class UEnemyAnimationData;
 class UCharacterStatComponent;
+class APatrolPath;
 
 /**
  * 
@@ -42,6 +43,12 @@ protected:
 
 	// 무기 초기화 함수
 	virtual void InitializeWeapon();
+
+	// 사망 처리 함수
+	virtual void SetDead() override;
+
+	// 사망 시 실제 실행될 로직 함수 -> 자식 클래스에서 각자 구현
+	virtual void DeadStart();
 
 public:
 	// Getter / Setter
@@ -85,6 +92,8 @@ protected:
 
 	virtual void SetCurrentDamageInfoInterface(const struct FDamageInfo& NewDamageInfo) override;
 
+	virtual APatrolPath* GetPatrolPathData() const override;
+
 protected:
 	// 공격할 때 사용할 데미지 정보 저장 변수
 	FDamageInfo CurrentDamageInfo;
@@ -104,11 +113,11 @@ protected:
 
 	// 무기 Static Mesh
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Weapon")
-	TObjectPtr<class UStaticMesh> WeaponMesh;
+	TObjectPtr<class USkeletalMesh> WeaponMesh;
 
 	// 무기 Mesh Component
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Weapon")
-	TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
+	TObjectPtr<class USkeletalMeshComponent> WeaponMeshComponent;
 
 	// 무기 부착 Socket 이름
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Weapon")

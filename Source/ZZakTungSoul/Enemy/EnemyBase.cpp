@@ -11,9 +11,8 @@
 #include <Data/DamageInfo.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
-#include <Components/StaticMeshComponent.h>
 #include <Components/SkeletalMeshComponent.h>
-#include <Engine/StaticMesh.h>
+#include <Engine/SkeletalMesh.h>
 
 AEnemyBase::AEnemyBase()
 {
@@ -59,11 +58,21 @@ void AEnemyBase::BeginPlay()
 	{
 		AttackTraceComponent->OnTraceHit.AddUObject(this, &AEnemyBase::HandleAttackTraceHit);
 	}
+
+	if (EnemyStatComponet)
+	{
+		EnemyStatComponet->OnEnemyHpZero.AddUObject(this, &AEnemyBase::SetDead);
+	}
 }
 
 void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 {
 	//Super::ReceiveDamage(DamageInfo, Hit);
+
+	if (IsDead())
+	{
+		return;
+	}
 
 	if (nullptr == EnemyStatComponet)
 	{
@@ -217,14 +226,14 @@ void AEnemyBase::InitializeWeapon()
 	}
 
 	// 무기 컴포넌트 생성
-	UStaticMeshComponent* NewMeshComp = NewObject<UStaticMeshComponent>(this, UStaticMeshComponent::StaticClass(), TEXT("EquippedWeaponMesh"));
+	USkeletalMeshComponent* NewMeshComp = NewObject<USkeletalMeshComponent>(this, USkeletalMeshComponent::StaticClass(), TEXT("EquippedWeaponMesh"));
 	if (!IsValid(NewMeshComp))
 	{
 		return;
 	}
 
 	// 무기 Mesh 적용
-	NewMeshComp->SetStaticMesh(WeaponMesh.Get());
+	NewMeshComp->SetSkeletalMesh(WeaponMesh.Get());
 
 	// 실제 충돌 검사는 TraceComponent에서 함
 	NewMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -249,6 +258,41 @@ void AEnemyBase::InitializeWeapon()
 	{
 		AttackTraceComponent->SetTraceMesh(WeaponMeshComponent.Get());
 	}
+
+}
+
+void AEnemyBase::SetDead()
+{
+	// 중복 방지
+	if (IsDead())
+	{
+		return;
+	}
+
+	// 사망 상태 설정
+	SetEnemyState(EEnemyState::Dead);
+
+	// AI 중지 처리
+	if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
+	{
+		AIController->StopAIController();
+	}
+
+	// 공격 판정 중지
+	if (IsValid(AttackTraceComponent))
+	{
+		AttackTraceComponent->EndTrace();
+	}
+
+	// 상위 클래스 공통 로직 실행
+	Super::SetDead();
+
+	// 실제 사망 로직 실행
+	DeadStart();
+}
+
+void AEnemyBase::DeadStart()
+{
 
 }
 
@@ -330,4 +374,9 @@ UEnemyAnimationData* AEnemyBase::GetAnimationData()
 void AEnemyBase::SetCurrentDamageInfoInterface(const FDamageInfo& NewDamageInfo)
 {
 	CurrentDamageInfo = NewDamageInfo;
+}
+
+APatrolPath* AEnemyBase::GetPatrolPathData() const
+{
+	return nullptr;
 }

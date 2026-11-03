@@ -8,6 +8,7 @@
 
 // 전방 선언
 class UEnemyAnimationData;
+class APatrolPath;
 
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
@@ -39,4 +40,7 @@ public:
 
 	// 데미지 수치 정보 설정
 	virtual void SetCurrentDamageInfoInterface(const struct FDamageInfo& NewDamageInfo) = 0;
+
+	// 순찰 경로 반환 함수
+	virtual APatrolPath* GetPatrolPathData() const = 0;
 };

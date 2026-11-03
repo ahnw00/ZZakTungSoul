@@ -11,9 +11,8 @@
 #include <Data/DamageInfo.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
-#include <Components/StaticMeshComponent.h>
 #include <Components/SkeletalMeshComponent.h>
-#include <Engine/StaticMesh.h>
+#include <Engine/SkeletalMesh.h>
 
 AEnemyBase::AEnemyBase()
 {
@@ -227,14 +226,14 @@ void AEnemyBase::InitializeWeapon()
 	}
 
 	// 무기 컴포넌트 생성
-	UStaticMeshComponent* NewMeshComp = NewObject<UStaticMeshComponent>(this, UStaticMeshComponent::StaticClass(), TEXT("EquippedWeaponMesh"));
+	USkeletalMeshComponent* NewMeshComp = NewObject<USkeletalMeshComponent>(this, USkeletalMeshComponent::StaticClass(), TEXT("EquippedWeaponMesh"));
 	if (!IsValid(NewMeshComp))
 	{
 		return;
 	}
 
 	// 무기 Mesh 적용
-	NewMeshComp->SetStaticMesh(WeaponMesh.Get());
+	NewMeshComp->SetSkeletalMesh(WeaponMesh.Get());
 
 	// 실제 충돌 검사는 TraceComponent에서 함
 	NewMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);

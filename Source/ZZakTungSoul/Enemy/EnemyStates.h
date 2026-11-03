@@ -30,7 +30,7 @@ enum class EEnemyMoveState : uint8
 	FastChase	/*빠른추격*/,
 	Strafe		/*간보기*/,
 	Search		/*수색*/,
-	Block		/*가드*/
+	Slow		/*가드 및 느려지는 상황*/
 };
 
 // 적의 행동 상태 - Montage 설정

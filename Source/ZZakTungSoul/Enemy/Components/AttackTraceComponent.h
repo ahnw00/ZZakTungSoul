@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -12,6 +12,8 @@ class UMeshComponent;
 // Delegate 선언
 // 공격 판정 성공시 호출되는 Delegate
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnAttackTraceHit, const FHitResult&);
+// 패링 시 호출되는 Delegate
+DECLARE_MULTICAST_DELEGATE(FOnGetParried);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ZZAKTUNGSOUL_API UAttackTraceComponent : public UActorComponent
@@ -39,9 +41,12 @@ public:
 	// 매쉬 컴포넌트 설정 함수
 	void SetTraceMesh(UMeshComponent* InTraceMesh);
 
+	UPROPERTY(EditDefaultsOnly, Category = "Trace|Debug")
+	bool bDrawDebug = false;
+
 private:
 	// Sweep Trace 실행 함수
-	void CheckTrace(const FVector& Start, const FVector& End);
+	void CheckTrace(const FVector& PreviousCenter, const FVector& CurrentCenter, const FVector& Start, const FVector& End);
 
 	// 충돌 결과 처리 함수
 	void TraceHitResult(const FHitResult& Hit);
@@ -52,6 +57,9 @@ private:
 public:
 	// 충돌 성공 델리게이트 이벤트
 	FOnAttackTraceHit OnTraceHit;
+
+	// 패링 당할 시 델리게이트 이벤트
+	FOnGetParried OnGetParried;
 
 private:
 	// 공격 판정 활성화 여부 플래그

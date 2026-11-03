@@ -28,6 +28,10 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
+	// 사망 처리 함수
+	virtual void SetDead();
+
+protected:
 	// 현재 가드 상태 플래그
 	UPROPERTY(VisibleAnywhere, Category = "State|Combat")
 	uint32 bIsGuard : 1 = false;

@@ -7,18 +7,21 @@
 #include "EnemyStates.h"
 #include <Data/DamageInfo.h>
 #include <Interface/AIDataInterface.h>
+#include <Interface/FatalAttackableInterface.h>
 #include "EnemyBase.generated.h"
 
 // 전방 선언
 class UEnemyAIData;
 class UEnemyAnimationData;
 class UCharacterStatComponent;
+class APatrolPath;
 
 /**
  * 
  */
 UCLASS()
-class ZZAKTUNGSOUL_API AEnemyBase : public ACharacterBase, public IAIDataInterface
+class ZZAKTUNGSOUL_API AEnemyBase 
+	: public ACharacterBase, public IAIDataInterface, public IFatalAttackableInterface
 {
 	GENERATED_BODY()
 	
@@ -42,6 +45,12 @@ protected:
 
 	// 무기 초기화 함수
 	virtual void InitializeWeapon();
+
+	// 사망 처리 함수
+	virtual void SetDead() override;
+
+	// 사망 시 실제 실행될 로직 함수 -> 자식 클래스에서 각자 구현
+	virtual void DeadStart();
 
 public:
 	// Getter / Setter
@@ -74,6 +83,10 @@ public:
 	// Strafe 상태일 때 캐릭터 매쉬 회전 관련 플래그 설정 함수
 	void SetStrafeMode(bool bEnable);
 
+private:
+	// 패링 당했을 때 호출될 함수(델리게이트에 바인드해줄 함수)
+	void OnGetParried();
+
 ////// 인터페이스 섹션
 protected:
 	// Inherited via IAIDataInterface
@@ -84,6 +97,8 @@ protected:
 	virtual UEnemyAnimationData* GetAnimationData() override;
 
 	virtual void SetCurrentDamageInfoInterface(const struct FDamageInfo& NewDamageInfo) override;
+
+	virtual APatrolPath* GetPatrolPathData() const override;
 
 protected:
 	// 공격할 때 사용할 데미지 정보 저장 변수
@@ -104,15 +119,19 @@ protected:
 
 	// 무기 Static Mesh
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Weapon")
-	TObjectPtr<class UStaticMesh> WeaponMesh;
+	TObjectPtr<class USkeletalMesh> WeaponMesh;
 
 	// 무기 Mesh Component
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Weapon")
-	TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
+	TObjectPtr<class USkeletalMeshComponent> WeaponMeshComponent;
 
 	// 무기 부착 Socket 이름
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Weapon")
 	FName WeaponAttachSocketName = TEXT("hand_rSocket");
+
+	// 앞잡 또는 뒤잡을 위한 박스 컴포넌트
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|FatalAttackBox")
+	TObjectPtr<class UBoxComponent> FatalAttackBox;
 
 	// Enemy Stat Component
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Stat")
@@ -125,4 +144,8 @@ protected:
 	// Strafe 여부 플래그
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
 	uint32 bIsStrafeMode : 1 = false;
+
+	// Inherited via IFatalAttackableInterface
+	bool CanBeFatalAttacked(AActor* Attacker) const override;
+	void ReceiveFatalAttack(const FDamageInfo DamageInfo) override;
 };

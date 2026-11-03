@@ -55,11 +55,13 @@ void UAttackTraceComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	const FVector CurrentEnd = Mesh->GetSocketLocation(TraceEndSocketName);
 
 	// 이전 프레임과 현재 프레임의 중간 지점
-	const FVector PreviousCenter = (PreviousStart + PreviousEnd) * 0.5f;
-	const FVector CurrentCenter = (CurrentStart + CurrentEnd) * 0.5f;
+	const FVector PreviousMiddle = (PreviousStart + PreviousEnd) / 2.0f;
+	const FVector CurrentMiddle = (CurrentStart + CurrentEnd) / 2.0f;
 
-	// Trace Capsule Sweep 실행
-	CheckTrace(PreviousCenter, CurrentCenter, CurrentStart, CurrentEnd);
+	// Trace의 3지점 검사
+	CheckTrace(PreviousStart, CurrentStart);
+	CheckTrace(PreviousMiddle, CurrentMiddle);
+	CheckTrace(PreviousEnd, CurrentEnd);
 
 	// 다음 프레임을 위해 현재 값 저장
 	PreviousStart = CurrentStart;
@@ -148,7 +150,7 @@ void UAttackTraceComponent::SetTraceMesh(UMeshComponent* InTraceMesh)
 	TraceMesh = InTraceMesh;
 }
 
-void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVector& CurrentCenter, const FVector& Start, const FVector& End)
+void UAttackTraceComponent::CheckTrace(const FVector& Start, const FVector& End)
 {
 	UWorld* World = GetWorld();
 	if (nullptr == World)
@@ -163,22 +165,11 @@ void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVec
 		return;
 	}
 
-	// 현재 Mesh의 Socket 사이 Vector
-	const FVector TraceVector = End - Start;
-	const float TraceLength = TraceVector.Size();
-	if (TraceLength <= KINDA_SMALL_NUMBER || TraceRadius <= 0.0f)
-	{
-		return;
-	}
-
 	// Trace Hit의 저장 값들
 	TArray<FHitResult> HitResults;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(AttackTrace), false, Owner);
 
 	// 추후 무시할 액터가 늘어나면 QueryParams.AddIgnoreActor(Actor) 활용
-
-	// Trace할 Capsule 크기
-	const float CapsuleHalfHeight = TraceLength * 0.5f + TraceRadius;
 
 	// Trace할 모양 선택
 	const FCollisionShape TraceShape = FCollisionShape::MakeCapsule(TraceRadius, CapsuleHalfHeight);
@@ -191,9 +182,9 @@ void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVec
 	// 이전 프레임에서 현재 플레임까지 Sweep
 	const bool bResult = World->SweepMultiByChannel(
 		HitResults,
-		PreviousCenter,
-		CurrentCenter,
-		CapsuleRotation,
+		Start,
+		End,
+		FQuat::Identity,
 		TraceChannel.GetValue(),
 		TraceShape,
 		Params

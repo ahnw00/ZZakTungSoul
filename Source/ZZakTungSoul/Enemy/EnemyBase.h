@@ -7,7 +7,6 @@
 #include "EnemyStates.h"
 #include <Data/DamageInfo.h>
 #include <Interface/AIDataInterface.h>
-#include <Interface/FatalAttackableInterface.h>
 #include "EnemyBase.generated.h"
 
 // 전방 선언
@@ -20,8 +19,7 @@ class APatrolPath;
  * 
  */
 UCLASS()
-class ZZAKTUNGSOUL_API AEnemyBase 
-	: public ACharacterBase, public IAIDataInterface, public IFatalAttackableInterface
+class ZZAKTUNGSOUL_API AEnemyBase : public ACharacterBase, public IAIDataInterface
 {
 	GENERATED_BODY()
 	
@@ -83,10 +81,6 @@ public:
 	// Strafe 상태일 때 캐릭터 매쉬 회전 관련 플래그 설정 함수
 	void SetStrafeMode(bool bEnable);
 
-private:
-	// 패링 당했을 때 호출될 함수(델리게이트에 바인드해줄 함수)
-	void OnGetParried();
-
 ////// 인터페이스 섹션
 protected:
 	// Inherited via IAIDataInterface
@@ -129,10 +123,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Weapon")
 	FName WeaponAttachSocketName = TEXT("hand_rSocket");
 
-	// 앞잡 또는 뒤잡을 위한 박스 컴포넌트
-	UPROPERTY(EditDefaultsOnly, Category = "Enemy|FatalAttackBox")
-	TObjectPtr<class UBoxComponent> FatalAttackBox;
-
 	// Enemy Stat Component
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Stat")
 	TObjectPtr<class UEnemyStatComponent> EnemyStatComponet;
@@ -144,8 +134,4 @@ protected:
 	// Strafe 여부 플래그
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
 	uint32 bIsStrafeMode : 1 = false;
-
-	// Inherited via IFatalAttackableInterface
-	bool CanBeFatalAttacked(AActor* Attacker) const override;
-	void ReceiveFatalAttack(const FDamageInfo DamageInfo) override;
 };

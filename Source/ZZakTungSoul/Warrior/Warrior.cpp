@@ -9,7 +9,6 @@
 #include "GameFrameWork/CharacterMovementComponent.h"
 
 #include "Components/ArrowComponent.h"
-#include <Components/CapsuleComponent.h>
 
 // DataTable
 //#include "Data/CharacterStatData.h"
@@ -25,10 +24,9 @@
 #include "Enemy/WarriorAIController.h"
 #include "Engine/OverlapResult.h"
 #include "Interface/InteractionInterface.h"
-#include <Interface/FatalAttackableInterface.h>
 
 // Damage
-#include <Data/DamageInfo.h>
+#include  <Data/DamageInfo.h>
 #include <Interface/CombatDamageInterface.h>
 #include <Enemy/Components/AttackTraceComponent.h>
 
@@ -44,7 +42,7 @@ AWarrior::AWarrior()
 	{
 		GetMesh()->SetSkeletalMesh(TempMesh.Object);
 
-		GetMesh()->SetRelativeLocation(FVector(0, 0, -95));
+		GetMesh()->SetRelativeLocation(FVector(0, 0, -88));
 		GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
 
 		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
@@ -85,20 +83,6 @@ AWarrior::AWarrior()
 	// 스켈레탈 메시 컴포넌트 생성
 	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon"));
 	Weapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket"));
-
-	LeftHandWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeapon"));
-	LeftHandWeapon->SetupAttachment(GetMesh(), TEXT("hand_lSocket"));
-
-	// TraceComponent가 판정할 수 있는 캡슐 컴포넌트(무기마다 크기 조정 필요)
-	// 방패를 들때만 방패 크기에 맞춰 커질거고
-	// 만약 왼손에 무기나 아무것도 안들고 있다면 그냥 기본 캡슐 크기가 되어야함
-	LeftHandCapsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("LeftHandCapsule"));
-	LeftHandCapsule->SetupAttachment(GetMesh(), TEXT("hand_lSocket"));
-	LeftHandCapsule->SetCapsuleHalfHeight(70.f);
-	LeftHandCapsule->SetCapsuleRadius(70.f);
-	LeftHandCapsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	LeftHandCapsule->SetCollisionObjectType(ECC_Pawn);
-	LeftHandCapsule->ComponentTags.Add(TEXT("ParryCollision"));
 
 	// [스탯 컴포넌트].
 	CharacterStatComponent = CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CharacterStatComponent"));
@@ -141,11 +125,6 @@ void AWarrior::PostInitializeComponents()
 	{
 		AnimInstance->OnMontageEnded.AddDynamic(this, &AWarrior::OnActionMontageEnded);
 	}
-
-	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &AWarrior::OnBeginOverlap);
-	GetCapsuleComponent()->OnComponentEndOverlap.AddDynamic(this, &AWarrior::OnEndOverlap);
-
-	Equipment->OnUnequipItem.AddUObject(this, &AWarrior::UnequipItem);
 
 	//if (Inventory)
 	//{
@@ -192,26 +171,6 @@ void AWarrior::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 
-}
-
-void AWarrior::OnBeginOverlap(
-	UPrimitiveComponent* OverlappedComponent,
-	AActor* OtherActor,
-	UPrimitiveComponent* OtherComp,
-	int32 OtherBodyIndex,
-	bool bFromSweep,
-	const FHitResult& SweepResult)
-{
-	CurrentFatalAttackable = Cast<IFatalAttackableInterface>(OtherActor);
-}
-
-void AWarrior::OnEndOverlap(
-	UPrimitiveComponent* OverlappedComponent,
-	AActor* OtherActor,
-	UPrimitiveComponent* OtherComp,
-	int32 OtherBodyIndex)
-{
-	CurrentFatalAttackable = nullptr;
 }
 
 // 락온 시에 카메라가 대상에 고정이 되도록(Tick에서 호출될 함수)
@@ -342,7 +301,7 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 	//	bComboQueued = false;
 	//	bCanComboInput = false;
 	//}
-
+	
 	if(ActionState != EActionState::Attack)
 		SetActionState(EActionState::None);
 
@@ -442,24 +401,26 @@ void AWarrior::BlockEnd()
 
 void AWarrior::Parry()
 {
-	// 다른 행동을 하고 있으면 무시
-	if (ActionState != EActionState::None)
-		return;
-
-	SetActionState(EActionState::Parry);
-	AnimInstance->PlayActionMontage();
+	UE_LOG(LogTemp, Log, TEXT("Parry"));
 }
 
 void AWarrior::Attack()
 {
+	//UE_LOG(LogTemp, Warning, TEXT("Attack()== Start"));
+	if (ActionState == EActionState::Attack)
+	{
+		if (bCanComboInput)
+		{
+			bComboQueued = true;
+			//UE_LOG(LogTemp, Warning, TEXT("Attack()== ComboQueued : %d"), bComboQueued);
+			return;
+		}
+	}
+
 	switch (ActionState)
 	{
 	case EActionState::None:
-	{
-		if (FatalAttack())
-			return;
 		break;
-	}
 	case EActionState::Block:
 		BlockEnd();
 		[[fallthrough]];
@@ -468,15 +429,7 @@ void AWarrior::Attack()
 	case EActionState::BackStep:
 		[[fallthrough]];
 	case EActionState::Attack:
-	{
-		if (bCanComboInput)
-		{
-			bComboQueued = true;
-			//UE_LOG(LogTemp, Warning, TEXT("Attack()== ComboQueued : %d"), bComboQueued);
-			return;
-		}
-		break;
-	}
+		[[fallthrough]];
 	case EActionState::Hit:
 		return;
 	default:
@@ -511,46 +464,6 @@ void AWarrior::FinishAttack()
 		//SetMoveState(EMoveState::Idle);
 		SetActionState(EActionState::None);
 	}
-}
-
-bool AWarrior::FatalAttack()
-{
-	if (!CurrentFatalAttackable)
-		return false;
-
-	if (!CurrentFatalAttackable->CanBeFatalAttacked(this))
-		return false;
-
-	FDamageInfo DamageInfo;
-	DamageInfo.AttackDamage = CharacterStatComponent->GetAttackPower() * 2.0f;
-	CurrentFatalAttackable->ReceiveFatalAttack(DamageInfo);
-
-	SetActionState(EActionState::FatalAttack);
-
-	// Todo: 위치 보정 필요
-	// 적의 Transform 가져오기
-	AActor* Enemy = Cast<AActor>(CurrentFatalAttackable);
-
-	const FTransform EnemyTransform = Enemy->GetActorTransform();
-
-	// 적 기준 상대적인 위치
-	const FVector RelativeLocation(70.f, 0.f, 0.f);
-
-	// 적의 로컬 좌표를 월드 좌표로 변환
-	const FVector TargetLocation = EnemyTransform.TransformPosition(RelativeLocation);
-
-	// 플레이어 위치 보정
-	SetActorLocation(TargetLocation);
-
-	// 적을 바라보는 방향으로 회전
-	const FRotator TargetRotation = (Enemy->GetActorLocation() - GetActorLocation()).Rotation();
-
-	SetActorRotation(TargetRotation);
-
-	// 플레이어 페이탈 어택 애니메이션 재생
-	AnimInstance->PlayActionMontage();
-
-	return true;
 }
 
 void AWarrior::SetComboWindow(bool bOpen)
@@ -634,11 +547,7 @@ void AWarrior::LockOn()
 			ACharacter* Detected = Cast<ACharacter>(OverlapResult.GetActor());
 
 			if (!Detected) continue;
-
-			AController* DetectedController = Detected->GetController();
-			if (!DetectedController) continue;
-
-			if (DetectedController->IsPlayerController()) continue;
+			if (Detected->GetController()->IsPlayerController()) continue;
 
 			FVector Dir = (Detected->GetActorLocation() - CameraLocation).GetSafeNormal();
 			float Dot = FVector::DotProduct(Dir, CameraForward);
@@ -921,54 +830,11 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		WeaponData->Mesh.LoadSynchronous();
 	}
 
-	// Todo: 각각의 슬롯 위치에 따라 장착을 달리해줘야해
-	// 이 함수가 호출되기 전에 장착 가능한 슬롯은 이미 걸러져서 또 확인 안해도 돼
-	// AttackTraceComponent도 왼쪽 오른쪽 다 있어야해
-	
-	// 임시
-	if (Slot == EEquipmentSlot::RightHand)
-	{
-		Weapon->SetSkeletalMesh(WeaponData->Mesh.Get());
-		Weapon->SetRelativeRotation(WeaponData->EquipRotation);
-		AttackTraceComponent->SetTraceMesh(Weapon);
-	}
-	else if (Slot == EEquipmentSlot::LeftHand)
-	{
-		LeftHandWeapon->SetSkeletalMesh(WeaponData->Mesh.Get());
-		LeftHandWeapon->SetRelativeRotation(WeaponData->EquipRotation);
-		// Todo: 왼쪽 AttackTraceComponent에 메시 설정해주기
-	}
+	Weapon->SetSkeletalMesh(WeaponData->Mesh.Get());
+	Weapon->SetRelativeRotation(WeaponData->EquipRotation);
+	AttackTraceComponent->SetTraceMesh(Weapon);
 
 	// Todo: 무기 스탯 연동해주기
-}
-
-void AWarrior::UnequipItem(EEquipmentSlot Slot)
-{
-	switch (Slot)
-	{
-	case EEquipmentSlot::None:
-		break;
-	case EEquipmentSlot::RightHand:
-		Weapon->SetSkeletalMesh(nullptr);
-		break;
-	case EEquipmentSlot::LeftHand:
-		LeftHandWeapon->SetSkeletalMesh(nullptr);
-		break;
-	case EEquipmentSlot::Head:
-		break;
-	case EEquipmentSlot::Chest:
-		break;
-	case EEquipmentSlot::Arms:
-		break;
-	case EEquipmentSlot::Legs:
-		break;
-	case EEquipmentSlot::UpperBelt:
-		break;
-	case EEquipmentSlot::LowerBelt:
-		break;
-	default:
-		break;
-	}
 }
 
 void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
@@ -1016,7 +882,7 @@ float AWarrior::TakeDamaged(float Damage, float PoiseDamage, float StanceDamage,
 
 			if (StanceIsZero)
 			{
-				//SetActionState(EActionState::Stun);
+				SetActionState(EActionState::Stun);
 			}
 			else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
 			{

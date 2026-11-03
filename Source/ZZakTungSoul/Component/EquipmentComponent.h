@@ -8,7 +8,6 @@
 #include "EquipmentComponent.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEquipItem, FGuid, EEquipmentSlot);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnequipItem, EEquipmentSlot);
 DECLARE_MULTICAST_DELEGATE(FOnEquipItemImageChanged);
 
 
@@ -41,11 +40,8 @@ public:
 		return *FoundID;
 	}
 
-	EEquipmentSlot FindOverlappedItem(FGuid TargetID, EEquipmentSlot InSlot);
-
 public:
 	FOnEquipItem OnEquipItem;
-	FOnUnequipItem OnUnequipItem;
 	FOnEquipItemImageChanged OnEquipItemImageChanged;
 
 private:

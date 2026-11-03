@@ -56,9 +56,6 @@ private:
 	TArray<UAnimMontage*> AttackMontage;
 
 	UPROPERTY()
-	TObjectPtr<UAnimMontage> FatalAttackMontage;
-
-	UPROPERTY()
 	UAnimMontage* ParryMontage;
 
 	UPROPERTY()
@@ -80,9 +77,6 @@ protected:
 	EActionState ActionState = EActionState::None;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	EWeaponState WeaponState = EWeaponState::None;
-
-private:
-	const class UWeaponDataAsset* GetWeaponData(class AWarrior* Warrior);
 
 public:
 	UFUNCTION()

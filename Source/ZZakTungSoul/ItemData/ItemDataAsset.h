@@ -60,10 +60,16 @@ public:
 	EItemType ItemType;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSoftObjectPtr<USkeletalMesh> Mesh;
+	TSoftObjectPtr<USkeletalMesh> SkeletalMesh;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FVector RelaiveLocation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FRotator EquipRotation;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FVector RelativeScale = FVector(1.f, 1.f, 1.f);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<UTexture2D> Icon;

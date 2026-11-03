@@ -34,7 +34,4 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float Poise = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSoftObjectPtr<USkeletalMesh> ArmorMesh;
 };

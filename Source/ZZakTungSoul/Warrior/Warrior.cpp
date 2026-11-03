@@ -18,6 +18,7 @@
 
 // Item
 #include <ItemData/WeaponDataAsset.h>
+#include <ItemData/ConsumableDataAsset.h>
 #include <Component/EquipmentComponent.h>
 #include <Component/InventoryComponent.h>
 
@@ -735,6 +736,9 @@ bool AWarrior::GetOverlaps()
 
 void AWarrior::Interact()
 {
+	if (ActionState != EActionState::None)
+		return;
+
 	if (DetectedActors.Num() == 0)
 		return;
 
@@ -909,39 +913,40 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 	Equipment->EquipItem(InID, Slot);
 
 	const UItemDataAsset* InItem = Inventory->FindItemDataByInstanceID(InID);
-	const UWeaponDataAsset* WeaponData = Cast<UWeaponDataAsset>(InItem);
-
-	if (!WeaponData)
-		return;
 
 	// 아직 로드되지 않았다면
-	if (WeaponData->Mesh.IsPending())
+	if (InItem->SkeletalMesh.IsPending())
 	{
 		// 동기 로딩
-		WeaponData->Mesh.LoadSynchronous();
+		InItem->SkeletalMesh.LoadSynchronous();
 	}
 
 	// Todo: 각각의 슬롯 위치에 따라 장착을 달리해줘야해
 	// 이 함수가 호출되기 전에 장착 가능한 슬롯은 이미 걸러져서 또 확인 안해도 돼
 	// AttackTraceComponent도 왼쪽 오른쪽 다 있어야해
-	
+
 	// 임시
 	if (Slot == EEquipmentSlot::RightHand)
 	{
-		Weapon->SetSkeletalMesh(WeaponData->Mesh.Get());
-		Weapon->SetRelativeRotation(WeaponData->EquipRotation);
+		Weapon->SetSkeletalMesh(InItem->SkeletalMesh.Get());
+		Weapon->SetRelativeLocation(InItem->RelaiveLocation);
+		Weapon->SetRelativeRotation(InItem->EquipRotation);
+		Weapon->SetRelativeScale3D(InItem->RelativeScale);
 		AttackTraceComponent->SetTraceMesh(Weapon);
 	}
 	else if (Slot == EEquipmentSlot::LeftHand)
 	{
-		LeftHandWeapon->SetSkeletalMesh(WeaponData->Mesh.Get());
-		LeftHandWeapon->SetRelativeRotation(WeaponData->EquipRotation);
+		LeftHandWeapon->SetSkeletalMesh(InItem->SkeletalMesh.Get());
+		LeftHandWeapon->SetRelativeLocation(InItem->RelaiveLocation);
+		LeftHandWeapon->SetRelativeRotation(InItem->EquipRotation);
+		LeftHandWeapon->SetRelativeScale3D(InItem->RelativeScale);
 		// Todo: 왼쪽 AttackTraceComponent에 메시 설정해주기
 	}
 
 	// Todo: 무기 스탯 연동해주기
 }
 
+// 스켈레탈 메쉬 해제
 void AWarrior::UnequipItem(EEquipmentSlot Slot)
 {
 	switch (Slot)

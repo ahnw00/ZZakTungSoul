@@ -17,7 +17,7 @@ UEnemyBaseAnimInstance::UEnemyBaseAnimInstance()
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> GetFatalAttackMontageRef(
-		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_GetFatalAttacked_Montage.Warrior_GetFatalAttacked_Montage")
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_GetFatalAttacked_Montage1.Warrior_GetFatalAttacked_Montage1")
 	);
 	if (GetFatalAttackMontageRef.Succeeded())
 	{

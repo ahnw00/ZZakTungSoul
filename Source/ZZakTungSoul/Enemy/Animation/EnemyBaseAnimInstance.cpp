@@ -8,21 +8,7 @@
 
 UEnemyBaseAnimInstance::UEnemyBaseAnimInstance()
 {
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> StunMontageRef(
-		TEXT("/Game/Blueprints/Anim/SwordAndShield/Warrior_SwordAndShield_Stun2.Warrior_SwordAndShield_Stun2")
-	);
-	if (StunMontageRef.Succeeded())
-	{
-		StunMontage = StunMontageRef.Object;
-	}
-
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> GetFatalAttackMontageRef(
-		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_GetFatalAttacked_Montage1.Warrior_GetFatalAttacked_Montage1")
-	);
-	if (GetFatalAttackMontageRef.Succeeded())
-	{
-		GetFatalAttackMontage = GetFatalAttackMontageRef.Object;
-	}
+	
 }
 
 void UEnemyBaseAnimInstance::NativeInitializeAnimation()
@@ -68,16 +54,4 @@ void UEnemyBaseAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	// 간보기 상태 설정
 	bIsStrafe = CurrentState == EEnemyState::Strafe;
-}
-
-void UEnemyBaseAnimInstance::PlayStunMontage()
-{
-	StopAllMontages(1.f);
-	Montage_Play(StunMontage);
-}
-
-void UEnemyBaseAnimInstance::PlayGetFatalAttackMontage()
-{
-	StopAllMontages(1.f);
-	Montage_Play(GetFatalAttackMontage);
 }

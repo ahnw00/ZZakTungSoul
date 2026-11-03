@@ -55,13 +55,11 @@ void UAttackTraceComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	const FVector CurrentEnd = Mesh->GetSocketLocation(TraceEndSocketName);
 
 	// 이전 프레임과 현재 프레임의 중간 지점
-	const FVector PreviousMiddle = (PreviousStart + PreviousEnd) / 2.0f;
-	const FVector CurrentMiddle = (CurrentStart + CurrentEnd) / 2.0f;
+	const FVector PreviousCenter = (PreviousStart + PreviousEnd) * 0.5f;
+	const FVector CurrentCenter = (CurrentStart + CurrentEnd) * 0.5f;
 
-	// Trace의 3지점 검사
-	CheckTrace(PreviousStart, CurrentStart);
-	CheckTrace(PreviousMiddle, CurrentMiddle);
-	CheckTrace(PreviousEnd, CurrentEnd);
+	// Trace Capsule Sweep 실행
+	CheckTrace(PreviousCenter, CurrentCenter, CurrentStart, CurrentEnd);
 
 	// 다음 프레임을 위해 현재 값 저장
 	PreviousStart = CurrentStart;
@@ -150,7 +148,7 @@ void UAttackTraceComponent::SetTraceMesh(UMeshComponent* InTraceMesh)
 	TraceMesh = InTraceMesh;
 }
 
-void UAttackTraceComponent::CheckTrace(const FVector& Start, const FVector& End)
+void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVector& CurrentCenter, const FVector& Start, const FVector& End)
 {
 	UWorld* World = GetWorld();
 	if (nullptr == World)
@@ -165,22 +163,37 @@ void UAttackTraceComponent::CheckTrace(const FVector& Start, const FVector& End)
 		return;
 	}
 
+	// 현재 Mesh의 Socket 사이 Vector
+	const FVector TraceVector = End - Start;
+	const float TraceLength = TraceVector.Size();
+	if (TraceLength <= KINDA_SMALL_NUMBER || TraceRadius <= 0.0f)
+	{
+		return;
+	}
+
 	// Trace Hit의 저장 값들
 	TArray<FHitResult> HitResults;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(AttackTrace), false, Owner);
 
 	// 추후 무시할 액터가 늘어나면 QueryParams.AddIgnoreActor(Actor) 활용
 
+	// Trace할 Capsule 크기
+	const float CapsuleHalfHeight = TraceLength * 0.5f + TraceRadius;
+
 	// Trace할 모양 선택
-	const FCollisionShape TraceShape = FCollisionShape::MakeSphere(TraceRadius);
-	//const FCollisionShape TraceCapsuleShape = FCollisionShape::MakeCapsule(TraceRadius, 50.f);
+	const FCollisionShape TraceShape = FCollisionShape::MakeCapsule(TraceRadius, CapsuleHalfHeight);
+
+	// Capsule은 Local Z축을 길이 방향으로 사용한다...
+	const FVector CapsuleDirection = TraceVector.GetSafeNormal();
+
+	const FQuat CapsuleRotation = FRotationMatrix::MakeFromZ(CapsuleDirection).ToQuat();
 
 	// 이전 프레임에서 현재 플레임까지 Sweep
 	const bool bResult = World->SweepMultiByChannel(
 		HitResults,
-		Start,
-		End,
-		FQuat::Identity,
+		PreviousCenter,
+		CurrentCenter,
+		CapsuleRotation,
 		TraceChannel.GetValue(),
 		TraceShape,
 		Params
@@ -188,10 +201,8 @@ void UAttackTraceComponent::CheckTrace(const FVector& Start, const FVector& End)
 
 #ifdef ENABLE_DRAW_DEBUG
 
-	DrawDebugLine(World, Start, End, FColor::Green, false, 1.0f, 0, 1.0f);
-	DrawDebugSphere(World, End, TraceRadius, 12, bResult ? FColor::Red : FColor::Green, false, 1.0f);
-	//DrawDebugCapsule(World, Start, 50.f, TraceRadius,
-	//	TraceMesh->GetComponentQuat(), FColor::Green, false, 1.f);
+	DrawDebugCapsule(World, CurrentCenter, CapsuleHalfHeight, TraceRadius, CapsuleRotation, bResult ? FColor::Red : FColor::Green, false, 0.5f);
+	DrawDebugLine(World, PreviousCenter, CurrentCenter, FColor::Yellow, false, 1.0f);
 #endif // ENABLE_DRAW_DEBUG
 
 
@@ -200,35 +211,10 @@ void UAttackTraceComponent::CheckTrace(const FVector& Start, const FVector& End)
 		return;
 	}
 
-	// 충돌 대상 처리하기 전 우선 패링을 했는지 판단
-	for (const FHitResult& Hit : HitResults)
-	{
-		AActor* HitActor = Hit.GetActor();
-		if (!IsValid(HitActor))
-		{
-			return;
-		}
-
-		// 자기자신 제외
-		if (HitActor == GetOwner())
-		{
-			return;
-		}
-
-		UPrimitiveComponent* HitComponent = Hit.GetComponent();
-		if (HitComponent->ComponentHasTag(TEXT("ParryCollision")))
-		{
-			UE_LOG(LogTemp, Log, TEXT("Parry Completed!"));
-			OnGetParried.Broadcast();
-			EndTrace();
-			return;
-		}
-	}
-
 	// 감지된 충돌 대상 처리
 	for (const FHitResult& Hit : HitResults)
 	{
-		TraceHitResult(Hit);  
+		TraceHitResult(Hit);
 	}
 }
 
@@ -252,8 +238,6 @@ void UAttackTraceComponent::TraceHitResult(const FHitResult& Hit)
 	{
 		return;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("%s hit"), *HitActor->GetName());
 
 	// 피격 목록에 추가
 	HitActors.Add(CheckHitActor);

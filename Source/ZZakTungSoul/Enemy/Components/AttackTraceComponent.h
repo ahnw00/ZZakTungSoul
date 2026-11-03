@@ -12,8 +12,6 @@ class UMeshComponent;
 // Delegate 선언
 // 공격 판정 성공시 호출되는 Delegate
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnAttackTraceHit, const FHitResult&);
-// 패링 시 호출되는 Delegate
-DECLARE_MULTICAST_DELEGATE(FOnGetParried);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ZZAKTUNGSOUL_API UAttackTraceComponent : public UActorComponent
@@ -54,9 +52,6 @@ private:
 public:
 	// 충돌 성공 델리게이트 이벤트
 	FOnAttackTraceHit OnTraceHit;
-
-	// 패링 당할 시 델리게이트 이벤트
-	FOnGetParried OnGetParried;
 
 private:
 	// 공격 판정 활성화 여부 플래그

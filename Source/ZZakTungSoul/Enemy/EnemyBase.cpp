@@ -4,7 +4,6 @@
 #include "Enemy/EnemyBase.h"
 #include <Enemy/EnemyAIController.h>
 #include <Enemy/Data/EnemyAIData.h>
-#include <Enemy/Animation/EnemyBaseAnimInstance.h>
 #include <Enemy/Components/AttackTraceComponent.h>
 #include <Enemy/Components/EnemyStatComponent.h>
 #include <Character/CharacterStatComponent.h>
@@ -12,42 +11,12 @@
 #include <Data/DamageInfo.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
-#include <Components/StaticMeshComponent.h>
 #include <Components/SkeletalMeshComponent.h>
-#include <Components/BoxComponent.h>
-#include <Engine/StaticMesh.h>
+#include <Engine/SkeletalMesh.h>
 
 AEnemyBase::AEnemyBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
-
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshRef(
-		TEXT("/Game/Assets/InfinityBladeWarriors/Character/CompleteCharacters/sk_CharM_Base.sk_CharM_Base")
-	);
-	if(MeshRef.Succeeded())
-	{
-		GetMesh()->SetSkeletalMesh(MeshRef.Object);
-
-		GetMesh()->SetRelativeLocation(FVector(0, 0, -88));
-		GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
-
-		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-		static ConstructorHelpers::FClassFinder<UAnimInstance> EnemyAnimAsset
-		(TEXT("/Game/Blueprints/Enemy/Animation/ABP_EnemyBase.ABP_EnemyBase_C"));
-		if (EnemyAnimAsset.Succeeded())
-		{
-			GetMesh()->SetAnimInstanceClass(EnemyAnimAsset.Class);
-			//UE_LOG(LogTemp, Log, TEXT("AnimInstance Set"));
-		}
-		else
-		{
-			//UE_LOG(LogTemp, Log, TEXT("AnimInstance Not Set"));
-		}
-	}
-
-	FatalAttackBox = CreateDefaultSubobject<UBoxComponent>(TEXT("FatalAttackBox"));
-	FatalAttackBox->SetupAttachment(RootComponent);
-	FatalAttackBox->SetBoxExtent(FVector(100.f, 32.f, 32.f));
 
 	// 이동 방향 회전 설정
 	bUseControllerRotationYaw = false;
@@ -57,7 +26,6 @@ AEnemyBase::AEnemyBase()
 	GetCharacterMovement()->bUseRVOAvoidance = true;
 	GetCharacterMovement()->AvoidanceConsiderationRadius = 100.0f;
 	GetCharacterMovement()->AvoidanceWeight = 0.3f;
-
 
 	// 초기 이동 속도 설정
 	//GetCharacterMovement()->MaxWalkSpeed = PatrolSpeed;
@@ -91,12 +59,20 @@ void AEnemyBase::BeginPlay()
 		AttackTraceComponent->OnTraceHit.AddUObject(this, &AEnemyBase::HandleAttackTraceHit);
 	}
 
-	AttackTraceComponent->OnGetParried.AddUObject(this, &AEnemyBase::OnGetParried);
+	if (EnemyStatComponet)
+	{
+		EnemyStatComponet->OnEnemyHpZero.AddUObject(this, &AEnemyBase::SetDead);
+	}
 }
 
 void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 {
 	//Super::ReceiveDamage(DamageInfo, Hit);
+
+	if (IsDead())
+	{
+		return;
+	}
 
 	if (nullptr == EnemyStatComponet)
 	{
@@ -157,10 +133,6 @@ void AEnemyBase::UpdateMovementSpeed()
 		break;
 
 	case EEnemyState::Hit:
-		Movement->MaxWalkSpeed = 0.0f;
-		break;
-
-	case EEnemyState::Groggy:
 		Movement->MaxWalkSpeed = 0.0f;
 		break;
 
@@ -254,14 +226,14 @@ void AEnemyBase::InitializeWeapon()
 	}
 
 	// 무기 컴포넌트 생성
-	UStaticMeshComponent* NewMeshComp = NewObject<UStaticMeshComponent>(this, UStaticMeshComponent::StaticClass(), TEXT("EquippedWeaponMesh"));
+	USkeletalMeshComponent* NewMeshComp = NewObject<USkeletalMeshComponent>(this, USkeletalMeshComponent::StaticClass(), TEXT("EquippedWeaponMesh"));
 	if (!IsValid(NewMeshComp))
 	{
 		return;
 	}
 
 	// 무기 Mesh 적용
-	NewMeshComp->SetStaticMesh(WeaponMesh.Get());
+	NewMeshComp->SetSkeletalMesh(WeaponMesh.Get());
 
 	// 실제 충돌 검사는 TraceComponent에서 함
 	NewMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -286,6 +258,41 @@ void AEnemyBase::InitializeWeapon()
 	{
 		AttackTraceComponent->SetTraceMesh(WeaponMeshComponent.Get());
 	}
+
+}
+
+void AEnemyBase::SetDead()
+{
+	// 중복 방지
+	if (IsDead())
+	{
+		return;
+	}
+
+	// 사망 상태 설정
+	SetEnemyState(EEnemyState::Dead);
+
+	// AI 중지 처리
+	if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
+	{
+		AIController->StopAIController();
+	}
+
+	// 공격 판정 중지
+	if (IsValid(AttackTraceComponent))
+	{
+		AttackTraceComponent->EndTrace();
+	}
+
+	// 상위 클래스 공통 로직 실행
+	Super::SetDead();
+
+	// 실제 사망 로직 실행
+	DeadStart();
+}
+
+void AEnemyBase::DeadStart()
+{
 
 }
 
@@ -344,24 +351,6 @@ void AEnemyBase::SetStrafeMode(bool bEnable)
 	}
 }
 
-void AEnemyBase::OnGetParried()
-{
-	SetEnemyState(EEnemyState::Groggy);
-
-	// 임시 테스트용
-	if (!GetController())
-		return;
-	GetController()->UnPossess();
-
-	UEnemyBaseAnimInstance* AnimInstance = Cast<UEnemyBaseAnimInstance>(GetMesh()->GetAnimInstance());
-	if (!AnimInstance)
-	{
-		return;
-	}
-
-	AnimInstance->PlayStunMontage();
-}
-
 float AEnemyBase::GetCombatRangeData()
 {
 	return EnemyAIData->CombatRange;
@@ -387,30 +376,7 @@ void AEnemyBase::SetCurrentDamageInfoInterface(const FDamageInfo& NewDamageInfo)
 	CurrentDamageInfo = NewDamageInfo;
 }
 
-bool AEnemyBase::CanBeFatalAttacked(AActor* Attacker) const
+APatrolPath* AEnemyBase::GetPatrolPathData() const
 {
-	if (CurrentState != EEnemyState::Groggy)
-		return false;
-
-	float Dot = FVector::DotProduct(Attacker->GetActorForwardVector(), GetActorForwardVector());
-
-	// 그로기 상태에 걸린 적과 플레이어의 각이 크면 안돼
-	// 두 액터가 정확하게 마주볼 때 Dot값은 -1
-	if (Dot > -0.8f)
-		return false;
-
-	return true;
-}
-
-void AEnemyBase::ReceiveFatalAttack(const FDamageInfo DamageInfo)
-{
-	// 페이탈 어택 당하는 애니메이션 재생
-	UEnemyBaseAnimInstance* Anim = Cast<UEnemyBaseAnimInstance>(GetMesh()->GetAnimInstance());
-	if (!Anim)
-		return;
-
-	Anim->PlayGetFatalAttackMontage();
-
-	// 페이탈 어택 데미지 적용
-	ReceiveDamage(DamageInfo, FHitResult());
+	return nullptr;
 }

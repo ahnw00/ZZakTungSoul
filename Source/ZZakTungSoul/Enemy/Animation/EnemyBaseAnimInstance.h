@@ -23,12 +23,6 @@ protected:
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
-public:
-	// 일단은 스턴용만 만들어둠(일반화해둔 함수가 필요함)
-	void PlayStunMontage();
-
-	void PlayGetFatalAttackMontage();
-
 protected:
 	// AnimInstance를 소유하는 오너
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Character")
@@ -65,11 +59,4 @@ protected:
 	// 간보기 중인지 확인할 변수 값
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Character")
 	uint32 bIsStrafe : 1 = false;
-
-protected:
-	UPROPERTY()
-	TObjectPtr<UAnimMontage> StunMontage;
-
-	UPROPERTY()
-	TObjectPtr<UAnimMontage> GetFatalAttackMontage;
 };

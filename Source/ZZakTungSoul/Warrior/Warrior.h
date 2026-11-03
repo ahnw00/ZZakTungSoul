@@ -43,6 +43,23 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
+	UFUNCTION()
+	void OnBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent, 
+		AActor* OtherActor, 
+		UPrimitiveComponent* OtherComp, 
+		int32 OtherBodyIndex, 
+		bool bFromSweep, 
+		const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnEndOverlap(
+		UPrimitiveComponent* OverlappedComponent, 
+		AActor* OtherActor, 
+		UPrimitiveComponent* OtherComp, 
+		int32 OtherBodyIndex);
+
+private:
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	class USpringArmComponent* SpringArm;
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
@@ -55,6 +72,12 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon")
 	class USkeletalMeshComponent* Weapon;
+
+	UPROPERTY(VisibleAnywhere, Category = "LeftHandWeapon")
+	class USkeletalMeshComponent* LeftHandWeapon;
+
+	UPROPERTY(VisibleAnywhere, Category = "LeftHandCapsule")
+	class UCapsuleComponent* LeftHandCapsule;
 
 	UPROPERTY(VisibleAnywhere, Category = "Equipment")
 	class UEquipmentComponent* Equipment;
@@ -106,6 +129,7 @@ public:
 
 	void Attack();
 	void FinishAttack();
+	bool FatalAttack();
 	void SetComboWindow(bool bOpen);
 	void OnComboTransition();
 	void ChargeAttack();
@@ -156,6 +180,7 @@ public:
 
 private:
 	class IInteractionInterface* CurrentInteractable = nullptr;
+	class IFatalAttackableInterface* CurrentFatalAttackable = nullptr;
 
 public:
 	// [캐릭터 스탯].
@@ -178,11 +203,16 @@ protected:
 	// 공격 판정을 위한 Trace Component
 	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
 	TObjectPtr<class UAttackTraceComponent> AttackTraceComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
+	TObjectPtr<class UAttackTraceComponent> ParryTraceComponent;
 	
 
 	// 아이템 관련 함수
 public:
 	void EquipWeapon(const FGuid& InID, EEquipmentSlot Slot);
+
+	void UnequipItem(EEquipmentSlot Slot);
 
 	// Inherited via IItemInterface
 	void ObtainItem(class UItemDataAsset* detectedItem) override;

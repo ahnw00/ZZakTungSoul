@@ -211,10 +211,35 @@ void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVec
 		return;
 	}
 
+	// 충돌 대상 처리하기 전 우선 패링을 했는지 판단
+	for (const FHitResult& Hit : HitResults)
+	{
+		AActor* HitActor = Hit.GetActor();
+		if (!IsValid(HitActor))
+		{
+			return;
+		}
+
+		// 자기자신 제외
+		if (HitActor == GetOwner())
+		{
+			return;
+		}
+
+		UPrimitiveComponent* HitComponent = Hit.GetComponent();
+		if (HitComponent->ComponentHasTag(TEXT("ParryCollision")))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Parry Completed!"));
+			OnGetParried.Broadcast();
+			EndTrace();
+			return;
+		}
+	}
+
 	// 감지된 충돌 대상 처리
 	for (const FHitResult& Hit : HitResults)
 	{
-		TraceHitResult(Hit);
+		TraceHitResult(Hit);  
 	}
 }
 
@@ -238,6 +263,8 @@ void UAttackTraceComponent::TraceHitResult(const FHitResult& Hit)
 	{
 		return;
 	}
+
+	UE_LOG(LogTemp, Log, TEXT("%s hit"), *HitActor->GetName());
 
 	// 피격 목록에 추가
 	HitActors.Add(CheckHitActor);

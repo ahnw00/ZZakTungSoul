@@ -847,7 +847,9 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 
 		if (StanceIsZero)
 		{
-			//SetActionState(EActionState::Stun);
+			SetActionState(EActionState::Stun);
+			AnimInstance->PlayActionMontage();
+			CharacterStatComponent->ApplyDamage(DamageInfo);
 		}
 		else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
 		{

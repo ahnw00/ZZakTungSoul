@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -40,6 +40,9 @@ public:
 
 	// 매쉬 컴포넌트 설정 함수
 	void SetTraceMesh(UMeshComponent* InTraceMesh);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Trace|Debug")
+	bool bDrawDebug = false;
 
 private:
 	// Sweep Trace 실행 함수

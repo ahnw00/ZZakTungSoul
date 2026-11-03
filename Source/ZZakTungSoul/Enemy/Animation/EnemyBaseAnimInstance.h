@@ -58,6 +58,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Character")
 	EEnemyState CurrentState = EEnemyState::Idle;
 
+	UPROPERTY(VisibleAnywhere, Category = "Character")
+	EEnemyMoveState CurrentMoveState = EEnemyMoveState::Idle;
+
 	// 이동 중인지 확인할 변수 값
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Character")
 	uint32 bIsIdle : 1;

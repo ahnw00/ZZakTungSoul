@@ -36,9 +36,11 @@ protected:
 
 	// 상태에 따라 이동속도 변경 함수
 	virtual void UpdateMovementSpeed();
+	virtual void UpdateMovementSpeedState();
 
 	// 상태에 따라 회전 상태 변경 함수
 	virtual void UpdateRotationMode();
+	virtual void UpdateRotationModeState();
 
 	// Trace에 걸린 액터 처리 함수
 	virtual void HandleAttackTraceHit(const FHitResult& Hit);
@@ -70,9 +72,10 @@ public:
 
 	// 사망 여부
 	bool IsDead() const { return CurrentState == EEnemyState::Dead; }
+	bool IsDeadState() const { return CurrentActionState == EEnemyActionState::Dead; }
 
 	// Strafe 상태 여부
-	bool IsStrafeMode() const { return CurrentState == EEnemyState::Strafe; }
+	bool IsStrafeMode() const { return CurrentMoveState == EEnemyMoveState::Strafe; }
 
 	// 적 애셋 데이터 반환
 	const UEnemyAIData* GetEnemyAIData() const { return EnemyAIData; }
@@ -115,7 +118,7 @@ protected:
 	EEnemyState CurrentState = EEnemyState::Idle;
 
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|MovementState")
-	EEnemyMoveState CurrentMoveState = EEnemyMoveState::None;
+	EEnemyMoveState CurrentMoveState = EEnemyMoveState::Idle;
 
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|ActionState")
 	EEnemyActionState CurrentActionState = EEnemyActionState::None;

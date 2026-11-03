@@ -186,10 +186,81 @@ void AEnemyBase::UpdateMovementSpeed()
 	}
 }
 
+void AEnemyBase::UpdateMovementSpeedState()
+{
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (!Movement || !EnemyStatComponet)
+	{
+		return;
+	}
+
+	// 행동 상태에 따른 이동 속도
+	switch (CurrentActionState)
+	{
+	case EEnemyActionState::Hit:
+	case EEnemyActionState::Stance:
+	case EEnemyActionState::Dead:
+		Movement->MaxWalkSpeed = 0.0f;
+		return;
+
+	default:
+		break;
+	}
+
+	// 이동 상태에 따른 이동 속도
+	switch (CurrentMoveState)
+	{
+	case EEnemyMoveState::None:
+	case EEnemyMoveState::Idle:
+		Movement->MaxWalkSpeed = 0.0f;
+		break;
+
+	case EEnemyMoveState::Patrol:
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
+		break;
+
+	case EEnemyMoveState::Chase:
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetChaseSpeed();
+		break;
+
+	case EEnemyMoveState::FastChase:
+		Movement->MaxWalkSpeed = (EnemyStatComponet->GetChaseSpeed()) * 1.2f;
+		break;
+
+	case EEnemyMoveState::Strafe:
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetStrafeSpeed();
+		break;
+
+	case EEnemyMoveState::Search:
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
+		break;
+
+	case EEnemyMoveState::Slow:
+		Movement->MaxWalkSpeed = (EnemyStatComponet->GetWalkSpeed()) * 0.8f;
+		break;
+
+	default:
+		Movement->MaxWalkSpeed = 0.0f;
+		break;
+	}
+}
+
 void AEnemyBase::UpdateRotationMode()
 {
 	// Strafe상태 인지 확인
 	const bool bFaceToTarget = CurrentState == EEnemyState::Strafe;
+
+	// 회전 방향 설정
+	bUseControllerRotationYaw = bFaceToTarget;
+
+	// 이동 방향으로 자동 회전 설정
+	GetCharacterMovement()->bOrientRotationToMovement = !bFaceToTarget;
+}
+
+void AEnemyBase::UpdateRotationModeState()
+{
+	// Strafe상태 인지 확인
+	const bool bFaceToTarget = CurrentMoveState == EEnemyMoveState::Strafe;
 
 	// 회전 방향 설정
 	bUseControllerRotationYaw = bFaceToTarget;
@@ -335,16 +406,35 @@ void AEnemyBase::DeadStart()
 
 void AEnemyBase::SetEnemyMoveState(EEnemyMoveState NewMoveState)
 {
+	// 사망 시 건너뛰기
+	if (IsDeadState())
+	{
+		return;
+	}
+
 	if (CurrentMoveState == NewMoveState)
 	{
 		return;
 	}
 
+	// 상태 변경
 	CurrentMoveState = NewMoveState;
+
+	// 이동 속도 갱신
+	UpdateMovementSpeedState();
+
+	// 회전 설정 갱신
+	UpdateRotationModeState();
 }
 
 void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
 {
+	// 사망 시 건너뛰기
+	if (IsDeadState())
+	{
+		return;
+	}
+
 	// NewActionState와 CurrentActionState가 둘 중 하나라도 None이 아니면 건너뛰기
 	if (NewActionState != EEnemyActionState::None && CurrentActionState != EEnemyActionState::None)
 	{

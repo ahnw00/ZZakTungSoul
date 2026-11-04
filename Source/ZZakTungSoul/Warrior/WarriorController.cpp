@@ -38,6 +38,7 @@
 #include <Engine/DamageEvents.h>
 #include "Kismet/GameplayStatics.h"
 #include <Enemy/Boss/Boss.h>
+#include <Enemy/Boss/Clown/BossClown.h>
 #include <Enemy/Components/EnemyStatComponent.h>
 
 AWarriorController::AWarriorController()
@@ -621,7 +622,14 @@ void AWarriorController::TriggerDebugNum2()
 
 void AWarriorController::TriggerDebugNum3()
 {
+	// PrepareClownYabawi
 
+	auto Test = Cast<ABossClown>(UGameplayStatics::GetActorOfClass(GetWorld(), ABossClown::StaticClass()));
+
+	if (!Test)
+		return;
+
+	Test->PrepareClownYabawi();
 }
 
 void AWarriorController::TriggerDebugNum4()

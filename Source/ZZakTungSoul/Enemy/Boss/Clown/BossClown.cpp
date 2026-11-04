@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include <Enemy/Boss/Clown/BossClown.h>
@@ -317,6 +317,14 @@ bool ABossClown::PlayCurrentClownMontage()
 			}
 		}
 
+		if (CurrentAttackType == EBossClownAttack::Yabawi)
+		{
+			if (!PrepareClownYabawi())
+			{
+				FinishClownAttack(EBossClownAttackResult::Failed, true);
+				return false;
+			}
+		}
 	}
 
 	FOnMontageEnded EndDelegate;
@@ -886,6 +894,55 @@ bool ABossClown::PrepareClownCards()
 		}
 	}
 	return SpawnedCards >= 2;
+}
+
+bool ABossClown::PrepareClownYabawi()
+{
+	ClearClownProjectiles(false);
+	const UBossClownAnimationData* Data = GetClownAnimationData();
+	AActor* Target = ClownAttackTarget.Get();
+
+
+	const int32 Count = FMath::Clamp(/*Data->BallCount*/3, 1, 16);
+
+	const FVector Center = GetActorLocation() + (Target ? Target->GetActorLocation() - GetActorLocation() : GetActorForwardVector()).GetSafeNormal2D() * 180.0f + FVector(0.0f, 0.0f, -260.0f);
+	const FVector Forward = (Target ? Target->GetActorLocation() - Center : GetActorForwardVector()).GetSafeNormal2D();
+
+
+	const FQuat Facing = FRotationMatrix::MakeFromX(Forward).ToQuat();
+	const FVector Right = Facing.GetRightVector();
+	const FVector Up = FVector::UpVector;
+	const float MarkerRadius = 210.0f;
+
+	int32 SpawnedBowls = 0;
+
+	for (int32 Index = 0; Index < Count; ++Index)
+	{
+		FVector Position;
+
+		if (Index != 0 && Index % 2 == 0)
+		{
+			Position = Center + FVector(0.f, -(Index - 1) * MarkerRadius, 0.f);
+		}
+		else
+		{
+			Position = Center + FVector(0.f, Index * MarkerRadius, 0.f);
+		}
+		
+
+		//const double StartAngle = 2.0 * PI * Index / Count;
+		//const FVector Position = Center + (Right * FMath::Cos(StartAngle) + Up * FMath::Sin(StartAngle)) * MarkerRadius;
+
+		if (UClownProjectileComponent* Ball = CreateClownProjectile(Data->BallClass, Position, Facing.Rotator(), Data->BallSpeed, 6.0f))
+		{
+			++SpawnedBowls;
+			//const FVector Axis = FMath::VRand();
+			//const float Rate = FMath::FRandRange(140.0f, 320.0f);
+			//Ball->SetVisualSpin(FRotator(Axis.X * Rate, Axis.Y * Rate, Axis.Z * Rate));
+		}
+	}
+
+	return SpawnedBowls == Count;
 }
 
 void ABossClown::TickClownSpecial(float MontageTime)

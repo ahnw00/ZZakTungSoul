@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <CoreMinimal.h>
 #include <Engine/DataAsset.h>
@@ -12,6 +12,7 @@ class UStaticMesh;
 UENUM(BlueprintType)
 enum class EBossClownAttack : uint8
 {
+	// Phase 1
 	HammerSweep, 
 	HammerSlam, 
 	FastChaseSlam, 
@@ -20,6 +21,9 @@ enum class EBossClownAttack : uint8
 	ClapWave, 
 	SpawnCards,
 	CubeBarrage,
+
+	// Phase 2
+	Yabawi,
 
 };
 

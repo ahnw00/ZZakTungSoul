@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <CoreMinimal.h>
 #include <Enemy/Boss/Boss.h>
@@ -70,7 +70,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Clown|Attack", meta = (ClampMin = "0.1"))
 	float AttackTimeout = 15.0f;
 
-private:
+public:
 	void TickClownAttack(float DeltaTime);
 	void UpdateClownTraceDebug();
 	void ToggleClownTraceDebug();
@@ -85,6 +85,7 @@ private:
 	bool PrepareClownBalls();
 	bool PrepareClownCubeMarch();
 	bool PrepareClownCards();
+	bool PrepareClownYabawi();
 	void TickClownSpecial(float MontageTime);
 	void ClearClownProjectiles(bool bIncludeLaunched);
 	void RestoreClownMovement();

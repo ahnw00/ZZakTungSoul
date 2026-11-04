@@ -66,6 +66,15 @@ ABossRoom::ABossRoom()
 	GateBlocker->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
 	GateBlocker->SetGenerateOverlapEvents(false);
 
+	OhterSideGateBlocker = CreateDefaultSubobject<UBoxComponent>(TEXT("OhterSideGateBlocker"));
+	OhterSideGateBlocker->SetupAttachment(SceneRoot);
+	OhterSideGateBlocker->SetBoxExtent(FVector(20, 200, 150));
+	OhterSideGateBlocker->SetRelativeLocation(FVector(0, 0, 150));
+	OhterSideGateBlocker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	OhterSideGateBlocker->SetCollisionResponseToAllChannels(ECR_Ignore);
+	OhterSideGateBlocker->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	OhterSideGateBlocker->SetGenerateOverlapEvents(false);
+
 	//---------------------------------------------------------------
 	// 안개 외형.
 	// 기본 Plane 기준으로 문 아래쪽을 원점에 맞춤.
@@ -74,11 +83,20 @@ ABossRoom::ABossRoom()
 	FogMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FogMesh"));
 	FogMesh->SetupAttachment(SceneRoot);
 	FogMesh->SetRelativeLocation(FVector(0, 0, 150));
-	FogMesh->SetRelativeRotation(FRotator(90, 0, 0));
+	//FogMesh->SetRelativeRotation(FRotator(90, 0, 0));
 	FogMesh->SetRelativeScale3D(FVector(3, 4, 1));
 	FogMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	FogMesh->SetGenerateOverlapEvents(false);
 	FogMesh->SetVisibility(false);
+
+	OhterSideFogMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OhterSideFogMesh"));
+	OhterSideFogMesh->SetupAttachment(SceneRoot);
+	OhterSideFogMesh->SetRelativeLocation(FVector(0, 0, 150));
+	//OhterSideFogMesh->SetRelativeRotation(FRotator(90, 0, 0));
+	OhterSideFogMesh->SetRelativeScale3D(FVector(3, 4, 1));
+	OhterSideFogMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	OhterSideFogMesh->SetGenerateOverlapEvents(false);
+	OhterSideFogMesh->SetVisibility(false);
 
 	//---------------------------------------------------------------
 	// 입장과 디버그 복귀 위치.
@@ -576,7 +594,9 @@ void ABossRoom::RefreshGate()
 	const bool bClosed = RoomState != EBossRoomState::Cleared && (bActive || bRetry);
 
 	FogMesh->SetVisibility(bClosed, true);
+	OhterSideFogMesh->SetVisibility(bClosed, true); 
 	GateBlocker->SetCollisionEnabled(bClosed ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+	OhterSideGateBlocker->SetCollisionEnabled(bClosed ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
 }
 
 void ABossRoom::DebugResetRoom()

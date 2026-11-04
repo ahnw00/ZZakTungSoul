@@ -106,8 +106,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossRoom|Components")
 	TObjectPtr<UBoxComponent> GateBlocker;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "BossRoom|Components")
+	TObjectPtr<UBoxComponent> OhterSideGateBlocker;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossRoom|Components")
 	TObjectPtr<UStaticMeshComponent> FogMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossRoom|Components")
+	TObjectPtr<UStaticMeshComponent> OhterSideFogMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossRoom|Components")
 	TObjectPtr<UArrowComponent> InsidePoint;

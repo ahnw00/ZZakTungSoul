@@ -62,12 +62,15 @@ void UEnemyBaseAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	// Enemy 현재 상태 초기화
 	CurrentState = Owner->GetEnemyState();
+	CurrentMoveState = Owner->GetEnemyMoveState();
 
 	// 이동/정지 상태 설정
-	bIsIdle = CurrentState == EEnemyState::Idle;
+	//bIsIdle = CurrentState == EEnemyState::Idle;
+	bIsIdle = CurrentMoveState == EEnemyMoveState::Idle;
 
 	// 간보기 상태 설정
-	bIsStrafe = CurrentState == EEnemyState::Strafe;
+	//bIsStrafe = CurrentState == EEnemyState::Strafe;
+	bIsStrafe = CurrentMoveState == EEnemyMoveState::Strafe;
 }
 
 void UEnemyBaseAnimInstance::PlayStunMontage()

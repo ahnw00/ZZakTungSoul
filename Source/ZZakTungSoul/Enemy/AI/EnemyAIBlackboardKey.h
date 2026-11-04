@@ -8,6 +8,7 @@
 #define BBKEY_ISINATTACKRANGE TEXT("IsInAttackRange")
 #define BBKEY_ISINCOMBATRANGE TEXT("IsInCombatRange")
 #define BBKEY_ISCLOSETOTARGET TEXT("IsCloseToTarget")
+#define BBKEY_ISWAIT TEXT("IsWait")
 
 // Integer
 #define BBKEY_PATROLINDEX TEXT("PatrolIndex")

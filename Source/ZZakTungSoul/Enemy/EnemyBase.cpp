@@ -195,16 +195,10 @@ void AEnemyBase::UpdateMovementSpeedState()
 	}
 
 	// 행동 상태에 따른 이동 속도
-	switch (CurrentActionState)
+	if (CurrentActionState == EEnemyActionState::Hit || CurrentActionState == EEnemyActionState::Stance || CurrentActionState == EEnemyActionState::Dead)
 	{
-	case EEnemyActionState::Hit:
-	case EEnemyActionState::Stance:
-	case EEnemyActionState::Dead:
 		Movement->MaxWalkSpeed = 0.0f;
 		return;
-
-	default:
-		break;
 	}
 
 	// 이동 상태에 따른 이동 속도
@@ -379,6 +373,7 @@ void AEnemyBase::SetDead()
 
 	// 사망 상태 설정
 	SetEnemyState(EEnemyState::Dead);
+	SetEnemyActionState(EEnemyActionState::Dead);
 
 	// AI 중지 처리
 	if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
@@ -435,13 +430,25 @@ void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
 		return;
 	}
 
-	// NewActionState와 CurrentActionState가 둘 중 하나라도 None이 아니면 건너뛰기
-	if (NewActionState != EEnemyActionState::None && CurrentActionState != EEnemyActionState::None)
+	// 지금 행동중 인지 검사
+	if (CurrentActionState != EEnemyActionState::None)
 	{
-		return;
+		// 피격, 그로기, 사망은 강제 전환 허용
+		const bool bCanChanged = NewActionState == EEnemyActionState::Hit ||
+			NewActionState == EEnemyActionState::Stance ||
+			NewActionState == EEnemyActionState::Dead;
+
+		if (false == bCanChanged || NewActionState != EEnemyActionState::None)
+		{
+			return;
+		}
 	}
 
+	// 행동 상태 변경
 	CurrentActionState = NewActionState;
+
+	// 행동 상태에 따른 이동속도 갱신
+	UpdateMovementSpeedState();
 }
 
 void AEnemyBase::SetEnemyState(EEnemyState NewState)

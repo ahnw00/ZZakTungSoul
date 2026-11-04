@@ -6,6 +6,11 @@
 #include "BehaviorTree/BTTaskNode.h"
 #include "BTTask_PlayNormalEnemyMontage.generated.h"
 
+class UNormalEnemyAnimInstance;
+class ANormalEnemyBase;
+class UAnimMontage;
+class UBehaviorTreeComponent;
+
 /**
  * 
  */
@@ -26,10 +31,23 @@ protected:
 	// Task 완료시 초기화 처리 함수
 	virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
 
+private:
+	// Montage 종료시 Task 완료 함수
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	// Task 참조 및 Delegate 정리
+	void CleanUp();
+
 protected:
 	// 현재 Montage를 재생하는 AnimInstance
-	TWeakObjectPtr<UAnimInstance> OwnerAnimInstance;
+	TWeakObjectPtr<UNormalEnemyAnimInstance> OwnerAnimInstance;
 
 	// 현재 Task를 실행하는 BehaviorTree
 	TWeakObjectPtr<UBehaviorTreeComponent> OwnerBTComp;
+
+	// Normal Enemy
+	TWeakObjectPtr<ANormalEnemyBase> OwnerEnemy;
+
+	// 이번에 재생한 Montage
+	TWeakObjectPtr<UAnimMontage> PlayingMontage;
 };

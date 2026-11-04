@@ -12,7 +12,8 @@
 				"Engine",
 				"AIModule",
 				"UMG",
-				"CoreUObject"
+				"CoreUObject",
+				"GeometryCollectionEngine"
 			]
 		}
 	],
@@ -47,6 +48,14 @@
 		},
 		{
 			"Name": "LiveLinkHub",
+			"Enabled": true
+		},
+		{
+			"Name": "ModelContextProtocol",
+			"Enabled": true
+		},
+		{
+			"Name": "MCPClientToolset",
 			"Enabled": true
 		}
 	]

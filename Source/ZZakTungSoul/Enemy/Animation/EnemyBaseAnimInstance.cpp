@@ -21,7 +21,15 @@ UEnemyBaseAnimInstance::UEnemyBaseAnimInstance()
 	);
 	if (GetFatalAttackMontageRef.Succeeded())
 	{
-		GetFatalAttackMontage = GetFatalAttackMontageRef.Object;
+		GetFrontFatalAttackMontage = GetFatalAttackMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> GetBackFatalAttackMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_GetBackFatalAttacked_Montage.Warrior_GetBackFatalAttacked_Montage")
+	);
+	if (GetBackFatalAttackMontageRef.Succeeded())
+	{
+		GetBackFatalAttackMontage = GetBackFatalAttackMontageRef.Object;
 	}
 }
 
@@ -76,8 +84,14 @@ void UEnemyBaseAnimInstance::PlayStunMontage()
 	Montage_Play(StunMontage);
 }
 
-void UEnemyBaseAnimInstance::PlayGetFatalAttackMontage()
+void UEnemyBaseAnimInstance::PlayGetFrontFatalAttackMontage()
 {
 	StopAllMontages(1.f);
-	Montage_Play(GetFatalAttackMontage);
+	Montage_Play(GetFrontFatalAttackMontage);
+}
+
+void UEnemyBaseAnimInstance::PlayGetBackFatalAttackMontage()
+{
+	StopAllMontages(1.f);
+	Montage_Play(GetBackFatalAttackMontage);
 }

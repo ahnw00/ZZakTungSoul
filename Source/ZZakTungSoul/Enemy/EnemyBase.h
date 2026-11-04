@@ -147,5 +147,5 @@ protected:
 
 	// Inherited via IFatalAttackableInterface
 	bool CanBeFatalAttacked(AActor* Attacker) const override;
-	void ReceiveFatalAttack(const FDamageInfo DamageInfo) override;
+	void ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront) override;
 };

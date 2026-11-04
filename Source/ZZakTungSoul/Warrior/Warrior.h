@@ -85,6 +85,12 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Inventory")
 	class UInventoryComponent* Inventory;
 
+	UPROPERTY(VisibleAnywhere, Category = "Lantern")
+	class UStaticMeshComponent* Lantern;
+
+	UPROPERTY(VisibleAnywhere, Category = "LanternLight")
+	class UPointLightComponent* LanternLight;
+
 
 	class ACharacter* LockOnTarget;
 	bool bLockOn = false;
@@ -176,6 +182,8 @@ public:
 	FORCEINLINE int32 GetCombo() const { return AttackCombo; }
 	FORCEINLINE void ResetCombo() { AttackCombo = 0; }
 
+	void SetLeftHandPotionMesh();
+
 	//FORCEINLINE UArrowComponent GetLockOnPoint() { return LockOnPoint; }
 
 private:
@@ -219,6 +227,21 @@ public:
 
 	FORCEINLINE void AddDetectedObject(AActor* Detected) { DetectedActors.AddUnique(Detected); }
 	FORCEINLINE void RemoveDetectedObject(AActor* Detected) { DetectedActors.Remove(Detected); }
+
+	// 아이템 사용시 호출될 함수
+public:
+	// 물약 사용시 체력 회복
+	void HpRecovery(float Amount);
+
+	// 등불 키기
+	void ToggleLantern();
+	
+	// 벨트 아이템 사용
+	void UseBeltItem(EEquipmentSlot Slot);
+
+private:
+	UPROPERTY()
+	TObjectPtr<USkeletalMesh> PotionMesh;
 
 	// 상호작용 관련 변수
 private:

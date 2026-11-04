@@ -25,11 +25,6 @@ class ZZAKTUNGSOUL_API UConsumableDataAsset : public UItemDataAsset
 
 public:
 	UConsumableDataAsset();
-
-	virtual FPrimaryAssetId GetPrimaryAssetId() const override
-	{
-		return FPrimaryAssetId("ItemData", GetFName());
-	}
 	
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

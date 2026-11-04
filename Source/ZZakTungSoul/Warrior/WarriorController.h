@@ -62,6 +62,10 @@ private:
 	UInputAction* IA_ChangeLockOn;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* IA_Interact;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* IA_UpperBelt;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* IA_LowerBelt;
 
 	// 세이브 로드 테스트용
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -136,6 +140,10 @@ private:
 
 	void ActionPressed();
 	void ActionReleased();
+
+	// 아이템 사용 함수
+	void UseUpperBeltItem();
+	void UseLowerBeltItem();
 	
 	// 상호 작용 함수
 	void Interact();
@@ -173,7 +181,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
 	void OpenBonfireMenu();
 	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
-	void CloseBonfireMenu();
+	bool CloseBonfireMenu();
 	UFUNCTION(BlueprintCallable, Category = "UI|Bonfire")
 	bool TeleportToBonfire(const FName& TargetBonfireID);
 

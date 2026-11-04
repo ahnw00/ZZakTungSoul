@@ -22,12 +22,14 @@ enum class EActionState : uint8
 	BackStep,
 	Attack,
 	ChargeAttack,
-	FatalAttack,
+	FrontFatalAttack,
+	BackFatalAttack,
 	Block,
 	Parry,
 	Hit,
 	Stun,
-	PickUp
+	PickUp,
+	Drink
 };
 
 UENUM(BlueprintType)

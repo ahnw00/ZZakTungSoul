@@ -56,7 +56,10 @@ private:
 	TArray<UAnimMontage*> AttackMontage;
 
 	UPROPERTY()
-	TObjectPtr<UAnimMontage> FatalAttackMontage;
+	TObjectPtr<UAnimMontage> FrontFatalAttackMontage;
+
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> BackFatalAttackMontage;
 
 	UPROPERTY()
 	UAnimMontage* ParryMontage;
@@ -71,6 +74,9 @@ private:
 
 	UPROPERTY()
 	UAnimMontage* PickUpMontage;
+
+	UPROPERTY()
+	UAnimMontage* DrinkMontage;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
@@ -92,6 +98,9 @@ public:
 	void AnimNotify_ActionEnd();
 	UFUNCTION()
 	void AnimNotify_ComboCheck();
+
+	UFUNCTION()
+	void AnimNotify_DrinkStart();
 
 	void PlayMontage(const EActionState CurrentActionState);
 	bool PlayActionMontage();

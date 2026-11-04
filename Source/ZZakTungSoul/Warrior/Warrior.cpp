@@ -10,6 +10,8 @@
 
 #include "Components/ArrowComponent.h"
 #include <Components/CapsuleComponent.h>
+#include <Components/PointLightComponent.h>
+#include <Components/StaticMeshComponent.h>
 
 // DataTable
 //#include "Data/CharacterStatData.h"
@@ -21,6 +23,9 @@
 #include <ItemData/ConsumableDataAsset.h>
 #include <Component/EquipmentComponent.h>
 #include <Component/InventoryComponent.h>
+#include <Component/LanternComponent.h>
+
+#include <Interface/ItemFunctionInterface.h>
 
 #include "Anim/WarriorAnimInstance.h"
 #include "Enemy/WarriorAIController.h"
@@ -107,10 +112,39 @@ AWarrior::AWarrior()
 	Equipment = CreateDefaultSubobject<UEquipmentComponent>(TEXT("Equipment"));
 	// [인벤토리 컴포넌트]
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-	
+	// [렌턴 관련 컴포넌트]
+	Lantern = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LanternMesh"));
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> LanternMeshRef(
+		TEXT("/Game/Assets/Lighting_Fixtures_Set_1_Free/Bulb.Bulb")
+	);
+	if (LanternMeshRef.Succeeded())
+	{
+		Lantern->SetStaticMesh(LanternMeshRef.Object);
+		Lantern->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
+		Lantern->SetRelativeLocation(FVector(-40.f, 8.f, 10.f));
+	}
+	Lantern->SetupAttachment(GetMesh(), TEXT("pelvis_Socket"));
+
+
+	LanternLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("LanternLight"));
+	LanternLight->SetupAttachment(Lantern);
+	LanternLight->SetRelativeLocation(FVector(-60.f, 0.f, 0.f));
+	LanternLight->SetLightColor(FLinearColor(1.f, 0.467f, 0.f));
+	LanternLight->SetVisibility(false);
+	LanternLight->SetCastShadows(false);
+
 	// Trace 무기 판정 -> 장착 가능한 무기 수만큼 컴포너트 추가하면 됩니다. EX) 쌍검 쓸거면 하나 더 추가...
 	// Trace Component 설정
 	AttackTraceComponent = CreateDefaultSubobject<UAttackTraceComponent>(TEXT("RightAttackTraceComponent"));
+
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> PotionMeshRef(
+		TEXT("/Game/Assets/Low_Poly_Soda_Can/SKM_CanLowGrade.SKM_CanLowGrade")
+	);
+	if (PotionMeshRef.Succeeded())
+	{
+		PotionMesh = PotionMeshRef.Object;
+	}
 
 	// Player가 소유하지 않으면 AI가 소유해
 	AIControllerClass = AWarriorAIController::StaticClass();
@@ -344,6 +378,19 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 	//	bCanComboInput = false;
 	//}
 
+	if (ActionState == EActionState::Drink)
+	{
+		FGuid ItemID = Equipment->GetEquippedItem(EEquipmentSlot::LeftHand);
+		if (ItemID != FGuid())
+		{
+			EquipWeapon(ItemID, EEquipmentSlot::LeftHand);
+		}
+		else
+		{
+			LeftHandWeapon->SetSkeletalMesh(nullptr);
+		}
+	}
+
 	if(ActionState != EActionState::Attack)
 		SetActionState(EActionState::None);
 
@@ -524,18 +571,29 @@ bool AWarrior::FatalAttack()
 
 	FDamageInfo DamageInfo;
 	DamageInfo.AttackDamage = CharacterStatComponent->GetAttackPower() * 2.0f;
-	CurrentFatalAttackable->ReceiveFatalAttack(DamageInfo);
 
-	SetActionState(EActionState::FatalAttack);
-
-	// Todo: 위치 보정 필요
+	// Todo: Front, Back 나누기
 	// 적의 Transform 가져오기
 	AActor* Enemy = Cast<AActor>(CurrentFatalAttackable);
-
+	
 	const FTransform EnemyTransform = Enemy->GetActorTransform();
 
+	float Dot = FVector::DotProduct(Enemy->GetActorForwardVector(), GetActorForwardVector());
+	
 	// 적 기준 상대적인 위치
-	const FVector RelativeLocation(70.f, 0.f, 0.f);
+	FVector RelativeLocation;
+	if (Dot < -0.8f)
+	{
+		SetActionState(EActionState::FrontFatalAttack);
+		RelativeLocation = FVector(70.f, 0.f, 0.f);
+		CurrentFatalAttackable->ReceiveFatalAttack(DamageInfo, true);
+	}
+	else if (Dot > 0.9f)
+	{
+		SetActionState(EActionState::BackFatalAttack);
+		RelativeLocation = FVector(-70.f, 0.f, 0.f);
+		CurrentFatalAttackable->ReceiveFatalAttack(DamageInfo, false);
+	}
 
 	// 적의 로컬 좌표를 월드 좌표로 변환
 	const FVector TargetLocation = EnemyTransform.TransformPosition(RelativeLocation);
@@ -796,6 +854,12 @@ void AWarrior::SetWeaponState(EWeaponState NewState)
 	WeaponState = NewState;
 }
 
+void AWarrior::SetLeftHandPotionMesh()
+{
+	LeftHandWeapon->SetSkeletalMesh(PotionMesh);
+	LeftHandWeapon->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
+}
+
 //void AWarrior::Interact()
 //{
 //	//if (CurrentInteractable)
@@ -978,6 +1042,9 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 
 void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
 {
+	if (ActionState != EActionState::None)
+		return;
+
 	if (DetectedActors.Num() == 0)
 		return;
 
@@ -992,6 +1059,49 @@ void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
 
 	// 인벤토리에 추가
 	Inventory->AddItem(ItemObject->GetItemData(), ItemObject->GetInstanceID());
+}
+
+void AWarrior::HpRecovery(float Amount)
+{
+	if (ActionState != EActionState::None)
+		return;
+
+	SetActionState(EActionState::Drink);
+	AnimInstance->PlayActionMontage();
+
+	float CalculatedHP = CharacterStatComponent->GetCurrentHP() + Amount;
+	float MaxHP = CharacterStatComponent->GetMaxHP();
+
+	float NewHP = FMath::Clamp(CalculatedHP, 0, MaxHP);
+	
+	CharacterStatComponent->SetCurrentHP(NewHP);
+}
+
+void AWarrior::ToggleLantern()
+{
+	LanternLight->ToggleVisibility();
+}
+
+void AWarrior::UseBeltItem(EEquipmentSlot Slot)
+{
+	// 벨트 아이템이 아니면 리턴
+	if (Slot != EEquipmentSlot::LowerBelt && Slot != EEquipmentSlot::UpperBelt)
+		return;
+
+	// 착용한 아이템 가져오기
+	FGuid ItemId = Equipment->GetEquippedItem(Slot);
+	if (ItemId == FGuid())
+		return;
+
+	const UItemDataAsset* ItemData = Inventory->FindItemDataByInstanceID(ItemId);
+	if (!ItemData)
+		return;
+
+	const IItemFunctionInterface* FunctionInterface = Cast<IItemFunctionInterface>(ItemData);
+	if (!FunctionInterface)
+		return;
+
+	FunctionInterface->ItemFunction(this);
 }
 
 //float AWarrior::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

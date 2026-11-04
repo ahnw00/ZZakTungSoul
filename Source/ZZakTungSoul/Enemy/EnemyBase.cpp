@@ -81,6 +81,9 @@ void AEnemyBase::BeginPlay()
 	// 초기 상태에 따른 이동속도 설정
 	UpdateMovementSpeed();
 
+	UpdateMovementSpeedState();
+	UpdateRotationModeState();
+
 	// 무기 Mesh 초기화
 	InitializeWeapon();
 
@@ -253,6 +256,30 @@ void AEnemyBase::UpdateRotationMode()
 
 void AEnemyBase::UpdateRotationModeState()
 {
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (false == IsValid(Movement))
+	{
+		return;
+	}
+
+	// 상태에 따른 회전 설정
+	switch (CurrentActionState)
+	{
+	case EEnemyActionState::Attack:
+	case EEnemyActionState::Hit:
+	case EEnemyActionState::Avoid:
+	case EEnemyActionState::Stance:
+	case EEnemyActionState::Dead:
+
+		bUseControllerRotationYaw = false;
+		Movement->bOrientRotationToMovement = false;
+		Movement->bUseControllerDesiredRotation = false;
+		return;
+
+	default:
+		break;
+	}
+
 	// Strafe상태 인지 확인
 	const bool bFaceToTarget = CurrentMoveState == EEnemyMoveState::Strafe;
 
@@ -260,7 +287,8 @@ void AEnemyBase::UpdateRotationModeState()
 	bUseControllerRotationYaw = bFaceToTarget;
 
 	// 이동 방향으로 자동 회전 설정
-	GetCharacterMovement()->bOrientRotationToMovement = !bFaceToTarget;
+	Movement->bOrientRotationToMovement = !bFaceToTarget;
+	Movement->bUseControllerDesiredRotation = false;
 }
 
 void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
@@ -420,6 +448,12 @@ void AEnemyBase::SetEnemyMoveState(EEnemyMoveState NewMoveState)
 
 	// 회전 설정 갱신
 	UpdateRotationModeState();
+
+	// Contoller Focus 갱신
+	if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
+	{
+		AIController->UpdateAIFocusState();
+	}
 }
 
 void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
@@ -433,12 +467,10 @@ void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
 	// 지금 행동중 인지 검사
 	if (CurrentActionState != EEnemyActionState::None)
 	{
-		// 피격, 그로기, 사망은 강제 전환 허용
-		const bool bCanChanged = NewActionState == EEnemyActionState::Hit ||
-			NewActionState == EEnemyActionState::Stance ||
-			NewActionState == EEnemyActionState::Dead;
+		// 사망은 강제 전환 허용
+		bool bCanChanged = NewActionState == EEnemyActionState::None || NewActionState == EEnemyActionState::Dead;
 
-		if (false == bCanChanged || NewActionState != EEnemyActionState::None)
+		if (false == bCanChanged)
 		{
 			return;
 		}
@@ -449,6 +481,13 @@ void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
 
 	// 행동 상태에 따른 이동속도 갱신
 	UpdateMovementSpeedState();
+	UpdateRotationModeState();
+
+	// Contoller Focus 갱신
+	if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
+	{
+		AIController->UpdateAIFocusState();
+	}
 }
 
 void AEnemyBase::SetEnemyState(EEnemyState NewState)

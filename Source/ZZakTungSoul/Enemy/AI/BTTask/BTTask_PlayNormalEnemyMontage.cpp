@@ -4,6 +4,7 @@
 #include "Enemy/AI/BTTask/BTTask_PlayNormalEnemyMontage.h"
 #include <Enemy/NormalEnemy/NormalEnemyBase.h>
 #include <Enemy/Animation/NormalEnemyAnimInstance.h>
+#include <Enemy/Components/AttackTraceComponent.h>
 
 #include <AIController.h>
 #include <BehaviorTree/BehaviorTreeComponent.h>
@@ -90,6 +91,13 @@ EBTNodeResult::Type UBTTask_PlayNormalEnemyMontage::AbortTask(UBehaviorTreeCompo
 
 	if (IsValid(Enemy))
 	{
+		// 공격 중단시 Trace종료
+		UAttackTraceComponent* Trace = Enemy->FindComponentByClass<UAttackTraceComponent>();
+		if (Trace)
+		{
+			Trace->EndTrace();
+		}
+
 		const EEnemyActionState State = Enemy->GetEnemyActionState();
 		if (State == EEnemyActionState::Attack || State == EEnemyActionState::Avoid)
 		{
@@ -122,6 +130,23 @@ void UBTTask_PlayNormalEnemyMontage::OnMontageEnded(UAnimMontage* Montage, bool 
 	}
 
 	UBehaviorTreeComponent* BTComp = OwnerBTComp.Get();
+	ANormalEnemyBase* Enemy = OwnerEnemy.Get();
+
+	if (bInterrupted && IsValid(Enemy))
+	{
+		// 공격 중단시 Trace종료
+		UAttackTraceComponent* Trace = Enemy->FindComponentByClass<UAttackTraceComponent>();
+		if (Trace)
+		{
+			Trace->EndTrace();
+		}
+	}
+
+	const EEnemyActionState State = Enemy->GetEnemyActionState();
+	if (State == EEnemyActionState::Attack || State == EEnemyActionState::Avoid)
+	{
+		Enemy->SetEnemyActionState(EEnemyActionState::None);
+	}
 
 	// 정리 함수 실행
 	CleanUp();

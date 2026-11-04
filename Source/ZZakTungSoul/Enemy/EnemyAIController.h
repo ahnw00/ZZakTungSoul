@@ -22,6 +22,8 @@ public:
 	// 컨트롤 하고 있는 Enemy의 상태에 따라 컨트롤러의 Focus를 관리하는 함수
 	virtual void UpdateAIFocus(EEnemyState PreviousState, EEnemyState NewState);
 
+	virtual void UpdateAIFocusState();
+
 	// AI 중지 함수
 	void StopAIController();
 

@@ -61,6 +61,65 @@ void AEnemyAIController::UpdateAIFocus(EEnemyState PreviousState, EEnemyState Ne
 	}
 }
 
+void AEnemyAIController::UpdateAIFocusState()
+{
+	AEnemyBase* Enemy = Cast<AEnemyBase>(GetPawn());
+	if (false == IsValid(Enemy))
+	{
+		ClearFocus(EAIFocusPriority::Gameplay);
+		return;
+	}
+
+	const EEnemyMoveState MoveState = Enemy->GetEnemyMoveState();
+	const EEnemyActionState ActionState = Enemy->GetEnemyActionState();
+
+	// 행동 상태에 따른 Focus 처리
+	switch (ActionState)
+	{
+	case EEnemyActionState::Attack:
+	case EEnemyActionState::Hit:
+	case EEnemyActionState::Avoid:
+	case EEnemyActionState::Stance:
+	case EEnemyActionState::Dead:
+
+		ClearFocus(EAIFocusPriority::Gameplay);
+		return;
+
+	default:
+		break;
+	}
+
+	// 이동 상태에 따른 Focus 처리
+	switch (MoveState)
+	{
+	case EEnemyMoveState::Strafe:
+	{
+		const UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
+		if (BlackboardComp && BlackboardComp->GetValueAsBool(BBKEY_HASLINEOFSIGHT))
+		{
+			ToggleFocus();
+		}
+		else
+		{
+			ClearFocus(EAIFocusPriority::Gameplay);
+		}
+
+		break;
+	}
+
+	case EEnemyMoveState::None:
+	case EEnemyMoveState::Idle:
+	case EEnemyMoveState::Patrol:
+	case EEnemyMoveState::Chase:
+	case EEnemyMoveState::FastChase:
+	case EEnemyMoveState::Search:
+	case EEnemyMoveState::Slow:
+	default:
+		ClearFocus(EAIFocusPriority::Gameplay);
+		break;
+	}
+}
+
 void AEnemyAIController::StopAIController()
 {
 	UBehaviorTreeComponent* BTComp = Cast< UBehaviorTreeComponent>(BrainComponent);
@@ -117,6 +176,9 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 
 	// Behavior Tree 실행
 	RunBehaviorTree(BehaviorTreeAsset);
+
+	// Focus 초기화
+	UpdateAIFocusState();
 }
 
 void AEnemyAIController::ToggleFocus()

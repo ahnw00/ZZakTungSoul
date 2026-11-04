@@ -63,7 +63,7 @@ bool UNormalEnemyAnimInstance::PlayActionMontage()
 		break;
 
 	case EEnemyActionState::Avoid:
-		if (IsValid(HitMontage))
+		if (IsValid(AvoidMontage))
 		{
 			return Montage_Play(AvoidMontage) > 0.0f;
 		}

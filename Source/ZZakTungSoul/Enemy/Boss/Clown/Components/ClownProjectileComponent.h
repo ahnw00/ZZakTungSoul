@@ -10,6 +10,7 @@ class UStaticMeshComponent;
 class UStaticMesh;
 class UMaterialInterface;
 class UTexture2D;
+class UBoxComponent;
 
 //---------------------------------------------------------------
 // 일반 Actor BP에 추가하는 발사체 이동 / 피해 전달 컴포넌트.
@@ -23,7 +24,8 @@ class ZZAKTUNGSOUL_API UClownProjectileComponent : public UActorComponent
 
 public:
 	UClownProjectileComponent();
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void TickComponent(
+		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
 	void Initialize(const FDamageInfo& InDamage, float InSpeed, float InLifeTime);
@@ -32,13 +34,19 @@ public:
 	void LaunchAt(const FVector& TargetLocation);
 
 	void SetVisualSpin(const FRotator& Rate);
-	void ArmCubeMarch(UStaticMesh* Piece, const FVector& Assembly, const FVector& Start, const FVector& End, float MarchTime, bool bShowPath);
+	void ArmCubeMarch(UStaticMesh* Piece, const FVector& Assembly, const FVector& Start, const FVector& End,
+		float MarchTime, bool bShowPath);
+	void SetCubeAim(AActor* Target, AActor* Arena, const FVector& Center);
 	static constexpr float CubeMarchCycle = 2.4f;
 	static constexpr float CubeMarchDuration = 9.6f;
 
 	// 고정 위치에 카드 소환 / 예고 / 낙하. 피해는 기존 Trace 사용.
-	void ArmCard(const FVector& GroundLocation, float WarningTime, float Height, float Width, float FallTime, UTexture2D* Face, bool bSafe);
-	bool IsLaunched() const { return bLaunched; }
+	void ArmCard(const FVector& GroundLocation, float WarningTime, float Height, float Width, float FallTime,
+		UTexture2D* Face, bool bSafe);
+	bool IsLaunched() const
+	{
+		return bLaunched;
+	}
 
 	UPROPERTY(EditAnywhere, Category = "Projectile|Card")
 	TObjectPtr<UStaticMesh> WarningMesh;
@@ -55,12 +63,28 @@ private:
 	void SetTracing(bool bEnabled);
 	void TickCard(float DeltaTime);
 	void TickCubeMarch(float DeltaTime);
+	void RestoreProjectileMaterial(UStaticMeshComponent* Mesh, bool bCube);
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInterface> BallMaterial;
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInterface> CubeMaterial;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UTexture2D>> BallTextures;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UTexture2D>> CubeTextures;
 
 	UPROPERTY(Transient)
 	FDamageInfo Damage;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> WarningMarker;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBoxComponent> CubeCollision;
 
 	TWeakObjectPtr<UStaticMeshComponent> VisualMesh;
 	FVector CardOrigin = FVector::ZeroVector;
@@ -85,6 +109,11 @@ private:
 	bool bCubeTracing = false;
 	float CubeElapsed = 0.0f;
 	float CubeMarchTime = 0.0f;
+	TWeakObjectPtr<AActor> CubeAimTarget;
+	TWeakObjectPtr<AActor> CubeAimArena;
+	FVector CubeStartOffset = FVector::ZeroVector;
+	FVector CubeEndOffset = FVector::ZeroVector;
+	bool bCubeAimLocked = false;
 	FVector CubeAssembly;
 	FVector CubeStart;
 	FVector CubeEnd;

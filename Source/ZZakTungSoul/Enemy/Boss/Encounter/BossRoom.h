@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <CoreMinimal.h>
 #include <GameFramework/Actor.h>
@@ -20,7 +20,10 @@ class UBossRoomSubsystem;
 UENUM(BlueprintType)
 enum class EBossRoomState : uint8
 {
-	Ready, Intro, Fighting, Cleared
+	Ready,
+	Intro,
+	Fighting,
+	Cleared
 };
 
 UCLASS()
@@ -55,7 +58,10 @@ public:
 	void DebugResetRoom();
 
 	UFUNCTION(BlueprintPure, Category = "BossRoom")
-	EBossRoomState GetRoomState() const { return RoomState; }
+	EBossRoomState GetRoomState() const
+	{
+		return RoomState;
+	}
 
 protected:
 	virtual void BeginPlay() override;
@@ -81,13 +87,16 @@ private:
 	void OnIntroFinished();
 
 	UFUNCTION()
-	void OnFirstEntryBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnFirstEntryBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
-	void OnInteractionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnInteractionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
-	void OnInteractionEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void OnInteractionEndOverlap(
+		UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 protected:
 	//---------------------------------------------------------------
@@ -106,8 +115,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossRoom|Components")
 	TObjectPtr<UBoxComponent> GateBlocker;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "BossRoom|Components")
+	TObjectPtr<UBoxComponent> OhterSideGateBlocker;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossRoom|Components")
 	TObjectPtr<UStaticMeshComponent> FogMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossRoom|Components")
+	TObjectPtr<UStaticMeshComponent> OhterSideFogMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BossRoom|Components")
 	TObjectPtr<UArrowComponent> InsidePoint;

@@ -10,7 +10,11 @@ class UAnimMontage;
 UENUM(BlueprintType)
 enum class EClownEvadeAction : uint8
 {
-	Backstep, Backjump, SideEvade, Feint UMETA(Hidden), Orbit
+	Backstep,
+	Backjump,
+	SideEvade,
+	Feint UMETA(Hidden),
+	Orbit
 };
 
 //---------------------------------------------------------------
@@ -29,7 +33,8 @@ protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
+	virtual void OnTaskFinished(
+		UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Evade")
 	EClownEvadeAction Action = EClownEvadeAction::Backstep;
@@ -39,7 +44,8 @@ protected:
 
 private:
 	bool BeginTactical(UBehaviorTreeComponent& OwnerComp, ABossClown* Clown, AActor* Target);
-	bool FindSafeGoal(UBehaviorTreeComponent& OwnerComp, ABossClown* Clown, AActor* Target, const FVector& Desired, FVector& OutGoal) const;
+	bool FindSafeGoal(UBehaviorTreeComponent& OwnerComp, ABossClown* Clown, AActor* Target, const FVector& Desired,
+		FVector& OutGoal) const;
 	bool BuildJumpVelocity(ABossClown* Clown, AActor* Target, FVector& OutVelocity);
 	void FinishTactical(bool bAbort);
 

@@ -1,14 +1,16 @@
-﻿#include <Enemy/Boss/Encounter/BossRoomSubsystem.h>
+#include <Enemy/Boss/Encounter/BossRoomSubsystem.h>
 
 bool UBossRoomSubsystem::HasEntered(FName RoomID) const
 {
 	const FBossRoomProgress* Progress = RoomProgress.Find(RoomID);
+
 	return Progress ? Progress->bEntered : false;
 }
 
 bool UBossRoomSubsystem::IsCleared(FName RoomID) const
 {
 	const FBossRoomProgress* Progress = RoomProgress.Find(RoomID);
+
 	return Progress ? Progress->bCleared : false;
 }
 

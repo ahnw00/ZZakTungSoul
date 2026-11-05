@@ -406,3 +406,18 @@ void UCharacterStatComponent::RegenerateStamina(float DeltaTime)
 	// 딜레이가 지나면 초당 회복량만큼 부드럽게 회복.
 	SetCurrentStamina(CurrentStamina + StaminaRegenRate * DeltaTime);
 }
+
+void UCharacterStatComponent::RegenerateStance(float DeltaTime)
+{
+	// 이미 스텐스가 꽉 차 있다면 회복할 필요 없음.
+	if (CurrentStance >= MaxStance) { return; }
+	UWorld* World = GetWorld();
+	if (!World) { return; }
+
+	// 마지막 스텐스 쓴 시간으로부터 딜레이(1초) 안 지났으면 대기.
+	float CurrentTime = World->GetTimeSeconds();
+	if (CurrentTime - LastStanceUseTime < StanceRegenDelay) { return; }
+
+	// 딜레이가 지나면 초당 회복량만큼 부드럽게 회복.
+	SetCurrentStance(CurrentStance + StanceRegenRate * DeltaTime);
+}

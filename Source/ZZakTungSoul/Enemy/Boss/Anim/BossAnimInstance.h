@@ -18,7 +18,10 @@ class ZZAKTUNGSOUL_API UBossAnimInstance : public UAnimInstance
 public:
 	UBossAnimInstance();
 
-	float GetSpeed() const { return Speed; }
+	float GetSpeed() const
+	{
+		return Speed;
+	}
 
 protected:
 	virtual void NativeInitializeAnimation() override;
@@ -52,4 +55,7 @@ protected:
 	//---------------------------------------------------------------
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Character", Meta = (AllowPrivateAccess = true))
 	EBossPhase BossPhase = EBossPhase::Intro;
+
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Character")
+	EEnemyState EnemyState = EEnemyState::Idle;
 };

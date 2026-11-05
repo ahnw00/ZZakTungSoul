@@ -35,7 +35,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Clown|Condition", meta = (ClampMin = "0", ClampMax = "1"))
 	float Chance = 1.0f;
 
-
 	UPROPERTY(EditAnywhere, Category = "Clown|Condition", meta = (ClampMin = "-1", ClampMax = "1"))
 	float MinimumFacingDot = 0.5f;
 };

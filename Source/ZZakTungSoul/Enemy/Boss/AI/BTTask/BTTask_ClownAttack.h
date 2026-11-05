@@ -18,12 +18,17 @@ class ZZAKTUNGSOUL_API UBTTask_ClownAttack : public UBTTaskNode
 
 public:
 	UBTTask_ClownAttack();
+	void SetAttackType(EBossClownAttack Type)
+	{
+		AttackType = Type;
+	}
 
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
+	virtual void OnTaskFinished(
+		UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Attack")
 	EBossClownAttack AttackType = EBossClownAttack::HammerSweep;

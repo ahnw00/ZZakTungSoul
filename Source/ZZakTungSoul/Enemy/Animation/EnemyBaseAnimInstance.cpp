@@ -101,12 +101,12 @@ void UEnemyBaseAnimInstance::PlayGetFrontFatalAttackMontage()
 void UEnemyBaseAnimInstance::PlayGetBackFatalAttackMontage()
 {
 	StopAllMontages(1.f);
-	Montage_Play(GetFatalAttackMontage);
+	Montage_Play(GetBackFatalAttackMontage);
 
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &UEnemyBaseAnimInstance::OnFatalMontageEnded);
 
-	Montage_SetEndDelegate(EndDelegate, GetFatalAttackMontage);
+	Montage_SetEndDelegate(EndDelegate, GetBackFatalAttackMontage);
 }
 
 void UEnemyBaseAnimInstance::OnFatalMontageEnded(UAnimMontage* Montage, bool bInterrupted)

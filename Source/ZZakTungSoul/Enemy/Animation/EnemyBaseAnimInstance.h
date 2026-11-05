@@ -7,6 +7,8 @@
 #include <Enemy/EnemyStates.h>
 #include "EnemyBaseAnimInstance.generated.h"
 
+class UAnimMontage;
+
 /**
  * 
  */
@@ -28,6 +30,10 @@ public:
 	void PlayStunMontage();
 
 	void PlayGetFatalAttackMontage();
+
+private:
+	void OnFatalMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void OnStunMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 protected:
 	// AnimInstance를 소유하는 오너

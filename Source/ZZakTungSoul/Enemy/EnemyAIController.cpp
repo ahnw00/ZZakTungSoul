@@ -201,3 +201,19 @@ void AEnemyAIController::ToggleFocus()
 		ClearFocus(EAIFocusPriority::Gameplay);
 	}
 }
+
+void AEnemyAIController::SetAIWait(bool bIsWait)
+{
+	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
+	if (nullptr == BlackboardComp)
+	{
+		return;
+	}
+
+	BlackboardComp->SetValueAsBool(BBKEY_ISWAIT, bIsWait);
+
+	if (bIsWait)
+	{
+		StopMovement();
+	}
+}

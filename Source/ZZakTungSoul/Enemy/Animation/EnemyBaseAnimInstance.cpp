@@ -77,10 +77,52 @@ void UEnemyBaseAnimInstance::PlayStunMontage()
 {
 	StopAllMontages(1.f);
 	Montage_Play(StunMontage);
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &UEnemyBaseAnimInstance::OnStunMontageEnded);
+
+	Montage_SetEndDelegate(EndDelegate, StunMontage);
 }
 
 void UEnemyBaseAnimInstance::PlayGetFatalAttackMontage()
 {
 	StopAllMontages(1.f);
 	Montage_Play(GetFatalAttackMontage);
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &UEnemyBaseAnimInstance::OnFatalMontageEnded);
+
+	Montage_SetEndDelegate(EndDelegate, GetFatalAttackMontage);
+}
+
+void UEnemyBaseAnimInstance::OnFatalMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bInterrupted)
+	{
+		return;
+	}
+
+	AEnemyBase* Enemy = Cast<AEnemyBase>(TryGetPawnOwner());
+	if (false == IsValid(Enemy))
+	{
+		return;
+	}
+
+	Enemy->OnFatalAttackFinished();
+}
+
+void UEnemyBaseAnimInstance::OnStunMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bInterrupted)
+	{
+		return;
+	}
+
+	AEnemyBase* Enemy = Cast<AEnemyBase>(TryGetPawnOwner());
+	if (false == IsValid(Enemy))
+	{
+		return;
+	}
+
+	Enemy->OnStunFinished();
 }

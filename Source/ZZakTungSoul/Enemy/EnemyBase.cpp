@@ -467,8 +467,11 @@ void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
 	// 지금 행동중 인지 검사
 	if (CurrentActionState != EEnemyActionState::None)
 	{
-		// 사망은 강제 전환 허용
-		bool bCanChanged = NewActionState == EEnemyActionState::None || NewActionState == EEnemyActionState::Dead;
+		// 강제 전환 허용
+		bool bCanChanged = NewActionState == EEnemyActionState::None ||
+			NewActionState == EEnemyActionState::Dead ||
+			NewActionState == EEnemyActionState::Hit  ||
+			NewActionState == EEnemyActionState::Stance;
 
 		if (false == bCanChanged)
 		{
@@ -548,11 +551,19 @@ void AEnemyBase::SetStrafeMode(bool bEnable)
 void AEnemyBase::OnGetParried()
 {
 	SetEnemyState(EEnemyState::Groggy);
+	SetEnemyActionState(EEnemyActionState::Stance);
 
-	// 임시 테스트용
-	if (!GetController())
+	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+	if (!AIController)
 		return;
-	GetController()->UnPossess();
+
+	AIController->SetAIWait(true);
+
+	// Trace 중단
+	if (IsValid(AttackTraceComponent))
+	{
+		AttackTraceComponent->EndTrace();
+	}
 
 	UEnemyBaseAnimInstance* AnimInstance = Cast<UEnemyBaseAnimInstance>(GetMesh()->GetAnimInstance());
 	if (!AnimInstance)
@@ -561,6 +572,51 @@ void AEnemyBase::OnGetParried()
 	}
 
 	AnimInstance->PlayStunMontage();
+}
+
+void AEnemyBase::OnFatalAttackFinished()
+{
+	if (false == bReceiveFatalAttack)
+	{
+		return;
+	}
+	
+	bReceiveFatalAttack = false;
+
+	if (IsDeadState())
+	{
+		return;
+	}
+
+	if (GetEnemyActionState() == EEnemyActionState::Stance)
+	{
+		SetEnemyActionState(EEnemyActionState::None);
+	}
+
+	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+	if (AIController)
+	{
+		AIController->SetAIWait(false);
+	}
+}
+
+void AEnemyBase::OnStunFinished()
+{
+	if (IsDeadState())
+	{
+		return;
+	}
+
+	if (GetEnemyActionState() == EEnemyActionState::Stance)
+	{
+		SetEnemyActionState(EEnemyActionState::None);
+	}
+
+	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+	if (AIController)
+	{
+		AIController->SetAIWait(false);
+	}
 }
 
 float AEnemyBase::GetCombatRangeData()
@@ -593,9 +649,24 @@ APatrolPath* AEnemyBase::GetPatrolPathData() const
 	return nullptr;
 }
 
+EEnemyMoveState AEnemyBase::GetMoveStateInterface() const
+{
+	return CurrentMoveState;
+}
+
+EEnemyActionState AEnemyBase::GetActionStateInterface() const
+{
+	return CurrentActionState;
+}
+
+bool AEnemyBase::GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const
+{
+	return false;
+}
+
 bool AEnemyBase::CanBeFatalAttacked(AActor* Attacker) const
 {
-	if (CurrentState != EEnemyState::Groggy)
+	if (CurrentActionState != EEnemyActionState::Stance)
 		return false;
 
 	float Dot = FVector::DotProduct(Attacker->GetActorForwardVector(), GetActorForwardVector());
@@ -614,6 +685,8 @@ void AEnemyBase::ReceiveFatalAttack(const FDamageInfo DamageInfo)
 	UEnemyBaseAnimInstance* Anim = Cast<UEnemyBaseAnimInstance>(GetMesh()->GetAnimInstance());
 	if (!Anim)
 		return;
+
+	bReceiveFatalAttack = true;
 
 	Anim->PlayGetFatalAttackMontage();
 

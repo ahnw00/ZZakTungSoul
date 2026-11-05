@@ -27,6 +27,8 @@ public:
 	// AI 중지 함수
 	void StopAIController();
 
+	void SetAIWait(bool bIsWait);
+
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 

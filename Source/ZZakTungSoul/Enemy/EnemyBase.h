@@ -91,6 +91,10 @@ public:
 	// Strafe 상태일 때 캐릭터 매쉬 회전 관련 플래그 설정 함수
 	void SetStrafeMode(bool bEnable);
 
+	// Fatal Attack / groogy가 끝났을때 행동 재개 함수
+	void OnFatalAttackFinished();
+	void OnStunFinished();
+
 private:
 	// 패링 당했을 때 호출될 함수(델리게이트에 바인드해줄 함수)
 	void OnGetParried();
@@ -107,6 +111,11 @@ protected:
 	virtual void SetCurrentDamageInfoInterface(const struct FDamageInfo& NewDamageInfo) override;
 
 	virtual APatrolPath* GetPatrolPathData() const override;
+
+	virtual EEnemyMoveState GetMoveStateInterface() const override;
+	virtual EEnemyActionState GetActionStateInterface() const override;
+
+	virtual bool GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const override;
 
 protected:
 	// 공격할 때 사용할 데미지 정보 저장 변수
@@ -158,6 +167,10 @@ protected:
 	// Strafe 여부 플래그
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
 	uint32 bIsStrafeMode : 1 = false;
+
+	// Fatal Attack 여부 플래그
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
+	uint32 bReceiveFatalAttack : 1 = false;
 
 	// Inherited via IFatalAttackableInterface
 	bool CanBeFatalAttacked(AActor* Attacker) const override;

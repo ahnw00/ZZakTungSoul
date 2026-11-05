@@ -40,6 +40,8 @@ public:
 	// 상위 클래스의 Interface
 	FORCEINLINE  virtual APatrolPath* GetPatrolPathData() const override { return PatrolPath.Get(); }
 
+	virtual bool GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const override;
+
 protected:
 	// PatrolPath 참조
 	UPROPERTY(EditInstanceOnly, Category = "Enemy|Patrol")

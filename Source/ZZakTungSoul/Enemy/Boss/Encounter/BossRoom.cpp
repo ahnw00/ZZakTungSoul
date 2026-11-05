@@ -1,4 +1,4 @@
-﻿#include <Enemy/Boss/Encounter/BossRoom.h>
+#include <Enemy/Boss/Encounter/BossRoom.h>
 #include <Enemy/Boss/Encounter/BossRoomSubsystem.h>
 #include <Enemy/Boss/Boss.h>
 #include <Warrior/Warrior.h>
@@ -83,7 +83,7 @@ ABossRoom::ABossRoom()
 	FogMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FogMesh"));
 	FogMesh->SetupAttachment(SceneRoot);
 	FogMesh->SetRelativeLocation(FVector(0, 0, 150));
-	//FogMesh->SetRelativeRotation(FRotator(90, 0, 0));
+	// FogMesh->SetRelativeRotation(FRotator(90, 0, 0));
 	FogMesh->SetRelativeScale3D(FVector(3, 4, 1));
 	FogMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	FogMesh->SetGenerateOverlapEvents(false);
@@ -92,7 +92,7 @@ ABossRoom::ABossRoom()
 	OhterSideFogMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OhterSideFogMesh"));
 	OhterSideFogMesh->SetupAttachment(SceneRoot);
 	OhterSideFogMesh->SetRelativeLocation(FVector(0, 0, 150));
-	//OhterSideFogMesh->SetRelativeRotation(FRotator(90, 0, 0));
+	// OhterSideFogMesh->SetRelativeRotation(FRotator(90, 0, 0));
 	OhterSideFogMesh->SetRelativeScale3D(FVector(3, 4, 1));
 	OhterSideFogMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	OhterSideFogMesh->SetGenerateOverlapEvents(false);
@@ -173,12 +173,14 @@ void ABossRoom::Tick(float DeltaSeconds)
 	if (IsValid(BossActor.Get()) && BossActor->GetBossPhase() == EBossPhase::Dead)
 	{
 		FinishClear();
+
 		return;
 	}
 
 	if (!IsValid(BossActor.Get()) || !IsPlayerAlive(EncounterPlayer.Get()))
 	{
 		FailAttempt();
+
 		return;
 	}
 
@@ -218,6 +220,7 @@ void ABossRoom::EndPlay(const EEndPlayReason::Type EndPlayReason)
 UBossRoomSubsystem* ABossRoom::GetRoomSubsystem() const
 {
 	UGameInstance* Instance = GetGameInstance();
+
 	return Instance ? Instance->GetSubsystem<UBossRoomSubsystem>() : nullptr;
 }
 
@@ -229,6 +232,7 @@ bool ABossRoom::IsFirstEntry() const
 	}
 
 	const UBossRoomSubsystem* Progress = GetRoomSubsystem();
+
 	return Progress && !Progress->HasEntered(RoomID);
 }
 
@@ -240,10 +244,12 @@ bool ABossRoom::IsPlayerAlive(AWarrior* Player) const
 	}
 
 	const UCharacterStatComponent* Stat = Player->GetCharacterStatComponent();
-	return true;//Stat && Stat->GetCurrentHP() > 0.0f;
+
+	return true; // Stat && Stat->GetCurrentHP() > 0.0f;
 }
 
-void ABossRoom::OnFirstEntryBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ABossRoom::OnFirstEntryBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	AWarrior* Player = Cast<AWarrior>(OtherActor);
 
@@ -253,7 +259,8 @@ void ABossRoom::OnFirstEntryBeginOverlap(UPrimitiveComponent* OverlappedComp, AA
 	}
 }
 
-void ABossRoom::OnInteractionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ABossRoom::OnInteractionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (AWarrior* Player = Cast<AWarrior>(OtherActor))
 	{
@@ -264,7 +271,8 @@ void ABossRoom::OnInteractionBeginOverlap(UPrimitiveComponent* OverlappedComp, A
 	}
 }
 
-void ABossRoom::OnInteractionEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void ABossRoom::OnInteractionEndOverlap(
+	UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (AWarrior* Player = Cast<AWarrior>(OtherActor))
 	{
@@ -297,9 +305,8 @@ void ABossRoom::Interact(AActor* detectedActor)
 
 bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog)
 {
-	if (bChangingState || RoomState != EBossRoomState::Ready || RoomID.IsNone() ||
-		!GetRoomSubsystem() || !IsPlayerAlive(Player) || !IsValid(BossActor.Get()) ||
-		BossActor->GetBossPhase() != EBossPhase::Waiting)
+	if (bChangingState || RoomState != EBossRoomState::Ready || RoomID.IsNone() || !GetRoomSubsystem() ||
+		!IsPlayerAlive(Player) || !IsValid(BossActor.Get()) || BossActor->GetBossPhase() != EBossPhase::Waiting)
 	{
 		return false;
 	}
@@ -321,6 +328,7 @@ bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog)
 		if (!IntroSequence)
 		{
 			UE_LOG(LogTemp, Error, TEXT("BossRoom: IntroSequence is required for first entry."));
+
 			return false;
 		}
 
@@ -340,13 +348,15 @@ bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog)
 		//---------------------------------------------------------------
 		ALevelSequenceActor* CreatedIntroActor = nullptr;
 
-		IntroPlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), IntroSequence.Get(), Settings, CreatedIntroActor);
+		IntroPlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(
+			GetWorld(), IntroSequence.Get(), Settings, CreatedIntroActor);
 		IntroActor = CreatedIntroActor;
 
 		if (!IsValid(IntroPlayer.Get()) || !IsValid(IntroActor.Get()))
 		{
 			StopIntro();
 			UE_LOG(LogTemp, Error, TEXT("BossRoom: failed to create intro player."));
+
 			return false;
 		}
 	}
@@ -372,6 +382,7 @@ bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog)
 			RefreshGate();
 
 			UE_LOG(LogTemp, Warning, TEXT("BossRoom: inside entry point is blocked."));
+
 			return false;
 		}
 	}
@@ -514,6 +525,7 @@ void ABossRoom::BeginBattle()
 	if (!IsPlayerAlive(EncounterPlayer.Get()) || !IsValid(BossActor.Get()))
 	{
 		FailAttempt();
+
 		return;
 	}
 
@@ -537,6 +549,7 @@ void ABossRoom::FailAttempt()
 	if (IsValid(BossActor.Get()) && BossActor->GetBossPhase() == EBossPhase::Dead)
 	{
 		FinishClear();
+
 		return;
 	}
 
@@ -594,14 +607,16 @@ void ABossRoom::RefreshGate()
 	const bool bClosed = RoomState != EBossRoomState::Cleared && (bActive || bRetry);
 
 	FogMesh->SetVisibility(bClosed, true);
-	OhterSideFogMesh->SetVisibility(bClosed, true); 
+	OhterSideFogMesh->SetVisibility(bClosed, true);
 	GateBlocker->SetCollisionEnabled(bClosed ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
-	OhterSideGateBlocker->SetCollisionEnabled(bClosed ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+	OhterSideGateBlocker->SetCollisionEnabled(
+		bClosed ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
 }
 
 void ABossRoom::DebugResetRoom()
 {
 #if !UE_BUILD_SHIPPING
+
 	if (bChangingState || !GetRoomSubsystem() || RoomID.IsNone() || !InitialBossClass)
 	{
 		return;
@@ -639,6 +654,7 @@ void ABossRoom::DebugResetRoom()
 		bChangingState = false;
 
 		UE_LOG(LogTemp, Error, TEXT("BossRoom: debug boss respawn failed."));
+
 		return;
 	}
 

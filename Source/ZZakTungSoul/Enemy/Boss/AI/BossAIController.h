@@ -7,7 +7,7 @@
 #include "BossAIController.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class ZZAKTUNGSOUL_API ABossAIController : public AEnemyAIController

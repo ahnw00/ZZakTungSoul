@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 
 #include <CoreMinimal.h>
 #include <Engine/DataAsset.h>
+#include <Engine/EngineTypes.h>
 #include <Enemy/Data/EnemyAttackData.h>
 #include "BossClownAnimationData.generated.h"
 
@@ -9,90 +10,31 @@ class AActor;
 class UTexture2D;
 class UStaticMesh;
 class UMaterialInterface;
-
-USTRUCT(BlueprintType)
-struct FClownYabawiSettings
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bEnabled = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "2", ClampMax = "8"))
-	int32 BowlCount = 3;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UStaticMesh> BowlMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UStaticMesh> BallMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "100"))
-	float BowlDiameter = 180.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "200"))
-	float BowlSpacing = 280.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.5"))
-	float RevealTime = 1.5f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.2"))
-	float CoverTime = 0.6f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "1", ClampMax = "32"))
-	int32 ShuffleCount = 12;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.12", ClampMax = "1"))
-	float ShuffleStepTime = 0.22f;
-
-	// 섞기를 마친 순간부터 선택 시간을 계산.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "1"))
-	float SelectionTime = 5.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "100"))
-	float SelectionDistance = 200.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0"))
-	float Cooldown = 20.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "100"))
-	float ExplosionRadius = 2500.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FDamageInfo ExplosionDamage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UMaterialInterface> ExplosionMaterial;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0", ClampMax = "1"))
-	float PlayerHealRatio = 0.2f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0", ClampMax = "1"))
-	float BossDamageRatio = 0.05f;
-};
+class AClownYabawiBowl;
 
 UENUM(BlueprintType)
 enum class EBossClownAttack : uint8
 {
 	// Attack behavior identifiers. Montage phase usage is configured per attack entry.
-	HammerSweep, 
-	HammerSlam, 
-	FastChaseSlam, 
-	DashSweep, 
-	TripleBalls, 
-	ClapWave, 
+	HammerSweep,
+	HammerSlam,
+	FastChaseSlam,
+	DashSweep,
+	TripleBalls,
+	ClapWave,
 	SpawnCards,
 	CubeBarrage,
 
-	// Separate gimmick, currently available only during phase 2.
+	// Uses the same Attack / AttackVariants montage and phase settings as other attacks.
 	Yabawi,
-
 };
 
 UENUM(BlueprintType)
 enum class EClownAttackStyle : uint8
 {
-	Normal, Immediate, DelayedPursuit UMETA(Hidden)
+	Normal,
+	Immediate,
+	DelayedPursuit UMETA(Hidden)
 };
 
 USTRUCT(BlueprintType)
@@ -105,6 +47,12 @@ struct FClownPhaseOnePattern
 
 	UPROPERTY(EditAnywhere)
 	bool bEnabled = true;
+
+	UPROPERTY(EditAnywhere, Category = "Boss Phase Usage", meta = (DisplayName = "Allow In Phase 1"))
+	bool bAllowInPhase1 = true;
+
+	UPROPERTY(EditAnywhere, Category = "Boss Phase Usage", meta = (DisplayName = "Allow In Phase 2"))
+	bool bAllowInPhase2 = true;
 
 	UPROPERTY(EditAnywhere)
 	FEnemyAttackData Attack;
@@ -123,6 +71,79 @@ struct FClownPhaseOnePattern
 	// 몽타주 시작 후 이 시간이 지나면 타깃 추적 회전 종료.
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
 	float TrackingTime = 0.25f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides))
+	TSubclassOf<AClownYabawiBowl> BowlClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides))
+	TEnumAsByte<ECollisionChannel> AttackTraceChannel = ECC_Pawn;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "2",
+			ClampMax = "8"))
+	int32 BowlCount = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides))
+	TObjectPtr<UStaticMesh> BowlMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides))
+	TObjectPtr<UStaticMesh> BallMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "100"))
+	float BowlDiameter = 180.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "200"))
+	float BowlSpacing = 280.0f;
+
+	// The query box reaches above the bowl so ordinary weapon swings can hit it.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "50"))
+	float BowlHitHeight = 160.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "0.5"))
+	float RevealTime = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "0.2"))
+	float CoverTime = 0.6f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "1",
+			ClampMax = "32"))
+	int32 ShuffleCount = 12;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "0.12",
+			ClampMax = "1"))
+	float ShuffleStepTime = 0.22f;
+
+	// 섞기를 마친 순간부터 선택 시간을 계산.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "1"))
+	float SelectionTime = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "0"))
+	float Cooldown = 20.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "100"))
+	float ExplosionRadius = 2500.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides))
+	FDamageInfo ExplosionDamage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides))
+	TObjectPtr<UMaterialInterface> ExplosionMaterial;
 };
 
 UCLASS()
@@ -132,8 +153,7 @@ class ZZAKTUNGSOUL_API UBossClownAnimationData : public UDataAsset
 
 public:
 	UBossClownAnimationData();
-
-
+	virtual void PostLoad() override;
 
 	//---------------------------------------------------------------
 	// 첫 공격과 광대 전용 공격 데이터.
@@ -150,6 +170,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Clown|Behavior")
 	bool bEnableTacticalActions = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clown|Behavior", meta = (ClampMin = "1"))
+	float GroggyDuration = 3.0f;
+
 	UPROPERTY(EditAnywhere, Category = "Clown|Behavior", meta = (ClampMin = "1"))
 	float BackstepDistance = 220.0f;
 
@@ -165,6 +188,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Clown|Behavior", meta = (ClampMin = "1"))
 	float TacticalLeashRadius = 1800.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clown|Behavior")
+	TObjectPtr<UAnimMontage> GroggyMontage;
+
 	UPROPERTY(EditAnywhere, Category = "Clown|Behavior")
 	TObjectPtr<UAnimMontage> BackstepMontage;
 
@@ -177,11 +203,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Clown|Behavior")
 	TObjectPtr<UAnimMontage> EvadeRightMontage;
 
-
 	UPROPERTY(EditAnywhere, Category = "Clown|Balls", meta = (ClampMin = "1", ClampMax = "16"))
 	int32 BallCount = 5;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Attacks", meta = (DisplayName = "Attack Patterns"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Attacks",
+		meta = (DisplayName = "Attack Patterns", TitleProperty = "AttackType"))
 	TArray<FClownPhaseOnePattern> PhaseOnePatterns;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "1"))
@@ -278,7 +304,4 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Cards")
 	TArray<TObjectPtr<UTexture2D>> HeartFaces;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clown|Yabawi")
-	FClownYabawiSettings Yabawi;
 };

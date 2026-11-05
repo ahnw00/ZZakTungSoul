@@ -8,7 +8,7 @@
 
 UBTService_BossCombatInfo::UBTService_BossCombatInfo()
 {
-	NodeName=TEXT("Boss Capsule Surface Distance");
+	NodeName = TEXT("Boss Capsule Surface Distance");
 	Interval = 0.1f;
 	RandomDeviation = 0.0f;
 	bCallTickOnSearchStart = true;
@@ -21,6 +21,7 @@ void UBTService_BossCombatInfo::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 	ABoss* Boss = AI ? Cast<ABoss>(AI->GetPawn()) : nullptr;
 	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
 	const UBossAIData* Data = Boss ? Boss->GetBossAIData() : nullptr;
+
 	if (!Boss || !BB)
 	{
 		return;
@@ -32,14 +33,17 @@ void UBTService_BossCombatInfo::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 		BB->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
 		BB->SetValueAsBool(BBKEY_ISINATTACKRANGE, false);
 		BB->SetValueAsBool(BBKEY_ISCLOSETOTARGET, false);
+
 		return;
 	}
 
 	AActor* Target = Cast<AActor>(BB->GetValueAsObject(BBKEY_TARGETACTOR));
+
 	if (!IsValid(Target))
 	{
 		Target = UGameplayStatics::GetPlayerPawn(Boss, 0);
 	}
+
 	if (!IsValid(Target))
 	{
 		BB->ClearValue(BBKEY_TARGETACTOR);
@@ -47,6 +51,7 @@ void UBTService_BossCombatInfo::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 		BB->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
 		BB->SetValueAsBool(BBKEY_ISINATTACKRANGE, false);
 		BB->SetValueAsBool(BBKEY_ISCLOSETOTARGET, false);
+
 		return;
 	}
 

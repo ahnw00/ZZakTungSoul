@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Enemy/Boss/AI/BossAIController.h"
 #include <Enemy/Boss/AI/BTService/BTService_BossCombatInfo.h>
 #include <Enemy/AI/BTService/BTService_UpdateCombatInfo.h>
@@ -20,7 +19,6 @@
 
 ABossAIController::ABossAIController()
 {
-
 }
 
 void ABossAIController::UpdateAIFocus(EEnemyState PreviousState, EEnemyState NewState)
@@ -70,16 +68,19 @@ void ABossAIController::UpdateAIFocus(EEnemyState PreviousState, EEnemyState New
 
 bool ABossAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 {
-	UBehaviorTree* BossTree=PrepareBossBehaviorTree(BTAsset);
+	UBehaviorTree* BossTree = PrepareBossBehaviorTree(BTAsset);
+
 	if (!BossTree)
 	{
 		return false;
 	}
-	if (UBlackboardComponent* BB=GetBlackboardComponent())
+
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
 	{
 		// 공유 Blackboard의 일반 적 키는 남기되 보스의 이전 범위 판정은 폐기.
 		BB->ClearValue(BBKEY_ISINCOMBATRANGE);
 	}
+
 	return Super::RunBehaviorTree(BossTree);
 }
 
@@ -89,33 +90,38 @@ UBehaviorTree* ABossAIController::PrepareBossBehaviorTree(UBehaviorTree* SourceT
 	{
 		return nullptr;
 	}
-	if (const TObjectPtr<UBehaviorTree>* Cached=BossBehaviorTrees.Find(SourceTree))
+
+	if (const TObjectPtr<UBehaviorTree>* Cached = BossBehaviorTrees.Find(SourceTree))
 	{
 		return Cached->Get();
 	}
+
 	// 원본 에셋이나 다른 컨트롤러의 BT를 변경하지 않는 보스 전용 복제본.
-	UBehaviorTree* BossTree=DuplicateObject<UBehaviorTree>(SourceTree, this);
+	UBehaviorTree* BossTree = DuplicateObject<UBehaviorTree>(SourceTree, this);
 	BossTree->SetFlags(RF_Transient);
 	BossBehaviorTrees.Add(SourceTree, BossTree);
-	const ABossClown* Clown=Cast<ABossClown>(GetPawn());
-	const UBossAIData* Data=Clown ? Clown->GetBossAIData() : nullptr;
-	if (Data && SourceTree==Data->Phase2BT.Get())
+	const ABossClown* Clown = Cast<ABossClown>(GetPawn());
+	const UBossAIData* Data = Clown ? Clown->GetBossAIData() : nullptr;
+
+	if (Data && SourceTree == Data->Phase2BT.Get())
 	{
 		// 기존 2페이즈 트리는 유지하고 런타임 복제본 앞에 야바위 분기를 추가.
-		UBTComposite_Selector* Root=NewObject<UBTComposite_Selector>(BossTree);
-		UBTTask_ClownAttack* Yabawi=NewObject<UBTTask_ClownAttack>(BossTree);
+		UBTComposite_Selector* Root = NewObject<UBTComposite_Selector>(BossTree);
+		UBTTask_ClownAttack* Yabawi = NewObject<UBTTask_ClownAttack>(BossTree);
 		Yabawi->SetAttackType(EBossClownAttack::Yabawi);
 		FBTCompositeChild Choice;
-		Choice.ChildTask=Yabawi;
+		Choice.ChildTask = Yabawi;
 		Choice.Decorators.Add(NewObject<UBTDecorator_ClownYabawiReady>(BossTree));
-		Choice.DecoratorOps.Add(FBTDecoratorLogic(EBTDecoratorLogic::Test,0));
+		Choice.DecoratorOps.Add(FBTDecoratorLogic(EBTDecoratorLogic::Test, 0));
 		Root->Children.Add(Choice);
 		FBTCompositeChild Existing;
-		Existing.ChildComposite=BossTree->RootNode;
+		Existing.ChildComposite = BossTree->RootNode;
 		Root->Children.Add(Existing);
-		BossTree->RootNode=Root;
+		BossTree->RootNode = Root;
 	}
+
 	PrepareBossComposite(BossTree->RootNode);
+
 	return BossTree;
 }
 
@@ -125,7 +131,7 @@ void ABossAIController::ReplaceCombatServices(TArray<TObjectPtr<UBTService>>& Se
 	{
 		if (Service && Service->IsA<UBTService_UpdateCombatInfo>())
 		{
-			Service=NewObject<UBTService_BossCombatInfo>(Outer);
+			Service = NewObject<UBTService_BossCombatInfo>(Outer);
 		}
 	}
 }
@@ -136,26 +142,34 @@ void ABossAIController::PrepareBossComposite(UBTCompositeNode* Composite)
 	{
 		return;
 	}
+
 	ReplaceCombatServices(Composite->Services, Composite);
+
 	for (FBTCompositeChild& Child : Composite->Children)
 	{
 		PrepareBossComposite(Child.ChildComposite);
-		if (UBTTaskNode* Task=Child.ChildTask.Get())
+
+		if (UBTTaskNode* Task = Child.ChildTask.Get())
 		{
 			ReplaceCombatServices(Task->Services, Task);
-			if (UBTTask_MoveTo* MoveTo=Cast<UBTTask_MoveTo>(Task))
+
+			if (UBTTask_MoveTo* MoveTo = Cast<UBTTask_MoveTo>(Task))
 			{
 				// Actor 목표의 이동 완료 거리도 양쪽 캡슐 반지름을 포함.
-				MoveTo->bReachTestIncludesAgentRadius=true;
-				MoveTo->bReachTestIncludesGoalRadius=true;
+				MoveTo->bReachTestIncludesAgentRadius = true;
+				MoveTo->bReachTestIncludesGoalRadius = true;
 			}
-			if (UBTTask_RunBehavior* RunBehavior=Cast<UBTTask_RunBehavior>(Task))
+
+			if (UBTTask_RunBehavior* RunBehavior = Cast<UBTTask_RunBehavior>(Task))
 			{
 				// 실행 전 복제본에서만 하위 트리 연결을 교체. 엔진에 공개 setter가 없음.
-				FObjectPropertyBase* BehaviorProperty=FindFProperty<FObjectPropertyBase>(UBTTask_RunBehavior::StaticClass(), TEXT("BehaviorAsset"));
+				FObjectPropertyBase* BehaviorProperty =
+					FindFProperty<FObjectPropertyBase>(UBTTask_RunBehavior::StaticClass(), TEXT("BehaviorAsset"));
+
 				if (BehaviorProperty && RunBehavior->GetSubtreeAsset())
 				{
-					BehaviorProperty->SetObjectPropertyValue_InContainer(RunBehavior, PrepareBossBehaviorTree(RunBehavior->GetSubtreeAsset()));
+					BehaviorProperty->SetObjectPropertyValue_InContainer(
+						RunBehavior, PrepareBossBehaviorTree(RunBehavior->GetSubtreeAsset()));
 				}
 			}
 		}

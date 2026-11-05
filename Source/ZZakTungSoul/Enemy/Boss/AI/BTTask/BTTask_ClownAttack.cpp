@@ -25,37 +25,47 @@ EBTNodeResult::Type UBTTask_ClownAttack::ExecuteTask(UBehaviorTreeComponent& Own
 	}
 
 	int32 StartedID = INDEX_NONE;
+
 	if (!Clown->StartClownAttack(AttackType, Target, StartedID, Style, RecoveryScale))
 	{
 		return EBTNodeResult::Failed;
 	}
+
 	AttackingClown = Clown;
 	ExecutionID = StartedID;
+
 	return EBTNodeResult::InProgress;
 }
 
 void UBTTask_ClownAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
+
 	if (!AttackingClown.IsValid())
 	{
 		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+
 		return;
 	}
+
 	const EBossClownAttackResult Result = AttackingClown->GetClownAttackResult(ExecutionID);
+
 	if (Result != EBossClownAttackResult::Running)
 	{
-		FinishLatentTask(OwnerComp, Result == EBossClownAttackResult::Succeeded ? EBTNodeResult::Succeeded : EBTNodeResult::Failed);
+		FinishLatentTask(
+			OwnerComp, Result == EBossClownAttackResult::Succeeded ? EBTNodeResult::Succeeded : EBTNodeResult::Failed);
 	}
 }
 
 EBTNodeResult::Type UBTTask_ClownAttack::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	CleanUp();
+
 	return EBTNodeResult::Aborted;
 }
 
-void UBTTask_ClownAttack::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
+void UBTTask_ClownAttack::OnTaskFinished(
+	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
 {
 	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
 	CleanUp();
@@ -67,6 +77,7 @@ void UBTTask_ClownAttack::CleanUp()
 	{
 		AttackingClown->CancelClownAttack(ExecutionID);
 	}
+
 	AttackingClown.Reset();
 	ExecutionID = INDEX_NONE;
 }

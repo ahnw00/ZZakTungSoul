@@ -8,7 +8,7 @@
 
 class UBehaviorTree;
 /**
- * 
+ *
  */
 UCLASS()
 class ZZAKTUNGSOUL_API UBossAIData : public UDataAsset

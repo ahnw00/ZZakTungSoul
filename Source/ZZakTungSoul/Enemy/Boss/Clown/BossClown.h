@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <CoreMinimal.h>
 #include <Enemy/Boss/Boss.h>
@@ -12,10 +12,12 @@ class UAnimSequenceBase;
 class UClownProjectileComponent;
 class UClownYabawiComponent;
 
-
 enum class EBossClownAttackResult : uint8
 {
-	Running, Succeeded, Failed, Aborted
+	Running,
+	Succeeded,
+	Failed,
+	Aborted
 };
 
 UCLASS()
@@ -25,10 +27,12 @@ class ZZAKTUNGSOUL_API ABossClown : public ABoss
 
 public:
 	ABossClown();
-	static constexpr int32 BallFormationCount=16;
+	static constexpr int32 BallFormationCount = 16;
 	bool CanStartClownYabawi() const;
+	void EnterYabawiGroggy();
+	void CompleteClownYabawi(bool bCorrect);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Clown|Phase2")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Clown|Phase2")
 	TObjectPtr<UClownYabawiComponent> YabawiComponent;
 
 	UPROPERTY(EditInstanceOnly, Category = "Clown|Arena")
@@ -42,7 +46,8 @@ public:
 	// 광대 전용 공격 실행과 중단.
 	//
 	//---------------------------------------------------------------
-	bool StartClownAttack(EBossClownAttack AttackType, AActor* Target, int32& OutExecutionID, EClownAttackStyle Style = EClownAttackStyle::Normal, float RecoveryScale = 1.0f);
+	bool StartClownAttack(EBossClownAttack AttackType, AActor* Target, int32& OutExecutionID,
+		EClownAttackStyle Style = EClownAttackStyle::Normal, float RecoveryScale = 1.0f);
 	void CancelClownAttack(int32 ExecutionID);
 	EBossClownAttackResult GetClownAttackResult(int32 ExecutionID) const;
 
@@ -53,8 +58,16 @@ public:
 	void SetClownAttackDamage(int32 DamageIndex, UAnimSequenceBase* SourceAnimation);
 
 	const FClownPhaseOnePattern* GetPhaseOnePattern(EBossClownAttack AttackType) const;
-	virtual AActor* GetEncounterArena() const override { return CubeArena.Get(); }
-	virtual void SetEncounterArena(AActor* Arena) override { CubeArena = Arena; }
+	virtual AActor* GetEncounterArena() const override
+	{
+		return CubeArena.Get();
+	}
+
+	virtual void SetEncounterArena(AActor* Arena) override
+	{
+		CubeArena = Arena;
+	}
+
 	void RefreshClownMovement();
 	bool IsClownCombatPhase() const;
 	void FaceClownTarget(AActor* Target, float DeltaTime);
@@ -90,7 +103,8 @@ public:
 	void BeginClownApproach();
 	void BeginClownRecovery();
 	void StopFastChaseAnimation();
-	UClownProjectileComponent* CreateClownProjectile(TSubclassOf<AActor> Class, const FVector& Location, const FRotator& Rotation, float Speed, float LifeTime);
+	UClownProjectileComponent* CreateClownProjectile(
+		TSubclassOf<AActor> Class, const FVector& Location, const FRotator& Rotation, float Speed, float LifeTime);
 	bool PrepareClownBalls();
 	bool PrepareClownCubeMarch();
 	bool PrepareClownCards();
@@ -105,16 +119,19 @@ public:
 	void OnClownAttackTimeout();
 
 private:
+	void CollectClownAttackChoices(EBossClownAttack AttackType, TArray<const FEnemyAttackData*>& OutChoices) const;
+
 	void FindEncounterFloor();
 	TWeakObjectPtr<class UPrimitiveComponent> EncounterFloor;
-	float EncounterFloorZ=0.0f;
-	FVector BallOrbitCenter=FVector::ZeroVector;
-	FVector BallOrbitAxis=FVector::ForwardVector;
-	double LastBallPatternTime=-1000.0;
-	double LastCubeAttemptTime=-1000.0;
-	bool FindClownCardGround(const FVector& Position, const FVector& Center, float Width, float Height, FVector& OutGround) const;
+	float EncounterFloorZ = 0.0f;
+	FVector BallOrbitCenter = FVector::ZeroVector;
+	FVector BallOrbitAxis = FVector::ForwardVector;
+	double LastBallPatternTime = -1000.0;
+	double LastCubeAttemptTime = -1000.0;
+	bool FindClownCardGround(
+		const FVector& Position, const FVector& Center, float Width, float Height, FVector& OutGround) const;
 	TArray<EBossClownAttack> RecentClownPatterns;
-	double LastClownPatternTime=0.0;
+	double LastClownPatternTime = 0.0;
 
 	UPROPERTY(Transient)
 	FEnemyAttackData CurrentClownAttack;
@@ -128,6 +145,8 @@ private:
 
 	TWeakObjectPtr<UAnimInstance> AttackAnimInstance;
 	TWeakObjectPtr<UAnimMontage> LastPlayedAttackMontage;
+	TWeakObjectPtr<UAnimMontage> ActiveGroggyMontage;
+	float YabawiGroggyDuration = 0.0f;
 	FTimerHandle AttackTimeoutHandle;
 
 	//---------------------------------------------------------------
@@ -149,7 +168,12 @@ private:
 	//---------------------------------------------------------------
 	enum class EClownAttackStage : uint8
 	{
-		None, Approach, Montage, Recovery, Yabawi
+		None,
+		Approach,
+		Montage,
+		Recovery,
+		Yabawi,
+		Groggy
 	};
 
 	TWeakObjectPtr<AActor> ClownAttackTarget;

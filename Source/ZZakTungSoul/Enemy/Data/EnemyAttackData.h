@@ -10,13 +10,6 @@ struct FEnemyAttackData
 	GENERATED_BODY()
 
 public:
-	// Used by the clown's combat montage selection. Both enabled preserves existing behavior.
-	UPROPERTY(EditAnywhere, Category = "Boss Phase Usage", meta = (DisplayName = "Allow In Phase 1"))
-	bool bAllowInPhase1 = true;
-
-	UPROPERTY(EditAnywhere, Category = "Boss Phase Usage", meta = (DisplayName = "Allow In Phase 2"))
-	bool bAllowInPhase2 = true;
-
 	// 공격 애니메이션
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UAnimMontage> Montage = nullptr;

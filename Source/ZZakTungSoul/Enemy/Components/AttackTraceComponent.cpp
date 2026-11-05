@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Enemy/Components/AttackTraceComponent.h"
 
 #include <Components/MeshComponent.h>
@@ -10,8 +9,8 @@
 // Sets default values for this component's properties
 UAttackTraceComponent::UAttackTraceComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
+	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these
+	// features off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
 	// 애니메이션 갱신 이후에서 Trace의 Tick 실행
@@ -24,7 +23,6 @@ UAttackTraceComponent::UAttackTraceComponent()
 	ComponentTags.Add(TraceComponentTagName);
 }
 
-
 // Called when the game starts
 void UAttackTraceComponent::BeginPlay()
 {
@@ -34,7 +32,8 @@ void UAttackTraceComponent::BeginPlay()
 }
 
 // Called every frame
-void UAttackTraceComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UAttackTraceComponent::TickComponent(
+	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -140,7 +139,7 @@ void UAttackTraceComponent::SetTraceMesh(UMeshComponent* InTraceMesh)
 	// 소켓 유효성 검사
 	if (!InTraceMesh->DoesSocketExist(TraceStartSocketName) || !InTraceMesh->DoesSocketExist(TraceEndSocketName))
 	{
-		//TraceMesh.Reset();
+		// TraceMesh.Reset();
 		return;
 	}
 
@@ -148,7 +147,8 @@ void UAttackTraceComponent::SetTraceMesh(UMeshComponent* InTraceMesh)
 	TraceMesh = InTraceMesh;
 }
 
-void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVector& CurrentCenter, const FVector& Start, const FVector& End)
+void UAttackTraceComponent::CheckTrace(
+	const FVector& PreviousCenter, const FVector& CurrentCenter, const FVector& Start, const FVector& End)
 {
 	UWorld* World = GetWorld();
 	if (nullptr == World)
@@ -174,6 +174,7 @@ void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVec
 	// Trace Hit의 저장 값들
 	TArray<FHitResult> HitResults;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(AttackTrace), false, Owner);
+	Params.bIgnoreTouches = false;
 
 	// 추후 무시할 액터가 늘어나면 QueryParams.AddIgnoreActor(Actor) 활용
 
@@ -190,23 +191,18 @@ void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVec
 
 	// 이전 프레임에서 현재 플레임까지 Sweep
 	const bool bResult = World->SweepMultiByChannel(
-		HitResults,
-		PreviousCenter,
-		CurrentCenter,
-		CapsuleRotation,
-		TraceChannel.GetValue(),
-		TraceShape,
-		Params
-	);
+		HitResults, PreviousCenter, CurrentCenter, CapsuleRotation, TraceChannel.GetValue(), TraceShape, Params);
 
 #ifdef ENABLE_DRAW_DEBUG
 
-	DrawDebugCapsule(World, CurrentCenter, CapsuleHalfHeight, TraceRadius, CapsuleRotation, bResult ? FColor::Red : FColor::Green, false, 0.5f);
+	DrawDebugCapsule(World, CurrentCenter, CapsuleHalfHeight, TraceRadius, CapsuleRotation,
+		bResult ? FColor::Red : FColor::Green, false, 0.5f);
 	DrawDebugLine(World, PreviousCenter, CurrentCenter, FColor::Yellow, false, 1.0f);
 #endif // ENABLE_DRAW_DEBUG
 
-
-	if (!bResult)
+	// SweepMulti's bool reports blocking hits only. Non-blocking attack targets
+	// (such as yabawi bowls) are still present in HitResults.
+	if (HitResults.IsEmpty())
 	{
 		return;
 	}
@@ -239,7 +235,7 @@ void UAttackTraceComponent::CheckTrace(const FVector& PreviousCenter, const FVec
 	// 감지된 충돌 대상 처리
 	for (const FHitResult& Hit : HitResults)
 	{
-		TraceHitResult(Hit);  
+		TraceHitResult(Hit);
 	}
 }
 

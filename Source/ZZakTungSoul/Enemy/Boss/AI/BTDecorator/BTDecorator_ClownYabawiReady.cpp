@@ -5,13 +5,15 @@
 
 UBTDecorator_ClownYabawiReady::UBTDecorator_ClownYabawiReady()
 {
-	NodeName=TEXT("Phase 2 Yabawi Ready");
-	FlowAbortMode=EBTFlowAbortMode::None;
+	NodeName = TEXT("Yabawi Ready");
+	FlowAbortMode = EBTFlowAbortMode::None;
 }
 
-bool UBTDecorator_ClownYabawiReady::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_ClownYabawiReady::CalculateRawConditionValue(
+	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-	const AAIController* AI=OwnerComp.GetAIOwner();
-	const ABossClown* Boss=AI ? Cast<ABossClown>(AI->GetPawn()) : nullptr;
+	const AAIController* AI = OwnerComp.GetAIOwner();
+	const ABossClown* Boss = AI ? Cast<ABossClown>(AI->GetPawn()) : nullptr;
+
 	return Boss && Boss->CanStartClownYabawi();
 }

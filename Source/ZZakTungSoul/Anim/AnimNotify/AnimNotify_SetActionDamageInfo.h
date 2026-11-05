@@ -19,5 +19,5 @@ protected:
 	
 protected:
 	UPROPERTY(EditAnywhere, Category = "DamageInfo|ComboNumber")
-	int32 Index;
+	int32 Index = 0;
 };

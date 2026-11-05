@@ -288,7 +288,8 @@ void AEnemyBase::UpdateRotationModeState()
 
 	// 이동 방향으로 자동 회전 설정
 	Movement->bOrientRotationToMovement = !bFaceToTarget;
-	Movement->bUseControllerDesiredRotation = false;
+	Movement->bUseControllerDesiredRotation = true;
+	Movement->RotationRate = FRotator(0.0f, 300.0f, 0.0f);
 }
 
 void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
@@ -617,6 +618,48 @@ void AEnemyBase::OnStunFinished()
 	{
 		AIController->SetAIWait(false);
 	}
+}
+
+void AEnemyBase::RotateToTarget(AActor* TargetActor, float DeltaTime, float RotationSpeed, float MaxAngle)
+{
+	// 공격 상태일때만 사용할 함수
+	if (CurrentActionState != EEnemyActionState::Attack)
+	{
+		return;
+	}
+
+	if (false == IsValid(TargetActor) || IsDeadState() || DeltaTime <= 0.0f || RotationSpeed <= 0.0f)
+	{
+		return;
+	}
+
+	// 본인 -> 콕표로 향하는 방향
+	FVector TargetDirection = TargetActor->GetActorLocation() = GetActorLocation();
+	TargetDirection.Z = 0.0f;
+	if (TargetDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	// 회전 값
+	const FRotator CurrentRotation = GetActorRotation();
+	const FRotator TargetRotation = TargetDirection.Rotation();
+
+	const float YawDifference = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetRotation.Yaw);
+
+	// 최대 추적 가능 각도
+	if (FMath::Abs(YawDifference) > MaxAngle)
+	{
+		return;
+	}
+
+	// 이번에 회전할 수 있는 최대 각도
+	const float CurrentMaxAngle = RotationSpeed * DeltaTime;
+
+	// 목표 방향으로 회전
+	const float NewYaw = FMath::FixedTurn(CurrentRotation.Yaw, TargetRotation.Yaw, CurrentMaxAngle);
+
+	SetActorRotation(FRotator(CurrentRotation.Pitch, NewYaw, CurrentRotation.Roll));
 }
 
 float AEnemyBase::GetCombatRangeData()

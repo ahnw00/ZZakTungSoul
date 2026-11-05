@@ -95,6 +95,9 @@ public:
 	void OnFatalAttackFinished();
 	void OnStunFinished();
 
+	// 공격중 목표를 향해 보간 회전
+	void RotateToTarget(AActor* TargetActor, float DeltaTime, float RotationSpeed, float MaxAngle);
+
 private:
 	// 패링 당했을 때 호출될 함수(델리게이트에 바인드해줄 함수)
 	void OnGetParried();

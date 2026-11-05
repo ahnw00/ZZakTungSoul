@@ -55,7 +55,7 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> FrontFatalAttackMontageRef(
-		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_FatalAttack_Montage1.Warrior_FatalAttack_Montage1")
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_FatalAttack_Montage.Warrior_FatalAttack_Montage")
 	);
 	if (FrontFatalAttackMontageRef.Succeeded())
 	{

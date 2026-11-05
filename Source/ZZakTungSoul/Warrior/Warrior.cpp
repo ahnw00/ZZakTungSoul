@@ -579,19 +579,25 @@ bool AWarrior::FatalAttack()
 	const FTransform EnemyTransform = Enemy->GetActorTransform();
 
 	float Dot = FVector::DotProduct(Enemy->GetActorForwardVector(), GetActorForwardVector());
+
+	// 적을 바라보는 방향으로 회전
+	FRotator TargetRotation = (Enemy->GetActorLocation() - GetActorLocation()).Rotation();
 	
 	// 적 기준 상대적인 위치
+	// 앞잡
 	FVector RelativeLocation;
 	if (Dot < -0.8f)
 	{
 		SetActionState(EActionState::FrontFatalAttack);
-		RelativeLocation = FVector(70.f, 0.f, 0.f);
+		RelativeLocation = FVector(80.f, 10.f, 0.f);
 		CurrentFatalAttackable->ReceiveFatalAttack(DamageInfo, true);
 	}
+	// 뒤잡
 	else if (Dot > 0.9f)
 	{
 		SetActionState(EActionState::BackFatalAttack);
-		RelativeLocation = FVector(-70.f, 0.f, 0.f);
+		RelativeLocation = FVector(-120.f, 0.f, 0.f);
+		TargetRotation.Yaw -= 32.f;
 		CurrentFatalAttackable->ReceiveFatalAttack(DamageInfo, false);
 	}
 
@@ -600,10 +606,6 @@ bool AWarrior::FatalAttack()
 
 	// 플레이어 위치 보정
 	SetActorLocation(TargetLocation);
-
-	// 적을 바라보는 방향으로 회전
-	const FRotator TargetRotation = (Enemy->GetActorLocation() - GetActorLocation()).Rotation();
-
 	SetActorRotation(TargetRotation);
 
 	// 플레이어 페이탈 어택 애니메이션 재생

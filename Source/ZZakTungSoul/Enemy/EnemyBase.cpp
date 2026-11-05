@@ -454,9 +454,9 @@ bool AEnemyBase::CanBeFatalAttacked(AActor* Attacker) const
 
 void AEnemyBase::ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront)
 {
-	if (!GetController())
-		return;
-	GetController()->UnPossess();
+	//if (!GetController())
+	//	return;
+	//GetController()->UnPossess();
 
 	// 페이탈 어택 당하는 애니메이션 재생
 	UEnemyBaseAnimInstance* Anim = Cast<UEnemyBaseAnimInstance>(GetMesh()->GetAnimInstance());

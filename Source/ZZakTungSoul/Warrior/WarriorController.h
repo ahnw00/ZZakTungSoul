@@ -187,6 +187,10 @@ public:
 
 	void EquipItem(const FGuid& InID, EEquipmentSlot InSlot);
 
+	void UnequipItem(EEquipmentSlot InSlot);
+
+	bool CheckItemInSlot(const FGuid& InID, EEquipmentSlot InSlot);
+
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

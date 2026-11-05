@@ -1015,6 +1015,8 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 // 스켈레탈 메쉬 해제
 void AWarrior::UnequipItem(EEquipmentSlot Slot)
 {
+	Equipment->UnequipItem(Slot);
+
 	switch (Slot)
 	{
 	case EEquipmentSlot::None:
@@ -1040,6 +1042,21 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 	default:
 		break;
 	}
+}
+
+bool AWarrior::CheckItemInSlot(const FGuid& InID, EEquipmentSlot Slot)
+{
+	const FGuid& CompareID = Equipment->GetEquippedItem(Slot);
+	
+	// 빈 슬롯일 경우
+	if (CompareID == FGuid())
+	{
+		return false;
+	}
+
+	// 장착된 아이템이 장착하려는 아이템이랑 같으면 true 리턴
+	// true 리턴해주면 아이템 해제할거
+	return (Equipment->GetEquippedItem(Slot) == InID);
 }
 
 void AWarrior::ObtainItem(UItemDataAsset* detectedItem)

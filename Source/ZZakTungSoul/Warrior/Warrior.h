@@ -222,6 +222,8 @@ public:
 
 	void UnequipItem(EEquipmentSlot Slot);
 
+	bool CheckItemInSlot(const FGuid& InID, EEquipmentSlot Slot);
+
 	// Inherited via IItemInterface
 	void ObtainItem(class UItemDataAsset* detectedItem) override;
 

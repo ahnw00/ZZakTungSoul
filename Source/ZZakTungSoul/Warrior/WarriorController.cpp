@@ -799,7 +799,7 @@ void AWarriorController::EquipItem(const FGuid& InID, EEquipmentSlot InSlot)
 		return;
 	}
 
-	// Todo: 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
+	// 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
 	Warrior->EquipWeapon(InID, InSlot);
 
 	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
@@ -809,6 +809,37 @@ void AWarriorController::EquipItem(const FGuid& InID, EEquipmentSlot InSlot)
 	}
 
 	BeltWidget->OnEquipmentChanged();
+}
+
+void AWarriorController::UnequipItem(EEquipmentSlot InSlot)
+{
+	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
+	if (!Warrior)
+	{
+		return;
+	}
+
+	// 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
+	Warrior->UnequipItem(InSlot);
+
+	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
+	if (!BeltWidget)
+	{
+		return;
+	}
+
+	BeltWidget->OnEquipmentChanged();
+}
+
+bool AWarriorController::CheckItemInSlot(const FGuid& InID, EEquipmentSlot InSlot)
+{
+	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
+	if (!Warrior)
+	{
+		return false;
+	}
+
+	return Warrior->CheckItemInSlot(InID, InSlot);
 }
 
 void AWarriorController::ToggleMenuWindow()

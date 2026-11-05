@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -15,7 +15,15 @@ class ZZAKTUNGSOUL_API ABossAIController : public AEnemyAIController
 	GENERATED_BODY()
 public:
 	ABossAIController();
+	virtual bool RunBehaviorTree(UBehaviorTree* BTAsset) override;
 
 	virtual void UpdateAIFocus(EEnemyState PreviousState, EEnemyState NewState) override;
 
+private:
+	UBehaviorTree* PrepareBossBehaviorTree(UBehaviorTree* SourceTree);
+	void PrepareBossComposite(class UBTCompositeNode* Composite);
+	void ReplaceCombatServices(TArray<TObjectPtr<class UBTService>>& Services, UObject* Outer);
+
+	UPROPERTY(Transient)
+	TMap<TObjectPtr<UBehaviorTree>, TObjectPtr<UBehaviorTree>> BossBehaviorTrees;
 };

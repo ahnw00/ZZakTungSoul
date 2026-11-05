@@ -18,6 +18,7 @@ class ZZAKTUNGSOUL_API UBTTask_ClownAttack : public UBTTaskNode
 
 public:
 	UBTTask_ClownAttack();
+	void SetAttackType(EBossClownAttack Type) { AttackType=Type; }
 
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;

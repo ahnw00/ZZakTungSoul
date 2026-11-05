@@ -10,6 +10,7 @@ class UAnimInstance;
 class UAnimMontage;
 class UAnimSequenceBase;
 class UClownProjectileComponent;
+class UClownYabawiComponent;
 
 
 enum class EBossClownAttackResult : uint8
@@ -24,6 +25,11 @@ class ZZAKTUNGSOUL_API ABossClown : public ABoss
 
 public:
 	ABossClown();
+	static constexpr int32 BallFormationCount=16;
+	bool CanStartClownYabawi() const;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Clown|Phase2")
+	TObjectPtr<UClownYabawiComponent> YabawiComponent;
 
 	UPROPERTY(EditInstanceOnly, Category = "Clown|Arena")
 	TObjectPtr<AActor> CubeArena;
@@ -54,8 +60,11 @@ public:
 	void FaceClownTarget(AActor* Target, float DeltaTime);
 	void PreferClownRangedAttack();
 	bool PrefersClownRangedAttack() const;
+	float GetClownPatternSelectionScale(EBossClownAttack AttackType) const;
+	bool ShouldPrioritizeClownCube(const AActor* Target) const;
 
 protected:
+	virtual void BeginPlay() override;
 	virtual void HandleAttackTraceHit(const FHitResult& Hit) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void ResetBossGimmicks() override;
@@ -96,6 +105,17 @@ public:
 	void OnClownAttackTimeout();
 
 private:
+	void FindEncounterFloor();
+	TWeakObjectPtr<class UPrimitiveComponent> EncounterFloor;
+	float EncounterFloorZ=0.0f;
+	FVector BallOrbitCenter=FVector::ZeroVector;
+	FVector BallOrbitAxis=FVector::ForwardVector;
+	double LastBallPatternTime=-1000.0;
+	double LastCubeAttemptTime=-1000.0;
+	bool FindClownCardGround(const FVector& Position, const FVector& Center, float Width, float Height, FVector& OutGround) const;
+	TArray<EBossClownAttack> RecentClownPatterns;
+	double LastClownPatternTime=0.0;
+
 	UPROPERTY(Transient)
 	FEnemyAttackData CurrentClownAttack;
 
@@ -129,7 +149,7 @@ private:
 	//---------------------------------------------------------------
 	enum class EClownAttackStage : uint8
 	{
-		None, Approach, Montage, Recovery
+		None, Approach, Montage, Recovery, Yabawi
 	};
 
 	TWeakObjectPtr<AActor> ClownAttackTarget;

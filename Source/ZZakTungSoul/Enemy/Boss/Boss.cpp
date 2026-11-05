@@ -1,4 +1,4 @@
-﻿#include <Enemy/Boss/Boss.h>
+#include <Enemy/Boss/Boss.h>
 #include <Enemy/Boss/AI/BossAIController.h>
 #include <Enemy/Boss/Data/BossAIData.h>
 #include <Enemy/Data/EnemyAttackData.h>
@@ -126,22 +126,14 @@ float ABoss::GetTargetSurfaceDistance(const AActor* Target) const
 		return TNumericLimits<float>::Max();
 	}
 
-	float TargetRadius = 0.0f;
-	if (const ACharacter* Character = Cast<ACharacter>(Target))
-	{
-		TargetRadius = Character->GetCapsuleComponent()->GetScaledCapsuleRadius();
-	}
-	return FMath::Max(0.0f, FVector::Dist2D(GetActorLocation(), Target->GetActorLocation()) - GetCapsuleComponent()->GetScaledCapsuleRadius() - TargetRadius);
+	const UCapsuleComponent* TargetCapsule=Target->FindComponentByClass<UCapsuleComponent>();
+	const float TargetRadius=TargetCapsule ? TargetCapsule->GetScaledCapsuleRadius() : 0.0f;
+	return FMath::Max(0.0f, FVector::Dist2D(GetCapsuleComponent()->GetComponentLocation(), TargetCapsule ? TargetCapsule->GetComponentLocation() : Target->GetActorLocation())-GetCapsuleComponent()->GetScaledCapsuleRadius()-TargetRadius);
 }
 
 const FEnemyAttackData* ABoss::GetOpeningAttackData() const
 {
 	return nullptr;
-}
-
-float ABoss::GetCombatRangeData()
-{
-	return BossAIData ? BossAIData->CombatRange : 0.0f;
 }
 
 float ABoss::GetAttackRangeData()
@@ -239,6 +231,11 @@ void ABoss::StartPresentation(EBossPresentation Presentation)
 	ActivePresentation = Presentation;
 	ActivePresentationID = ++PresentationSerial;
 
+	if (Presentation==EBossPresentation::Phase2Transition)
+	{
+		BeginPhase2Transition(ActivePresentationID);
+		return;
+	}
 	OnPresentationStarted(Presentation, ActivePresentationID);
 }
 
@@ -254,6 +251,9 @@ void ABoss::CompletePresentation(int32 PresentationID)
 		return;
 	}
 
+	// 기존 공용 완료 함수를 직접 호출해도 수색/등장 단계를 건너뛸 수 없음.
+	if (ActivePresentation==EBossPresentation::Phase2Transition && !bPhase2EmergenceCompleted) { return; }
+
 	const EBossPresentation CompletedPresentation = ActivePresentation;
 
 	//---------------------------------------------------------------
@@ -264,6 +264,7 @@ void ABoss::CompletePresentation(int32 PresentationID)
 	ActivePresentationID = INDEX_NONE;
 
 	bLifecycleChanging = true;
+	if (CompletedPresentation==EBossPresentation::Phase2Transition) { StopPhase2Transition(false); }
 	OnPresentationStopped(CompletedPresentation, PresentationID, false);
 	bLifecycleChanging = false;
 
@@ -327,6 +328,7 @@ void ABoss::StopPresentation()
 	ActivePresentation = EBossPresentation::None;
 	ActivePresentationID = INDEX_NONE;
 
+	if (StoppedPresentation==EBossPresentation::Phase2Transition) { StopPhase2Transition(true); }
 	OnPresentationStopped(StoppedPresentation, StoppedID, true);
 }
 
@@ -408,7 +410,6 @@ void ABoss::OnOpeningEnded(UAnimMontage* Montage, bool bInterrupted, int32 InEnc
 	AttackTraceComponent->EndTrace();
 
 	EnterCombatPhase(EBossPhase::Phase1);
-	HandleHpChanged(EnemyStatComponet->GetCurrentHp(), EnemyStatComponet->GetMaxHp());
 }
 
 //---------------------------------------------------------------
@@ -453,6 +454,12 @@ void ABoss::EnterCombatPhase(EBossPhase NewPhase)
 	}
 
 	BossPhase = NewPhase;
+	// 첫 공격 실패 등 어느 경로로 1페이즈에 들어와도 현재 체력을 확인.
+	if (NewPhase==EBossPhase::Phase1 && EnemyStatComponet)
+	{
+		HandleHpChanged(EnemyStatComponet->GetCurrentHp(),EnemyStatComponet->GetMaxHp());
+		if (BossPhase!=EBossPhase::Phase1) { return; }
+	}
 
 	BB->SetValueAsObject(BBKEY_TARGETACTOR, EncounterTarget.Get());
 	BB->SetValueAsVector(BBKEY_HOMELOCATION, InitialTransform.GetLocation());
@@ -673,6 +680,7 @@ void ABoss::HandleHpChanged(float CurrentHp, float MaxHp)
 		bLifecycleChanging = true;
 
 		StopEncounterActions();
+		ResetBossGimmicks();
 		SetEnemyState(EEnemyState::Idle);
 
 		bLifecycleChanging = false;
@@ -734,4 +742,103 @@ void ABoss::InitializeWeapon()
 	{
 		AttackTraceComponent->SetTraceMesh(GetMesh());
 	}
+}
+
+void ABoss::BeginPhase2Transition(int32 TransitionID)
+{
+	Phase2TransitionID=TransitionID;
+	bPhase2EmergenceCompleted=false;
+	bPhase2SavedHidden=IsHidden();
+	bPhase2SavedCollision=GetActorEnableCollision();
+	UCharacterMovementComponent* Movement=GetCharacterMovement();
+	Phase2SavedMovementMode=Movement->MovementMode;
+	Phase2SavedCustomMovementMode=Movement->CustomMovementMode;
+	bPhase2StateSaved=true;
+	Movement->DisableMovement();
+	SetPhase2TransitionStage(EBossPhase2TransitionStage::Disappearing);
+}
+
+bool ABoss::IsPhase2TransitionStep(int32 TransitionID, EBossPhase2TransitionStage Stage) const
+{
+	return TransitionID!=INDEX_NONE && !bLifecycleChanging && bEncounterStarted && !IsDead() && BossPhase==EBossPhase::PhaseTransition
+		&& ActivePresentation==EBossPresentation::Phase2Transition && ActivePresentationID==TransitionID && Phase2TransitionID==TransitionID && Phase2TransitionStage==Stage;
+}
+
+void ABoss::SetPhase2TransitionStage(EBossPhase2TransitionStage Stage)
+{
+	GetWorldTimerManager().ClearTimer(Phase2StageTimer);
+	Phase2TransitionStage=Stage;
+	const int32 TransitionID=Phase2TransitionID;
+	// 수색은 플레이어의 발견 트리거를 기다리고 시간으로 완료하지 않음.
+	if (bUsePhase2PlaceholderTimings && Stage!=EBossPhase2TransitionStage::Searching)
+	{
+		const float Delay=Stage==EBossPhase2TransitionStage::Disappearing ? Phase2DisappearPlaceholderTime : Phase2EmergencePlaceholderTime;
+		FTimerDelegate NextStage=FTimerDelegate::CreateWeakLambda(this,[this,TransitionID,Stage]()
+		{
+			switch (Stage)
+			{
+			case EBossPhase2TransitionStage::Disappearing: CompletePhase2Disappear(TransitionID); break;
+			case EBossPhase2TransitionStage::Emerging: CompletePhase2Emergence(TransitionID); break;
+			default: break;
+			}
+		});
+		// 이벤트가 동기적으로 다음 단계를 완료해도 이전 단계 타이머가 남지 않도록 먼저 예약.
+		GetWorldTimerManager().SetTimer(Phase2StageTimer,NextStage,FMath::Max(Delay,0.01f),false);
+	}
+	UE_LOG(LogTemp,Log,TEXT("Boss phase2 transition %d: stage %d"),TransitionID,static_cast<int32>(Stage));
+	OnPhase2StageRequested.Broadcast(this,Stage,TransitionID);
+}
+
+bool ABoss::CompletePhase2Disappear(int32 TransitionID)
+{
+	if (!IsPhase2TransitionStep(TransitionID,EBossPhase2TransitionStage::Disappearing)) { return false; }
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetPhase2TransitionStage(EBossPhase2TransitionStage::Searching);
+	return true;
+}
+
+bool ABoss::NotifyPhase2Found(AActor* Finder, int32 TransitionID, AActor* EmergencePoint)
+{
+	if (!IsPhase2TransitionStep(TransitionID,EBossPhase2TransitionStage::Searching) || !IsValid(Finder) || Finder!=EncounterTarget.Get()) { return false; }
+	AActor* Point=IsValid(EmergencePoint) ? EmergencePoint : Phase2EmergencePoint.Get();
+	if (IsValid(Point))
+	{
+		// 마커의 스케일은 사용하지 않아 보스 크기는 그대로 유지.
+		SetActorLocationAndRotation(Point->GetActorLocation(),Point->GetActorRotation(),false,nullptr,ETeleportType::TeleportPhysics);
+	}
+	SetActorHiddenInGame(bPhase2SavedHidden);
+	SetPhase2TransitionStage(EBossPhase2TransitionStage::Emerging);
+	return true;
+}
+
+bool ABoss::CompletePhase2Emergence(int32 TransitionID)
+{
+	if (!IsPhase2TransitionStep(TransitionID,EBossPhase2TransitionStage::Emerging)) { return false; }
+	bPhase2EmergenceCompleted=true;
+	CompletePresentation(TransitionID);
+	return BossPhase==EBossPhase::Phase2;
+}
+
+void ABoss::StopPhase2Transition(bool bCancelled)
+{
+	GetWorldTimerManager().ClearTimer(Phase2StageTimer);
+	const int32 StoppedID=Phase2TransitionID;
+	Phase2TransitionID=INDEX_NONE;
+	Phase2TransitionStage=EBossPhase2TransitionStage::None;
+	bPhase2EmergenceCompleted=false;
+	if (bPhase2StateSaved)
+	{
+		bPhase2StateSaved=false;
+		if (!IsActorBeingDestroyed())
+		{
+			SetActorHiddenInGame(bPhase2SavedHidden);
+			if (!IsDead())
+			{
+				SetActorEnableCollision(bPhase2SavedCollision);
+				GetCharacterMovement()->SetMovementMode(static_cast<EMovementMode>(Phase2SavedMovementMode),Phase2SavedCustomMovementMode);
+			}
+		}
+	}
+	if (StoppedID!=INDEX_NONE) { OnPhase2TransitionStopped.Broadcast(this,StoppedID,bCancelled); }
 }

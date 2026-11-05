@@ -2,6 +2,7 @@
 #include <Enemy/Boss/Clown/BossClown.h>
 #include <Enemy/Components/AttackTraceComponent.h>
 #include <Components/StaticMeshComponent.h>
+#include <Components/BoxComponent.h>
 #include <Interface/CombatDamageInterface.h>
 #include <Engine/StaticMesh.h>
 #include <Engine/Texture2D.h>
@@ -17,6 +18,21 @@ UClownProjectileComponent::UClownProjectileComponent()
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaterialRef(TEXT("/Engine/EngineMaterials/EmissiveMeshMaterial.EmissiveMeshMaterial"));
 	WarningMesh = MeshRef.Object;
 	WarningMaterial = MaterialRef.Object;
+
+	// Fab에서 Assets로 이동한 원본 머티리얼과 텍스처를 직접 참조.
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> BallMaterialRef(TEXT("/Game/Assets/Beach_Ball_-_Low_Poly/beach_ball_low_poly/Materials/BeachBall.BeachBall"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> CubeMaterialRef(TEXT("/Game/Assets/CC0_-_Magic_Cube/cc0_magic_cube/Materials/MagicCube.MagicCube"));
+	BallMaterial=BallMaterialRef.Object;
+	CubeMaterial=CubeMaterialRef.Object;
+	for (int32 Index=0; Index<3; ++Index)
+	{
+		const FString BallPath=FString::Printf(TEXT("/Game/Assets/Beach_Ball_-_Low_Poly/beach_ball_low_poly/Textures/beach_ball_low_poly_texture_%d.beach_ball_low_poly_texture_%d"), Index, Index);
+		const FString CubePath=FString::Printf(TEXT("/Game/Assets/CC0_-_Magic_Cube/cc0_magic_cube/Textures/cc0_magic_cube_texture_%d.cc0_magic_cube_texture_%d"), Index, Index);
+		ConstructorHelpers::FObjectFinder<UTexture2D> BallTextureRef(*BallPath);
+		ConstructorHelpers::FObjectFinder<UTexture2D> CubeTextureRef(*CubePath);
+		BallTextures.Add(BallTextureRef.Object);
+		CubeTextures.Add(CubeTextureRef.Object);
+	}
 }
 
 void UClownProjectileComponent::BeginPlay()
@@ -29,6 +45,10 @@ void UClownProjectileComponent::BeginPlay()
 		return;
 	}
 	VisualMesh = Mesh;
+	if (Mesh->GetStaticMesh() && Mesh->GetStaticMesh()->GetFName()==TEXT("SM_ClownBeachBallVivid"))
+	{
+		RestoreProjectileMaterial(Mesh, false);
+	}
 	TArray<UAttackTraceComponent*> Traces;
 	Owner->GetComponents<UAttackTraceComponent>(Traces);
 	for (UAttackTraceComponent* Trace : Traces)
@@ -41,6 +61,29 @@ void UClownProjectileComponent::BeginPlay()
 	if (Traces.IsEmpty())
 	{
 		UE_LOG(LogTemp, Error, TEXT("Clown projectile requires AttackTraceComponent and mesh trace sockets."));
+	}
+}
+
+void UClownProjectileComponent::RestoreProjectileMaterial(UStaticMeshComponent* Mesh, bool bCube)
+{
+	UMaterialInterface* Material=bCube ? CubeMaterial.Get() : BallMaterial.Get();
+	const TArray<TObjectPtr<UTexture2D>>& Textures=bCube ? CubeTextures : BallTextures;
+	if (!Mesh || !Material || Textures.Num()!=3 || !Textures[0] || !Textures[1] || !Textures[2])
+	{
+		UE_LOG(LogTemp, Error, TEXT("Clown projectile: relocated %s material or textures are missing."), bCube ? TEXT("cube") : TEXT("ball"));
+		return;
+	}
+	UMaterialInstanceDynamic* RestoredMaterial=Mesh->CreateAndSetMaterialInstanceDynamicFromMaterial(0, Material);
+	if (!RestoredMaterial)
+	{
+		return;
+	}
+	RestoredMaterial->SetTextureParameterValue(TEXT("BaseColorTexture"), Textures[0]);
+	RestoredMaterial->SetTextureParameterValue(TEXT("MetallicRoughnessTexture"), Textures[1]);
+	RestoredMaterial->SetTextureParameterValue(TEXT("NormalTexture"), Textures[2]);
+	if (bCube)
+	{
+		RestoredMaterial->SetTextureParameterValue(TEXT("OcclusionTexture"), Textures[1]);
 	}
 }
 
@@ -307,11 +350,31 @@ void UClownProjectileComponent::ArmCubeMarch(UStaticMesh* Piece, const FVector& 
 	}
 	Mesh->SetStaticMesh(Piece);
 	Mesh->EmptyOverrideMaterials();
+	RestoreProjectileMaterial(Mesh, true);
 	const float Size = Piece->GetBounds().BoxExtent.GetMax() * 2.0f;
 	Mesh->SetRelativeScale3D(FVector(94.0f / FMath::Max(Size, 0.01f)));
 	Mesh->SetRelativeLocation(FVector::ZeroVector);
 	Mesh->SetRelativeRotation(FRotator::ZeroRotator);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// 조각 메시의 단순 충돌 유무와 관계없이 94cm 큐브를 막는 이동 루트.
+	if (!CubeCollision)
+	{
+		USceneComponent* PreviousRoot=Owner->GetRootComponent();
+		CubeCollision=NewObject<UBoxComponent>(Owner,TEXT("CubeCollision"));
+		Owner->AddInstanceComponent(CubeCollision);
+		CubeCollision->SetBoxExtent(FVector(47.0f));
+		CubeCollision->SetCollisionObjectType(ECC_WorldDynamic);
+		CubeCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+		CubeCollision->SetCollisionResponseToChannel(ECC_Pawn,ECR_Block);
+		CubeCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		CubeCollision->SetGenerateOverlapEvents(false);
+		CubeCollision->SetCanEverAffectNavigation(false);
+		CubeCollision->RegisterComponent();
+		CubeCollision->SetWorldLocationAndRotation(Owner->GetActorLocation(),Owner->GetActorRotation());
+		Owner->SetRootComponent(CubeCollision);
+		if (PreviousRoot) { PreviousRoot->AttachToComponent(CubeCollision,FAttachmentTransformRules::KeepWorldTransform); }
+		if (Owner->GetOwner()) { CubeCollision->IgnoreActorWhenMoving(Owner->GetOwner(),true); }
+	}
 	CubeAssembly = Assembly;
 	CubeStart = Start;
 	CubeEnd = End;
@@ -341,10 +404,51 @@ void UClownProjectileComponent::ArmCubeMarch(UStaticMesh* Piece, const FVector& 
 	}
 }
 
+void UClownProjectileComponent::SetCubeAim(AActor* Target, AActor* Arena, const FVector& Center)
+{
+	CubeAimTarget=Target;
+	CubeAimArena=Arena;
+	CubeStartOffset=CubeStart-Center;
+	CubeEndOffset=CubeEnd-Center;
+	bCubeAimLocked=false;
+}
+
 void UClownProjectileComponent::TickCubeMarch(float DeltaTime)
 {
 	CubeElapsed += DeltaTime;
 	AActor* Owner = GetOwner();
+	// 각 차례의 집결이 시작될 때 다시 조준하고, 예고가 뜬 뒤에는 경로를 고정해 회피를 보장.
+	if (!bCubeAimLocked && CubeElapsed>=CubeMarchTime-1.8f)
+	{
+		bCubeAimLocked=true;
+		if (CubeAimTarget.IsValid())
+		{
+			const FVector Center=CubeAimTarget->GetActorLocation();
+			const float FloorZ=CubeStart.Z;
+			CubeStart=Center+CubeStartOffset;
+			CubeEnd=Center+CubeEndOffset;
+			const UBoxComponent* Arena=CubeAimArena.IsValid() ? CubeAimArena->FindComponentByClass<UBoxComponent>() : nullptr;
+			if (Arena)
+			{
+				const FVector Extent=Arena->GetUnscaledBoxExtent();
+				for (FVector* Point : {&CubeStart,&CubeEnd})
+				{
+					FVector Local=Arena->GetComponentTransform().InverseTransformPosition(*Point);
+					Local.X=FMath::Clamp(Local.X,-FMath::Max(Extent.X-52.0f,0.0f),FMath::Max(Extent.X-52.0f,0.0f));
+					Local.Y=FMath::Clamp(Local.Y,-FMath::Max(Extent.Y-52.0f,0.0f),FMath::Max(Extent.Y-52.0f,0.0f));
+					*Point=Arena->GetComponentTransform().TransformPosition(Local);
+				}
+			}
+			CubeStart.Z=FloorZ;
+			CubeEnd.Z=FloorZ;
+			if (WarningMarker)
+			{
+				WarningMarker->SetWorldLocation((CubeStart+CubeEnd)*0.5f-FVector(0.0f,0.0f,49.0f));
+				WarningMarker->SetWorldRotation((CubeEnd-CubeStart).Rotation());
+				WarningMarker->SetWorldScale3D(FVector((FVector::Dist2D(CubeStart,CubeEnd)+400.0f)/100.0f,1.15f,1.0f));
+			}
+		}
+	}
 	const float MoveEnd = CubeMarchTime + 1.2f;
 	const bool bMoving = CubeElapsed >= CubeMarchTime && CubeElapsed < MoveEnd;
 	// 판정은 고정된 경로를 실제로 이동하는 동안에만 사용.
@@ -382,7 +486,9 @@ void UClownProjectileComponent::TickCubeMarch(float DeltaTime)
 	{
 		Position = FMath::Lerp(CubeAssembly, CubeStart, FMath::SmoothStep(0.0f, 1.0f, (CubeElapsed - CubeMarchTime + 1.8f) / 0.8f));
 	}
-	Owner->SetActorLocation(Position);
+	FHitResult BlockingHit;
+	Owner->SetActorLocation(Position,true,&BlockingHit);
+	if (bMoving && BlockingHit.bBlockingHit) { HandleTraceHit(BlockingHit); }
 	if (VisualMesh.IsValid() && CubeElapsed >= 8.6f)
 	{
 		VisualMesh->SetRelativeRotation(FMath::RInterpTo(VisualMesh->GetRelativeRotation(), FRotator::ZeroRotator, DeltaTime, 10.0f));

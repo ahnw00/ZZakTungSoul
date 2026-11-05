@@ -1,4 +1,4 @@
-#include <Enemy/Boss/AI/BTDecorator/BTDecorator_ClownCondition.h>
+﻿#include <Enemy/Boss/AI/BTDecorator/BTDecorator_ClownCondition.h>
 #include <Enemy/Boss/Clown/BossClown.h>
 #include <Enemy/AI/EnemyAIBlackboardKey.h>
 #include <AIController.h>
@@ -33,8 +33,7 @@ bool UBTDecorator_ClownCondition::CalculateRawConditionValue(UBehaviorTreeCompon
 	}
 	if (bCheckAttackData)
 	{
-		const FClownPhaseOnePattern* Pattern = Clown->GetPhaseOnePattern(AttackType);
-		if (!Pattern || !Pattern->bEnabled || !Pattern->Attack.Montage || !Pattern->Attack.DamageInfo.IsValidIndex(0))
+		if (!Clown->GetClownAttackData(AttackType))
 		{
 			return false;
 		}
@@ -47,15 +46,23 @@ bool UBTDecorator_ClownCondition::CalculateRawConditionValue(UBehaviorTreeCompon
 	{
 		return false;
 	}
+	const float PatternScale = bCheckAttackData ? Clown->GetClownPatternSelectionScale(AttackType) : 1.0f;
+	if (PatternScale<=0.0f)
+	{
+		return false;
+	}
 	const float Distance = Clown->GetTargetSurfaceDistance(Target);
-	if (Distance < MinDistance || Distance > MaxDistance)
+	const float EffectiveMinDistance = bCheckAttackData && AttackType == EBossClownAttack::CubeBarrage ? 600.0f : MinDistance;
+	if (Distance<EffectiveMinDistance || Distance>MaxDistance)
 	{
 		return false;
 	}
-	if (bCheckAttackData && (AttackType == EBossClownAttack::SpawnCards || AttackType == EBossClownAttack::CubeBarrage) && Distance < 850.0f)
+	if (bCheckAttackData && AttackType==EBossClownAttack::SpawnCards && Distance<850.0f)
 	{
 		return false;
 	}
+	const bool bCubePriority=bCheckAttackData && Clown->ShouldPrioritizeClownCube(Target);
+	if (bCubePriority && AttackType != EBossClownAttack::CubeBarrage) { return false; }
 	const bool bRanged = AttackType == EBossClownAttack::TripleBalls || AttackType == EBossClownAttack::ClapWave || AttackType == EBossClownAttack::CubeBarrage;
 	if (bCheckAttackData && bRanged && Distance < 450.0f)
 	{
@@ -66,9 +73,11 @@ bool UBTDecorator_ClownCondition::CalculateRawConditionValue(UBehaviorTreeCompon
 		return false;
 	}
 	const FVector Direction = (Target->GetActorLocation() - Clown->GetActorLocation()).GetSafeNormal2D();
-	if (FVector::DotProduct(Clown->GetActorForwardVector(), Direction) < MinimumFacingDot)
+	const float FacingDot = bCheckAttackData && AttackType == EBossClownAttack::CubeBarrage ? 0.2f : MinimumFacingDot;
+	if (FVector::DotProduct(Clown->GetActorForwardVector(),Direction)<FacingDot)
 	{
 		return false;
 	}
-	return (bCheckAttackData && bRanged && Clown->PrefersClownRangedAttack()) || FMath::FRand() < FMath::Clamp(Chance, 0.0f, 1.0f);
+	const float BaseChance=bCubePriority || (bCheckAttackData && bRanged && Clown->PrefersClownRangedAttack()) ? 1.0f : (bCheckAttackData && AttackType==EBossClownAttack::CubeBarrage ? 0.85f : FMath::Clamp(Chance,0.0f,1.0f));
+	return FMath::FRand()<BaseChance*(bCubePriority ? 1.0f : PatternScale);
 }

@@ -22,12 +22,14 @@
 #include <Components/BoxComponent.h>
 #include <Navigation/PathFollowingComponent.h>
 #include <Enemy/Boss/Clown/Components/ClownProjectileComponent.h>
+#include <Enemy/Boss/Clown/Components/ClownYabawiComponent.h>
 
 
 ABossClown::ABossClown()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
+	YabawiComponent=CreateDefaultSubobject<UClownYabawiComponent>(TEXT("YabawiComponent"));
 
 	//---------------------------------------------------------------
 	// 광대 SkeletalMesh 설정.
@@ -65,6 +67,41 @@ ABossClown::ABossClown()
 
 
 }
+void ABossClown::BeginPlay()
+{
+	Super::BeginPlay();
+	FindEncounterFloor();
+}
+
+void ABossClown::FindEncounterFloor()
+{
+	// 입장 당시 보스 주변의 실제 바닥 컴포넌트를 기억. 전투 중 소품 위에 올라가도 기준을 바꾸지 않음.
+	FCollisionObjectQueryParams Objects;
+	Objects.AddObjectTypesToQuery(ECC_WorldStatic);
+	Objects.AddObjectTypesToQuery(ECC_WorldDynamic);
+	FCollisionQueryParams Query(SCENE_QUERY_STAT(ClownEncounterFloor), false, this);
+	if (const UBoxComponent* Arena=CubeArena ? CubeArena->FindComponentByClass<UBoxComponent>() : nullptr) { Query.AddIgnoredComponent(Arena); }
+	const float FootZ=GetActorLocation().Z-GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	const FVector Offsets[]={FVector::ZeroVector,FVector(180.0f,0.0f,0.0f),FVector(-180.0f,0.0f,0.0f),FVector(0.0f,180.0f,0.0f),FVector(0.0f,-180.0f,0.0f)};
+	float LowestZ=TNumericLimits<float>::Max();
+	for (const FVector& Offset : Offsets)
+	{
+		const FVector Probe=GetActorLocation()+Offset;
+		TArray<FHitResult> Hits;
+		GetWorld()->LineTraceMultiByObjectType(Hits,FVector(Probe.X,Probe.Y,FootZ+30.0f),FVector(Probe.X,Probe.Y,FootZ-250.0f),Objects,Query);
+		for (const FHitResult& Hit : Hits)
+		{
+			if (Hit.GetComponent() && Hit.ImpactNormal.Z>=0.9f && !Hit.bStartPenetrating && Hit.ImpactPoint.Z<LowestZ)
+			{
+				LowestZ=Hit.ImpactPoint.Z;
+				EncounterFloor=Hit.GetComponent();
+				EncounterFloorZ=LowestZ;
+			}
+		}
+	}
+	UE_LOG(LogTemp,Log,TEXT("Clown floor: %s, Z %.1f"),*GetNameSafe(EncounterFloor.Get()),EncounterFloorZ);
+}
+
 const UBossClownAnimationData* ABossClown::GetClownAnimationData() const
 {
 	return ClownAnimationData.Get();
@@ -76,13 +113,25 @@ const FEnemyAttackData* ABossClown::GetOpeningAttackData() const
 	return Data ? &Data->OpeningAttack : nullptr;
 }
 
+static bool IsClownMontageAvailable(const FEnemyAttackData& Attack, EBossPhase Phase)
+{
+	const bool bAllowed = (Phase == EBossPhase::Phase1 && Attack.bAllowInPhase1)
+		|| (Phase == EBossPhase::Phase2 && Attack.bAllowInPhase2);
+	return bAllowed && Attack.Montage && Attack.DamageInfo.IsValidIndex(0);
+}
+
 const FEnemyAttackData* ABossClown::GetClownAttackData(EBossClownAttack AttackType) const
 {
 	if (const FClownPhaseOnePattern* Pattern = GetPhaseOnePattern(AttackType))
 	{
-		if (Pattern->bEnabled && Pattern->Attack.Montage)
+		if (!Pattern->bEnabled) { return nullptr; }
+		if (IsClownMontageAvailable(Pattern->Attack, BossPhase))
 		{
 			return &Pattern->Attack;
+		}
+		for (const FEnemyAttackData& Variant : Pattern->AttackVariants)
+		{
+			if (IsClownMontageAvailable(Variant, BossPhase)) { return &Variant; }
 		}
 	}
 
@@ -94,11 +143,37 @@ bool ABossClown::IsClownCombatPhase() const
 	return !IsDead() && (BossPhase == EBossPhase::Phase1 || BossPhase == EBossPhase::Phase2);
 }
 
+bool ABossClown::CanStartClownYabawi() const
+{
+	return ActiveAttackID==INDEX_NONE && YabawiComponent && YabawiComponent->CanStart();
+}
+
 bool ABossClown::StartClownAttack(EBossClownAttack AttackType, AActor* Target, int32& OutExecutionID, EClownAttackStyle Style, float RecoveryScale)
 {
 	OutExecutionID = INDEX_NONE;
+	if (AttackType==EBossClownAttack::Yabawi)
+	{
+		if (!CanStartClownYabawi() || !IsValid(Target)) { return false; }
+		if (AAIController* AI=Cast<AAIController>(GetController())) { AI->StopMovement(); }
+		GetCharacterMovement()->StopMovementImmediately();
+		ConsumeMovementInputVector();
+		AttackTraceComponent->EndTrace();
+		ClearClownProjectiles(true);
+		ClownAttackTarget=Target;
+		CurrentAttackType=AttackType;
+		ClownAttackStage=EClownAttackStage::Yabawi;
+		ActiveAttackID=++AttackSerial;
+		if (!PrepareClownYabawi())
+		{
+			FinishClownAttack(EBossClownAttackResult::Failed,false);
+			return false;
+		}
+		SetEnemyState(EEnemyState::Attack);
+		OutExecutionID=ActiveAttackID;
+		return true;
+	}
 
-	if (!IsClownCombatPhase() || ActiveAttackID != INDEX_NONE || !IsValid(Target) || !AttackTraceComponent)
+	if (!IsClownCombatPhase() || ActiveAttackID != INDEX_NONE || !IsValid(Target) || !AttackTraceComponent || GetClownPatternSelectionScale(AttackType)<=0.0f)
 	{
 		return false;
 	}
@@ -106,15 +181,15 @@ bool ABossClown::StartClownAttack(EBossClownAttack AttackType, AActor* Target, i
 	const FEnemyAttackData* AttackData = GetClownAttackData(AttackType);
 	const FClownPhaseOnePattern* Pattern = GetPhaseOnePattern(AttackType);
 	TArray<const FEnemyAttackData*> Choices;
-	if (AttackData && AttackData->Montage != LastPlayedAttackMontage.Get())
+	if (Pattern && Pattern->bEnabled)
 	{
-		Choices.Add(AttackData);
-	}
-	if (Pattern)
-	{
+		if (IsClownMontageAvailable(Pattern->Attack, BossPhase) && Pattern->Attack.Montage != LastPlayedAttackMontage.Get())
+		{
+			Choices.Add(&Pattern->Attack);
+		}
 		for (const FEnemyAttackData& Variant : Pattern->AttackVariants)
 		{
-			if (Variant.Montage && Variant.Montage != LastPlayedAttackMontage.Get() && Variant.DamageInfo.IsValidIndex(0))
+			if (IsClownMontageAvailable(Variant, BossPhase) && Variant.Montage != LastPlayedAttackMontage.Get())
 			{
 				Choices.Add(&Variant);
 			}
@@ -138,7 +213,7 @@ bool ABossClown::StartClownAttack(EBossClownAttack AttackType, AActor* Target, i
 		return false;
 	}
 
-	if ((AttackType == EBossClownAttack::SpawnCards || AttackType == EBossClownAttack::CubeBarrage) && GetTargetSurfaceDistance(Target) < 850.0f)
+	if ((AttackType==EBossClownAttack::SpawnCards && GetTargetSurfaceDistance(Target)<850.0f) || (AttackType==EBossClownAttack::CubeBarrage && GetTargetSurfaceDistance(Target)<600.0f))
 	{
 		return false;
 	}
@@ -173,6 +248,7 @@ bool ABossClown::StartClownAttack(EBossClownAttack AttackType, AActor* Target, i
 	LastPlayedAttackMontage = AttackData->Montage;
 	CurrentRecoveryScale = FMath::Clamp(RecoveryScale, 0.1f, 2.0f);
 	CurrentAttackType = AttackType;
+	if (AttackType==EBossClownAttack::CubeBarrage) { LastCubeAttemptTime=GetWorld()->GetTimeSeconds(); }
 	ClownAttackTarget = Target;
 	AttackStageTime = 0.0f;
 	bDashStarted = false;
@@ -218,6 +294,30 @@ void ABossClown::PreferClownRangedAttack()
 bool ABossClown::PrefersClownRangedAttack() const
 {
 	return GetWorld() && GetWorld()->GetTimeSeconds() < RangedPreferenceUntil;
+}
+
+float ABossClown::GetClownPatternSelectionScale(EBossClownAttack AttackType) const
+{
+	if (AttackType==EBossClownAttack::TripleBalls && GetWorld() && GetWorld()->GetTimeSeconds()-LastBallPatternTime<18.0) { return 0.0f; }
+	const float FrequencyScale=AttackType==EBossClownAttack::TripleBalls ? 0.5f : 1.0f;
+	const int32 RecentIndex=RecentClownPatterns.Find(AttackType);
+	if (RecentIndex==0)
+	{
+		// 대체 패턴이 실행되지 못하더라도 영구적으로 공격이 막히지는 않음.
+		return GetWorld() && GetWorld()->GetTimeSeconds()-LastClownPatternTime<6.0 ? 0.0f : 0.25f*FrequencyScale;
+	}
+	return (RecentIndex==1 ? 0.2f : (RecentIndex==2 ? 0.5f : 1.0f))*FrequencyScale;
+}
+
+bool ABossClown::ShouldPrioritizeClownCube(const AActor* Target) const
+{
+	const UBossClownAnimationData* Data=GetClownAnimationData();
+	const FClownPhaseOnePattern* Pattern=GetPhaseOnePattern(EBossClownAttack::CubeBarrage);
+	if (!IsValid(Target) || !GetWorld() || !Data || !Data->CubeClass || Data->CubePieces.Num()!=27 || !Pattern || !GetClownAttackData(EBossClownAttack::CubeBarrage)) { return false; }
+	if (RecentClownPatterns.Num()<2 || RecentClownPatterns[0]==EBossClownAttack::CubeBarrage || RecentClownPatterns[1]==EBossClownAttack::CubeBarrage || GetWorld()->GetTimeSeconds()-LastCubeAttemptTime<8.0) { return false; }
+	const float Distance=GetTargetSurfaceDistance(Target);
+	const FVector Direction=(Target->GetActorLocation()-GetActorLocation()).GetSafeNormal2D();
+	return Distance>=600.0f && Distance<=2200.0f && FVector::DotProduct(GetActorForwardVector(),Direction)>=0.2f && EncounterFloor.IsValid();
 }
 
 void ABossClown::BeginClownApproach()
@@ -327,6 +427,11 @@ bool ABossClown::PlayCurrentClownMontage()
 		}
 	}
 
+	// 실제 몽타주와 소환 준비가 성공한 패턴만 기록. 몽타주 변형도 같은 패턴으로 취급.
+	RecentClownPatterns.Insert(CurrentAttackType, 0);
+	RecentClownPatterns.SetNum(FMath::Min(RecentClownPatterns.Num(), 3));
+	LastClownPatternTime=GetWorld()->GetTimeSeconds();
+
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &ABossClown::OnClownAttackEnded, ActiveAttackID);
 	Anim->Montage_SetEndDelegate(EndDelegate, Montage);
@@ -435,6 +540,7 @@ void ABossClown::UpdateClownTraceDebug()
 
 void ABossClown::TickClownAttack(float DeltaTime)
 {
+	if (ClownAttackStage==EClownAttackStage::Yabawi) { return; }
 	AActor* Target = ClownAttackTarget.Get();
 	const UBossClownAnimationData* Data = GetClownAnimationData();
 	if (!IsClownCombatPhase() || !IsValid(Target) || Target->IsActorBeingDestroyed() || !Data)
@@ -490,6 +596,14 @@ void ABossClown::TickClownAttack(float DeltaTime)
 	}
 	UAnimInstance* Anim = AttackAnimInstance.Get();
 	const float MontageTime = Anim ? Anim->Montage_GetPosition(CurrentClownAttack.Montage.Get()) : 0.0f;
+	if (CurrentAttackType==EBossClownAttack::TripleBalls)
+	{
+		for (const TWeakObjectPtr<AActor>& Item : ClownProjectiles)
+		{
+			UClownProjectileComponent* Ball=Item.IsValid() ? Item->FindComponentByClass<UClownProjectileComponent>() : nullptr;
+			if (Ball && !Ball->IsLaunched()) { Item->SetActorLocation(BallOrbitCenter+(Item->GetActorLocation()-BallOrbitCenter).RotateAngleAxis(45.0f*DeltaTime,BallOrbitAxis)); }
+		}
+	}
 	TickClownSpecial(MontageTime);
 	if (ActiveAttackID == INDEX_NONE)
 	{
@@ -610,7 +724,7 @@ void ABossClown::OnClownAttackEnded(UAnimMontage* Montage, bool bInterrupted, in
 		{
 			// 공 개수가 늘어 지휘 한 주기보다 길어지면 동일 동작을 이어서 재생.
 			const UBossClownAnimationData* Data = GetClownAnimationData();
-			if (CurrentAttackType == EBossClownAttack::TripleBalls && Data && BallsLaunched < FMath::Clamp(Data->BallCount, 1, 16))
+			if (CurrentAttackType == EBossClownAttack::TripleBalls && Data && BallsLaunched < BallFormationCount)
 			{
 				if (UAnimInstance* Anim = AttackAnimInstance.Get())
 				{
@@ -636,6 +750,7 @@ void ABossClown::OnClownAttackTimeout()
 
 void ABossClown::FinishClownAttack(EBossClownAttackResult Result, bool bStopMontage, bool bRestoreState)
 {
+	if (YabawiComponent) { YabawiComponent->CancelRound(); }
 	if (GetWorld())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(AttackTimeoutHandle);
@@ -661,6 +776,11 @@ void ABossClown::FinishClownAttack(EBossClownAttackResult Result, bool bStopMont
 	// 종료 콜백보다 먼저 실행 번호 무효화.
 	//
 	//---------------------------------------------------------------
+	if (!RecentClownPatterns.IsEmpty() && RecentClownPatterns[0]==CurrentAttackType && GetWorld())
+	{
+		LastClownPatternTime=GetWorld()->GetTimeSeconds();
+	}
+	if (CurrentAttackType==EBossClownAttack::TripleBalls && GetWorld()) { LastBallPatternTime=GetWorld()->GetTimeSeconds(); }
 	LastAttackID = ActiveAttackID;
 	LastAttackResult = Result;
 	ActiveAttackID = INDEX_NONE;
@@ -700,10 +820,15 @@ void ABossClown::FinishClownAttack(EBossClownAttackResult Result, bool bStopMont
 
 void ABossClown::ResetBossGimmicks()
 {
+	if (YabawiComponent) { YabawiComponent->CancelRound(true); }
+	RecentClownPatterns.Reset();
+	LastClownPatternTime=0.0;
 	LastPlayedAttackMontage.Reset();
 	RangedPreferenceUntil = 0.0;
 	ClearClownProjectiles(true);
 	FinishClownAttack(EBossClownAttackResult::Aborted, true, false);
+	LastBallPatternTime=-1000.0;
+	LastCubeAttemptTime=-1000.0;
 	NextChasePathTime = 0.0;
 	SetStrafeMode(false);
 	Super::ResetBossGimmicks();
@@ -801,14 +926,16 @@ bool ABossClown::PrepareClownBalls()
 	const UBossClownAnimationData* Data = GetClownAnimationData();
 	AActor* Target = ClownAttackTarget.Get();
 
-	const int32 Count = FMath::Clamp(Data->BallCount, 1, 16);
+	const int32 Count=BallFormationCount;
 	// 바닥에 정확히 수직인 원. 플레이어 높이에 따라 소환 평면을 기울이지 않음.
 	const FVector Center = GetActorLocation() + (Target ? Target->GetActorLocation() - GetActorLocation() : GetActorForwardVector()).GetSafeNormal2D() * 180.0f + FVector(0.0f, 0.0f, 260.0f);
 	const FVector Forward = (Target ? Target->GetActorLocation() - Center : GetActorForwardVector()).GetSafeNormal2D();
 	const FQuat Facing = FRotationMatrix::MakeFromX(Forward).ToQuat();
 	const FVector Right = Facing.GetRightVector();
 	const FVector Up = FVector::UpVector;
-	const float MarkerRadius = 210.0f;
+	BallOrbitCenter=Center;
+	BallOrbitAxis=Forward;
+	const float MarkerRadius=300.0f;
 
 	int32 SpawnedBalls = 0;
 	for (int32 Index = 0; Index < Count; ++Index)
@@ -825,6 +952,41 @@ bool ABossClown::PrepareClownBalls()
 		}
 	}
 	return SpawnedBalls == Count;
+}
+
+bool ABossClown::FindClownCardGround(const FVector& Position, const FVector& Center, float Width, float Height, FVector& OutGround) const
+{
+	if (!EncounterFloor.IsValid()) { return false; }
+	const UBoxComponent* Arena=CubeArena ? CubeArena->FindComponentByClass<UBoxComponent>() : nullptr;
+	const float FloorZ=EncounterFloorZ;
+	if (Arena)
+	{
+		const FVector Local=Arena->GetComponentTransform().InverseTransformPosition(FVector(Position.X,Position.Y,FloorZ));
+		const FVector Extent=Arena->GetUnscaledBoxExtent();
+		if (FMath::Abs(Local.X)>Extent.X || FMath::Abs(Local.Y)>Extent.Y) { return false; }
+	}
+	FCollisionQueryParams Query(SCENE_QUERY_STAT(ClownCardGround),false,this);
+	Query.AddIgnoredActor(ClownAttackTarget.Get());
+	if (Arena) { Query.AddIgnoredComponent(Arena); }
+	FCollisionObjectQueryParams Objects;
+	Objects.AddObjectTypesToQuery(ECC_WorldStatic);
+	Objects.AddObjectTypesToQuery(ECC_WorldDynamic);
+	TArray<FHitResult> Hits;
+	GetWorld()->LineTraceMultiByObjectType(Hits,FVector(Position.X,Position.Y,FloorZ+10.0f),FVector(Position.X,Position.Y,FloorZ-10.0f),Objects,Query);
+	const FHitResult* FloorHit=Hits.FindByPredicate([this](const FHitResult& Hit) { return Hit.GetComponent()==EncounterFloor.Get() && !Hit.bStartPenetrating && Hit.ImpactNormal.Z>=0.9f; });
+	if (!FloorHit) { return false; }
+	const FHitResult& Ground=*FloorHit;
+	const FVector Direction=(Center-Ground.ImpactPoint).GetSafeNormal2D();
+	const FVector FootprintCenter=Ground.ImpactPoint+Direction*(Height*0.5f)+FVector(0.0f, 0.0f, Height*0.5f+16.0f);
+	// 생성 지점뿐 아니라 플레이어 쪽으로 쓰러지는 전체 영역에 소품이 있으면 제외.
+	const FCollisionShape Footprint=FCollisionShape::MakeBox(FVector(Height*0.5f+5.0f, Width*0.5f+5.0f, Height*0.5f+5.0f));
+	if (GetWorld()->OverlapBlockingTestByChannel(FootprintCenter, Direction.Rotation().Quaternion(), ECC_Visibility, Footprint, Query)
+		|| GetWorld()->OverlapBlockingTestByChannel(FootprintCenter, Direction.Rotation().Quaternion(), ECC_Pawn, Footprint, Query))
+	{
+		return false;
+	}
+	OutGround=Ground.ImpactPoint;
+	return true;
 }
 
 bool ABossClown::PrepareClownCards()
@@ -848,16 +1010,14 @@ bool ABossClown::PrepareClownCards()
 	const float Height = FMath::Clamp(Data->CardHeight, Radius - 100.0f, Radius + 50.0f);
 	const float Facing = FMath::FRandRange(0.0f, 2.0f * PI);
 	TArray<FVector> Positions;
-	FCollisionQueryParams Query(SCENE_QUERY_STAT(ClownCardGround), false, this);
-	Query.AddIgnoredActor(Target);
 	for (int32 Index = 0; Index < Count; ++Index)
 	{
 		const float Angle = Facing + 2.0f * PI * Index / Count;
 		const FVector Position = Center + FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.0f) * Radius;
-		FHitResult Ground;
-		if (GetWorld()->LineTraceSingleByChannel(Ground, Position + FVector(0.0f, 0.0f, 250.0f), Position - FVector(0.0f, 0.0f, 600.0f), ECC_Visibility, Query) && Ground.ImpactNormal.Z >= 0.9f)
+		FVector Ground;
+		if (FindClownCardGround(Position, Center, Width, Height, Ground))
 		{
-			Positions.Add(Ground.ImpactPoint);
+			Positions.Add(Ground);
 		}
 	}
 	if (Positions.IsEmpty())
@@ -898,51 +1058,35 @@ bool ABossClown::PrepareClownCards()
 
 bool ABossClown::PrepareClownYabawi()
 {
-	ClearClownProjectiles(false);
-	const UBossClownAnimationData* Data = GetClownAnimationData();
-	AActor* Target = ClownAttackTarget.Get();
-
-
-	const int32 Count = FMath::Clamp(/*Data->BallCount*/3, 1, 16);
-
-	const FVector Center = GetActorLocation() + (Target ? Target->GetActorLocation() - GetActorLocation() : GetActorForwardVector()).GetSafeNormal2D() * 180.0f + FVector(0.0f, 0.0f, -260.0f);
-	const FVector Forward = (Target ? Target->GetActorLocation() - Center : GetActorForwardVector()).GetSafeNormal2D();
-
-
-	const FQuat Facing = FRotationMatrix::MakeFromX(Forward).ToQuat();
-	const FVector Right = Facing.GetRightVector();
-	const FVector Up = FVector::UpVector;
-	const float MarkerRadius = 210.0f;
-
-	int32 SpawnedBowls = 0;
-
-	for (int32 Index = 0; Index < Count; ++Index)
+	const UBossClownAnimationData* Data=GetClownAnimationData();
+	AActor* Target=ClownAttackTarget.Get();
+	if (!Data || !IsValid(Target) || !YabawiComponent) { return false; }
+	const int32 Count=FMath::Clamp(Data->Yabawi.BowlCount,2,8);
+	const float Diameter=FMath::Max(Data->Yabawi.BowlDiameter,100.0f);
+	const float Spacing=FMath::Max(Data->Yabawi.BowlSpacing,Diameter+80.0f);
+	FVector Forward=(Target->GetActorLocation()-GetActorLocation()).GetSafeNormal2D();
+	if (Forward.IsNearlyZero()) { Forward=GetActorForwardVector(); }
+	const FVector Right=FVector::CrossProduct(FVector::UpVector,Forward);
+	const float Distance=FVector::Dist2D(Target->GetActorLocation(),GetActorLocation());
+	const FVector BaseCenter=GetActorLocation()+Forward*FMath::Clamp(Distance-300.0f,400.0f,700.0f);
+	// 기존 카드와 같은 실제 바닥 검사로 소품 윗면과 막힌 영역을 제외.
+	for (int32 Attempt=0; Attempt<17; ++Attempt)
 	{
-		FVector Position;
-
-		if (Index != 0 && Index % 2 == 0)
+		const float Angle=2.0f*PI*(Attempt-1)/8.0f;
+		const float Radius=Attempt==0 ? 0.0f : (Attempt<=8 ? 300.0f : 600.0f);
+		const FVector Center=BaseCenter+(Forward*FMath::Cos(Angle)+Right*FMath::Sin(Angle))*Radius;
+		TArray<FVector> Positions;
+		for (int32 Index=0; Index<Count; ++Index)
 		{
-			Position = Center + FVector(0.f, -(Index - 1) * MarkerRadius, 0.f);
+			const FVector Candidate=Center+Right*(Index-(Count-1)*0.5f)*Spacing;
+			FVector Ground;
+			if (!FindClownCardGround(Candidate,Center,Diameter,Diameter,Ground)) { break; }
+			Positions.Add(Ground+FVector(0.0f,0.0f,3.0f));
 		}
-		else
-		{
-			Position = Center + FVector(0.f, Index * MarkerRadius, 0.f);
-		}
-		
-
-		//const double StartAngle = 2.0 * PI * Index / Count;
-		//const FVector Position = Center + (Right * FMath::Cos(StartAngle) + Up * FMath::Sin(StartAngle)) * MarkerRadius;
-
-		if (UClownProjectileComponent* Ball = CreateClownProjectile(Data->BallClass, Position, Facing.Rotator(), Data->BallSpeed, 6.0f))
-		{
-			++SpawnedBowls;
-			//const FVector Axis = FMath::VRand();
-			//const float Rate = FMath::FRandRange(140.0f, 320.0f);
-			//Ball->SetVisualSpin(FRotator(Axis.X * Rate, Axis.Y * Rate, Axis.Z * Rate));
-		}
+		if (Positions.Num()==Count) { return YabawiComponent->StartRound(Target,Positions); }
 	}
-
-	return SpawnedBowls == Count;
+	UE_LOG(LogTemp,Warning,TEXT("Clown yabawi: no clear floor for %d bowls"),Count);
+	return false;
 }
 
 void ABossClown::TickClownSpecial(float MontageTime)
@@ -965,7 +1109,7 @@ void ABossClown::TickClownSpecial(float MontageTime)
 	else if (CurrentAttackType == EBossClownAttack::TripleBalls)
 	{
 		// 매 발사 순간의 위치만 조준. 발사 후에는 유도하지 않아 횡이동 / 회피 가능.
-		while (BallsLaunched < FMath::Clamp(Data->BallCount, 1, 16) && AttackStageTime >= Data->BallFirstLaunchTime + BallsLaunched * Data->BallLaunchInterval)
+		while (BallsLaunched < BallFormationCount && AttackStageTime >= Data->BallFirstLaunchTime + BallsLaunched * Data->BallLaunchInterval)
 		{
 			for (const TWeakObjectPtr<AActor>& Item : ClownProjectiles)
 			{
@@ -979,7 +1123,7 @@ void ABossClown::TickClownSpecial(float MontageTime)
 			}
 			++BallsLaunched;
 		}
-		if (BallsLaunched >= FMath::Clamp(Data->BallCount, 1, 16))
+		if (BallsLaunched >= BallFormationCount)
 		{
 			if (UAnimInstance* Anim = AttackAnimInstance.Get())
 			{
@@ -1016,23 +1160,13 @@ bool ABossClown::PrepareClownCubeMarch()
 	{
 		return false;
 	}
-	FVector Center = Target->GetActorLocation();
-	const UBoxComponent* Arena = CubeArena ? CubeArena->FindComponentByClass<UBoxComponent>() : nullptr;
-	if (Arena)
-	{
-		// 방 가장자리에 있는 플레이어를 그대로 중심으로 삼지 않고, 행진 전체를 방 안에 배치.
-		const FVector Extent = Arena->GetUnscaledBoxExtent();
-		FVector Local = Arena->GetComponentTransform().InverseTransformPosition(Center);
-		Local.X = FMath::Clamp(Local.X, -FMath::Max(Extent.X - 1100.0f, 0.0f), FMath::Max(Extent.X - 1100.0f, 0.0f));
-		Local.Y = FMath::Clamp(Local.Y, -FMath::Max(Extent.Y - 1100.0f, 0.0f), FMath::Max(Extent.Y - 1100.0f, 0.0f));
-		Center = Arena->GetComponentTransform().TransformPosition(Local);
-	}
+	if (!EncounterFloor.IsValid()) { return false; }
+	FVector Center=Target->GetActorLocation();
+	const UBoxComponent* Arena=CubeArena ? CubeArena->FindComponentByClass<UBoxComponent>() : nullptr;
 	const FVector Forward = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
 	const FVector Assembly = GetActorLocation() + Forward * 180.0f + FVector(0.0f, 0.0f, 480.0f);
 	TArray<FVector> Starts;
 	TArray<FVector> Ends;
-	FCollisionQueryParams Query(SCENE_QUERY_STAT(ClownCubeGround), false, this);
-	Query.AddIgnoredActor(Target);
 	for (int32 Wave = 0; Wave < 3; ++Wave)
 	{
 		const FVector Direction = Forward.RotateAngleAxis(Wave == 0 ? 0.0f : (Wave == 1 ? 90.0f : -45.0f), FVector::UpVector);
@@ -1046,26 +1180,8 @@ bool ABossClown::PrepareClownCubeMarch()
 				const FVector Offset = Right * ((Slot - 1.5f) * 240.0f) - Direction * (Row * 145.0f);
 				FVector Start = Center - Direction * 650.0f + Offset;
 				FVector End = Center + Direction * 650.0f + Offset;
-				if (Arena)
-				{
-					// 전용 평탄 전투 영역을 사용. 소품이나 벽 윗면을 바닥으로 오인하지 않음.
-					Start.Z = Arena->GetComponentLocation().Z - Arena->GetScaledBoxExtent().Z + 52.0f;
-					End.Z = Start.Z;
-				}
-				else
-				{
-					FHitResult Ground;
-					if (!GetWorld()->LineTraceSingleByChannel(Ground, Start + FVector(0.0f, 0.0f, 400.0f), Start - FVector(0.0f, 0.0f, 700.0f), ECC_Visibility, Query) || Ground.ImpactNormal.Z < 0.9f)
-					{
-						return false;
-					}
-					Start.Z = Ground.ImpactPoint.Z + 52.0f;
-					if (!GetWorld()->LineTraceSingleByChannel(Ground, End + FVector(0.0f, 0.0f, 400.0f), End - FVector(0.0f, 0.0f, 700.0f), ECC_Visibility, Query) || Ground.ImpactNormal.Z < 0.9f || FMath::Abs(Ground.ImpactPoint.Z + 52.0f - Start.Z) > 25.0f)
-					{
-						return false;
-					}
-					End.Z = Start.Z;
-				}
+				Start.Z=EncounterFloorZ+52.0f;
+				End.Z=Start.Z;
 				Starts.Add(Start);
 				Ends.Add(End);
 			}
@@ -1081,6 +1197,7 @@ bool ABossClown::PrepareClownCubeMarch()
 			return false;
 		}
 		Piece->ArmCubeMarch(Data->CubePieces[Index], Assembly + Offset, Starts[Index], Ends[Index], UClownProjectileComponent::CubeMarchCycle * (Index / 9 + 1), Index % 3 == 0);
+		Piece->SetCubeAim(Target,CubeArena.Get(),Center);
 	}
 	return true;
 }

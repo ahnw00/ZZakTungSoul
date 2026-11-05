@@ -10,6 +10,7 @@ class UStaticMeshComponent;
 class UStaticMesh;
 class UMaterialInterface;
 class UTexture2D;
+class UBoxComponent;
 
 //---------------------------------------------------------------
 // 일반 Actor BP에 추가하는 발사체 이동 / 피해 전달 컴포넌트.
@@ -33,6 +34,7 @@ public:
 
 	void SetVisualSpin(const FRotator& Rate);
 	void ArmCubeMarch(UStaticMesh* Piece, const FVector& Assembly, const FVector& Start, const FVector& End, float MarchTime, bool bShowPath);
+	void SetCubeAim(AActor* Target, AActor* Arena, const FVector& Center);
 	static constexpr float CubeMarchCycle = 2.4f;
 	static constexpr float CubeMarchDuration = 9.6f;
 
@@ -55,12 +57,28 @@ private:
 	void SetTracing(bool bEnabled);
 	void TickCard(float DeltaTime);
 	void TickCubeMarch(float DeltaTime);
+	void RestoreProjectileMaterial(UStaticMeshComponent* Mesh, bool bCube);
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInterface> BallMaterial;
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInterface> CubeMaterial;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UTexture2D>> BallTextures;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UTexture2D>> CubeTextures;
 
 	UPROPERTY(Transient)
 	FDamageInfo Damage;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> WarningMarker;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBoxComponent> CubeCollision;
 
 	TWeakObjectPtr<UStaticMeshComponent> VisualMesh;
 	FVector CardOrigin = FVector::ZeroVector;
@@ -85,6 +103,11 @@ private:
 	bool bCubeTracing = false;
 	float CubeElapsed = 0.0f;
 	float CubeMarchTime = 0.0f;
+	TWeakObjectPtr<AActor> CubeAimTarget;
+	TWeakObjectPtr<AActor> CubeAimArena;
+	FVector CubeStartOffset=FVector::ZeroVector;
+	FVector CubeEndOffset=FVector::ZeroVector;
+	bool bCubeAimLocked=false;
 	FVector CubeAssembly;
 	FVector CubeStart;
 	FVector CubeEnd;

@@ -8,11 +8,73 @@
 class AActor;
 class UTexture2D;
 class UStaticMesh;
+class UMaterialInterface;
+
+USTRUCT(BlueprintType)
+struct FClownYabawiSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bEnabled = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "2", ClampMax = "8"))
+	int32 BowlCount = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UStaticMesh> BowlMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UStaticMesh> BallMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "100"))
+	float BowlDiameter = 180.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "200"))
+	float BowlSpacing = 280.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.5"))
+	float RevealTime = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.2"))
+	float CoverTime = 0.6f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "1", ClampMax = "32"))
+	int32 ShuffleCount = 12;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.12", ClampMax = "1"))
+	float ShuffleStepTime = 0.22f;
+
+	// 섞기를 마친 순간부터 선택 시간을 계산.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "1"))
+	float SelectionTime = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "100"))
+	float SelectionDistance = 200.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0"))
+	float Cooldown = 20.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "100"))
+	float ExplosionRadius = 2500.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FDamageInfo ExplosionDamage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UMaterialInterface> ExplosionMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0", ClampMax = "1"))
+	float PlayerHealRatio = 0.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0", ClampMax = "1"))
+	float BossDamageRatio = 0.05f;
+};
 
 UENUM(BlueprintType)
 enum class EBossClownAttack : uint8
 {
-	// Phase 1
+	// Attack behavior identifiers. Montage phase usage is configured per attack entry.
 	HammerSweep, 
 	HammerSlam, 
 	FastChaseSlam, 
@@ -22,7 +84,7 @@ enum class EBossClownAttack : uint8
 	SpawnCards,
 	CubeBarrage,
 
-	// Phase 2
+	// Separate gimmick, currently available only during phase 2.
 	Yabawi,
 
 };
@@ -71,6 +133,8 @@ class ZZAKTUNGSOUL_API UBossClownAnimationData : public UDataAsset
 public:
 	UBossClownAnimationData();
 
+
+
 	//---------------------------------------------------------------
 	// 첫 공격과 광대 전용 공격 데이터.
 	//
@@ -83,136 +147,138 @@ public:
 	//
 	//---------------------------------------------------------------
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior")
+	UPROPERTY(EditAnywhere, Category = "Clown|Behavior")
 	bool bEnableTacticalActions = true;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Behavior", meta = (ClampMin = "1"))
 	float BackstepDistance = 220.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Behavior", meta = (ClampMin = "1"))
 	float BackjumpDistance = 650.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Behavior", meta = (ClampMin = "1"))
 	float BackjumpHeight = 130.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Behavior", meta = (ClampMin = "1"))
 	float SideEvadeDistance = 230.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Behavior", meta = (ClampMin = "1"))
 	float TacticalLeashRadius = 1800.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior")
+	UPROPERTY(EditAnywhere, Category = "Clown|Behavior")
 	TObjectPtr<UAnimMontage> BackstepMontage;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior")
+	UPROPERTY(EditAnywhere, Category = "Clown|Behavior")
 	TObjectPtr<UAnimMontage> BackjumpMontage;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior")
+	UPROPERTY(EditAnywhere, Category = "Clown|Behavior")
 	TObjectPtr<UAnimMontage> EvadeLeftMontage;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Behavior")
+	UPROPERTY(EditAnywhere, Category = "Clown|Behavior")
 	TObjectPtr<UAnimMontage> EvadeRightMontage;
 
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Balls", meta = (ClampMin = "1", ClampMax = "16"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Balls", meta = (ClampMin = "1", ClampMax = "16"))
 	int32 BallCount = 5;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1")
+	UPROPERTY(EditAnywhere, Category = "Clown|Attacks", meta = (DisplayName = "Attack Patterns"))
 	TArray<FClownPhaseOnePattern> PhaseOnePatterns;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Movement", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "1"))
 	float FastChaseSpeed = 850.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Movement", meta = (ClampMin = "0"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "0"))
 	float FastChaseStopDistance = 90.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Movement", meta = (ClampMin = "0.1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "0.1"))
 	float FastChaseMaxTime = 4.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Movement", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "1"))
 	float DashSpeed = 1200.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Movement", meta = (ClampMin = "0"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "0"))
 	float DashStartTime = 0.45f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Movement", meta = (ClampMin = "0.01"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "0.01"))
 	float DashDuration = 0.4f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Movement", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "1"))
 	float DashMaxDistance = 480.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Movement", meta = (ClampMin = "0"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "0"))
 	float AttackTurnSpeed = 150.0f;
 
 	//---------------------------------------------------------------
 	// 빠른 추격 달리기와 지휘 박수 패턴 설정.
 	//
 	//---------------------------------------------------------------
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Movement")
+	UPROPERTY(EditAnywhere, Category = "Clown|Movement")
 	TObjectPtr<UAnimMontage> FastChaseMontage;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Movement", meta = (ClampMin = "0.1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "0.1"))
 	float FastChaseAnimationRate = 1.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Balls", meta = (ClampMin = "0"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Balls", meta = (ClampMin = "0"))
 	float BallFirstLaunchTime = 1.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Balls", meta = (ClampMin = "0.1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Balls", meta = (ClampMin = "0.1"))
 	float BallLaunchInterval = 0.6f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Balls", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Balls", meta = (ClampMin = "1"))
 	float BallSpeed = 700.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Balls")
+	UPROPERTY(EditAnywhere, Category = "Clown|Balls")
 	TSubclassOf<AActor> BallClass;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cube")
+	UPROPERTY(EditAnywhere, Category = "Clown|Cube")
 	TSubclassOf<AActor> CubeClass;
 
 	// 원본 큐브를 실제 3 x 3 x 3으로 절단한 조각. Z / Y / X 순서.
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cube")
+	UPROPERTY(EditAnywhere, Category = "Clown|Cube")
 	TArray<TObjectPtr<UStaticMesh>> CubePieces;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Clap", meta = (ClampMin = "0"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Clap", meta = (ClampMin = "0"))
 	float ClapImpactTime = 1.1f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Clap", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Clap", meta = (ClampMin = "1"))
 	float ClapWaveSpeed = 900.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Clap", meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Clap", meta = (ClampMin = "1"))
 	float ClapWaveRange = 1100.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Clap")
+	UPROPERTY(EditAnywhere, Category = "Clown|Clap")
 	TSubclassOf<AActor> ClapWaveClass;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cards", meta = (ClampMin = "1", ClampMax = "16"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Cards", meta = (ClampMin = "1", ClampMax = "16"))
 	int32 CardCount = 8;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cards", meta = (ClampMin = "0"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Cards", meta = (ClampMin = "0"))
 	float CardFirstLaunchTime = 1.2f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cards")
+	UPROPERTY(EditAnywhere, Category = "Clown|Cards")
 	TSubclassOf<AActor> CardClass;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cards", meta = (ClampMin = "600", ClampMax = "900"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Cards", meta = (ClampMin = "600", ClampMax = "900"))
 	float CardRadius = 600.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cards", meta = (ClampMin = "100"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Cards", meta = (ClampMin = "100"))
 	float CardHeight = 650.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cards", meta = (ClampMin = "0.1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Cards", meta = (ClampMin = "0.1"))
 	float CardActiveTime = 0.7f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cards", meta = (ClampMin = "350", ClampMax = "550"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Cards", meta = (ClampMin = "350", ClampMax = "550"))
 	float CardWidth = 550.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cards", meta = (ClampMin = "0.3"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Cards", meta = (ClampMin = "0.3"))
 	float CardFallTime = 0.65f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cards")
+	UPROPERTY(EditAnywhere, Category = "Clown|Cards")
 	TArray<TObjectPtr<UTexture2D>> CardFaces;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Phase1|Cards")
+	UPROPERTY(EditAnywhere, Category = "Clown|Cards")
 	TArray<TObjectPtr<UTexture2D>> HeartFaces;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clown|Yabawi")
+	FClownYabawiSettings Yabawi;
 };

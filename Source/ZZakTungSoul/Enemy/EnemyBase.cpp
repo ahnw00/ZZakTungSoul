@@ -14,6 +14,7 @@
 #include <GameFramework/CharacterMovementComponent.h>
 #include <Components/SkeletalMeshComponent.h>
 #include <Components/BoxComponent.h>
+#include <Kismet/KismetMathLibrary.h>
 #include <Engine/SkeletalMesh.h>
 
 AEnemyBase::AEnemyBase()
@@ -633,33 +634,31 @@ void AEnemyBase::RotateToTarget(AActor* TargetActor, float DeltaTime, float Rota
 		return;
 	}
 
-	// 본인 -> 콕표로 향하는 방향
-	FVector TargetDirection = TargetActor->GetActorLocation() = GetActorLocation();
-	TargetDirection.Z = 0.0f;
-	if (TargetDirection.IsNearlyZero())
-	{
-		return;
-	}
-
 	// 회전 값
-	const FRotator CurrentRotation = GetActorRotation();
-	const FRotator TargetRotation = TargetDirection.Rotation();
+	FRotator CurrentRotation = GetActorRotation();
+	FVector CurrentLocation = GetActorLocation();
+	CurrentLocation.Z = 0.0f;
 
-	const float YawDifference = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetRotation.Yaw);
+	FVector TargetLocation = TargetActor->GetActorLocation();
+	TargetLocation.Z = 0.0f;
 
-	// 최대 추적 가능 각도
-	if (FMath::Abs(YawDifference) > MaxAngle)
+	// 목표 회전 값
+	const FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(CurrentLocation, TargetLocation);
+
+	// 현재 방향과 목표 방향 사이의 각도
+	const float ToTargetAngle = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, LookAtRotation.Yaw);
+
+	if (FMath::Abs(ToTargetAngle) > MaxAngle)
 	{
 		return;
 	}
 
-	// 이번에 회전할 수 있는 최대 각도
-	const float CurrentMaxAngle = RotationSpeed * DeltaTime;
+	// 목표 방향으로 회전 보간
+	const FRotator TargetRotation(0.0f, LookAtRotation.Yaw, 0.0f);
 
-	// 목표 방향으로 회전
-	const float NewYaw = FMath::FixedTurn(CurrentRotation.Yaw, TargetRotation.Yaw, CurrentMaxAngle);
+	const FRotator NewRotation = FMath::RInterpTo(FRotator(0.0f, CurrentRotation.Yaw, 0.0f), TargetRotation,DeltaTime ,RotationSpeed);
 
-	SetActorRotation(FRotator(CurrentRotation.Pitch, NewYaw, CurrentRotation.Roll));
+	SetActorRotation(FRotator(CurrentRotation.Pitch, NewRotation.Yaw, CurrentRotation.Roll));
 }
 
 float AEnemyBase::GetCombatRangeData()

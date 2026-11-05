@@ -2,4 +2,46 @@
 
 
 #include "Enemy/NormalEnemy/NormalEnemyBase.h"
+#include <Enemy/Data/EnemyAnimationMontageData.h>
+#include <Enemy/Data/EnemyAttackData.h>
 
+bool ANormalEnemyBase::GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const
+{
+    if (GetEnemyActionState() != EEnemyActionState::Attack)
+    {
+        return false;
+    }
+
+    if (false == IsValid(ActionMontageData))
+    {
+        return false;
+    }
+
+    const FEnemyAttackData* AttackData = nullptr;
+
+    switch (CurrentSelectAttack)
+    {
+    case EEnemySelectAttack::None:
+        return false;
+
+    case EEnemySelectAttack::Attack01:
+        AttackData = &ActionMontageData->ComboAttack01;
+        break;
+
+    case EEnemySelectAttack::Attack02:
+        AttackData = &ActionMontageData->ComboAttack02;
+        break;
+
+    default:
+        return false;
+    }
+
+    if (false == AttackData->DamageInfo.IsValidIndex(Index))
+    {
+        return false;
+    }
+
+    DamageInfo = AttackData->DamageInfo[Index];
+
+    return true;
+}

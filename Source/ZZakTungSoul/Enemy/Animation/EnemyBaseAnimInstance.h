@@ -7,6 +7,8 @@
 #include <Enemy/EnemyStates.h>
 #include "EnemyBaseAnimInstance.generated.h"
 
+class UAnimMontage;
+
 /**
  * 
  */
@@ -29,6 +31,10 @@ public:
 
 	void PlayGetFrontFatalAttackMontage();
 	void PlayGetBackFatalAttackMontage();
+
+private:
+	void OnFatalMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void OnStunMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 protected:
 	// AnimInstance를 소유하는 오너
@@ -58,6 +64,9 @@ protected:
 	// Enemy 현재 상태
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Character")
 	EEnemyState CurrentState = EEnemyState::Idle;
+
+	UPROPERTY(VisibleAnywhere, Category = "Character")
+	EEnemyMoveState CurrentMoveState = EEnemyMoveState::Idle;
 
 	// 이동 중인지 확인할 변수 값
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Character")

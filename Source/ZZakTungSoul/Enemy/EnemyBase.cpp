@@ -81,6 +81,9 @@ void AEnemyBase::BeginPlay()
 	// 초기 상태에 따른 이동속도 설정
 	UpdateMovementSpeed();
 
+	UpdateMovementSpeedState();
+	UpdateRotationModeState();
+
 	// 무기 Mesh 초기화
 	InitializeWeapon();
 
@@ -186,6 +189,59 @@ void AEnemyBase::UpdateMovementSpeed()
 	}
 }
 
+void AEnemyBase::UpdateMovementSpeedState()
+{
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (!Movement || !EnemyStatComponet)
+	{
+		return;
+	}
+
+	// 행동 상태에 따른 이동 속도
+	if (CurrentActionState == EEnemyActionState::Hit || CurrentActionState == EEnemyActionState::Stance || CurrentActionState == EEnemyActionState::Dead)
+	{
+		Movement->MaxWalkSpeed = 0.0f;
+		return;
+	}
+
+	// 이동 상태에 따른 이동 속도
+	switch (CurrentMoveState)
+	{
+	case EEnemyMoveState::None:
+	case EEnemyMoveState::Idle:
+		Movement->MaxWalkSpeed = 0.0f;
+		break;
+
+	case EEnemyMoveState::Patrol:
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
+		break;
+
+	case EEnemyMoveState::Chase:
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetChaseSpeed();
+		break;
+
+	case EEnemyMoveState::FastChase:
+		Movement->MaxWalkSpeed = (EnemyStatComponet->GetChaseSpeed()) * 1.2f;
+		break;
+
+	case EEnemyMoveState::Strafe:
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetStrafeSpeed();
+		break;
+
+	case EEnemyMoveState::Search:
+		Movement->MaxWalkSpeed = EnemyStatComponet->GetWalkSpeed();
+		break;
+
+	case EEnemyMoveState::Slow:
+		Movement->MaxWalkSpeed = (EnemyStatComponet->GetWalkSpeed()) * 0.8f;
+		break;
+
+	default:
+		Movement->MaxWalkSpeed = 0.0f;
+		break;
+	}
+}
+
 void AEnemyBase::UpdateRotationMode()
 {
 	// Strafe상태 인지 확인
@@ -196,6 +252,43 @@ void AEnemyBase::UpdateRotationMode()
 
 	// 이동 방향으로 자동 회전 설정
 	GetCharacterMovement()->bOrientRotationToMovement = !bFaceToTarget;
+}
+
+void AEnemyBase::UpdateRotationModeState()
+{
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (false == IsValid(Movement))
+	{
+		return;
+	}
+
+	// 상태에 따른 회전 설정
+	switch (CurrentActionState)
+	{
+	case EEnemyActionState::Attack:
+	case EEnemyActionState::Hit:
+	case EEnemyActionState::Avoid:
+	case EEnemyActionState::Stance:
+	case EEnemyActionState::Dead:
+
+		bUseControllerRotationYaw = false;
+		Movement->bOrientRotationToMovement = false;
+		Movement->bUseControllerDesiredRotation = false;
+		return;
+
+	default:
+		break;
+	}
+
+	// Strafe상태 인지 확인
+	const bool bFaceToTarget = CurrentMoveState == EEnemyMoveState::Strafe;
+
+	// 회전 방향 설정
+	bUseControllerRotationYaw = bFaceToTarget;
+
+	// 이동 방향으로 자동 회전 설정
+	Movement->bOrientRotationToMovement = !bFaceToTarget;
+	Movement->bUseControllerDesiredRotation = false;
 }
 
 void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
@@ -308,6 +401,7 @@ void AEnemyBase::SetDead()
 
 	// 사망 상태 설정
 	SetEnemyState(EEnemyState::Dead);
+	SetEnemyActionState(EEnemyActionState::Dead);
 
 	// AI 중지 처리
 	if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
@@ -331,6 +425,72 @@ void AEnemyBase::SetDead()
 void AEnemyBase::DeadStart()
 {
 
+}
+
+void AEnemyBase::SetEnemyMoveState(EEnemyMoveState NewMoveState)
+{
+	// 사망 시 건너뛰기
+	if (IsDeadState())
+	{
+		return;
+	}
+
+	if (CurrentMoveState == NewMoveState)
+	{
+		return;
+	}
+
+	// 상태 변경
+	CurrentMoveState = NewMoveState;
+
+	// 이동 속도 갱신
+	UpdateMovementSpeedState();
+
+	// 회전 설정 갱신
+	UpdateRotationModeState();
+
+	// Contoller Focus 갱신
+	if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
+	{
+		AIController->UpdateAIFocusState();
+	}
+}
+
+void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
+{
+	// 사망 시 건너뛰기
+	if (IsDeadState())
+	{
+		return;
+	}
+
+	// 지금 행동중 인지 검사
+	if (CurrentActionState != EEnemyActionState::None)
+	{
+		// 강제 전환 허용
+		bool bCanChanged = NewActionState == EEnemyActionState::None ||
+			NewActionState == EEnemyActionState::Dead ||
+			NewActionState == EEnemyActionState::Hit  ||
+			NewActionState == EEnemyActionState::Stance;
+
+		if (false == bCanChanged)
+		{
+			return;
+		}
+	}
+
+	// 행동 상태 변경
+	CurrentActionState = NewActionState;
+
+	// 행동 상태에 따른 이동속도 갱신
+	UpdateMovementSpeedState();
+	UpdateRotationModeState();
+
+	// Contoller Focus 갱신
+	if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
+	{
+		AIController->UpdateAIFocusState();
+	}
 }
 
 void AEnemyBase::SetEnemyState(EEnemyState NewState)
@@ -391,11 +551,19 @@ void AEnemyBase::SetStrafeMode(bool bEnable)
 void AEnemyBase::OnGetParried()
 {
 	SetEnemyState(EEnemyState::Groggy);
+	SetEnemyActionState(EEnemyActionState::Stance);
 
-	// 임시 테스트용
-	if (!GetController())
+	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+	if (!AIController)
 		return;
-	GetController()->UnPossess();
+
+	AIController->SetAIWait(true);
+
+	// Trace 중단
+	if (IsValid(AttackTraceComponent))
+	{
+		AttackTraceComponent->EndTrace();
+	}
 
 	UEnemyBaseAnimInstance* AnimInstance = Cast<UEnemyBaseAnimInstance>(GetMesh()->GetAnimInstance());
 	if (!AnimInstance)
@@ -404,6 +572,51 @@ void AEnemyBase::OnGetParried()
 	}
 
 	AnimInstance->PlayStunMontage();
+}
+
+void AEnemyBase::OnFatalAttackFinished()
+{
+	if (false == bReceiveFatalAttack)
+	{
+		return;
+	}
+	
+	bReceiveFatalAttack = false;
+
+	if (IsDeadState())
+	{
+		return;
+	}
+
+	if (GetEnemyActionState() == EEnemyActionState::Stance)
+	{
+		SetEnemyActionState(EEnemyActionState::None);
+	}
+
+	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+	if (AIController)
+	{
+		AIController->SetAIWait(false);
+	}
+}
+
+void AEnemyBase::OnStunFinished()
+{
+	if (IsDeadState())
+	{
+		return;
+	}
+
+	if (GetEnemyActionState() == EEnemyActionState::Stance)
+	{
+		SetEnemyActionState(EEnemyActionState::None);
+	}
+
+	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+	if (AIController)
+	{
+		AIController->SetAIWait(false);
+	}
 }
 
 float AEnemyBase::GetCombatRangeData()
@@ -436,8 +649,26 @@ APatrolPath* AEnemyBase::GetPatrolPathData() const
 	return nullptr;
 }
 
+EEnemyMoveState AEnemyBase::GetMoveStateInterface() const
+{
+	return CurrentMoveState;
+}
+
+EEnemyActionState AEnemyBase::GetActionStateInterface() const
+{
+	return CurrentActionState;
+}
+
+bool AEnemyBase::GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const
+{
+	return false;
+}
+
 bool AEnemyBase::CanBeFatalAttacked(AActor* Attacker) const
 {
+	if (CurrentActionState != EEnemyActionState::Stance)
+		return false;
+
 	float Dot = FVector::DotProduct(Attacker->GetActorForwardVector(), GetActorForwardVector());
 
 	// 앞잡 가능
@@ -462,6 +693,8 @@ void AEnemyBase::ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront)
 	UEnemyBaseAnimInstance* Anim = Cast<UEnemyBaseAnimInstance>(GetMesh()->GetAnimInstance());
 	if (!Anim)
 		return;
+
+	bReceiveFatalAttack = true;
 
 	if (bIsFront)
 	{

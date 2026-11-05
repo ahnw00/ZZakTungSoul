@@ -36,9 +36,11 @@ protected:
 
 	// 상태에 따라 이동속도 변경 함수
 	virtual void UpdateMovementSpeed();
+	virtual void UpdateMovementSpeedState();
 
 	// 상태에 따라 회전 상태 변경 함수
 	virtual void UpdateRotationMode();
+	virtual void UpdateRotationModeState();
 
 	// Trace에 걸린 액터 처리 함수
 	virtual void HandleAttackTraceHit(const FHitResult& Hit);
@@ -55,7 +57,12 @@ protected:
 public:
 	// Getter / Setter
 	// 현재 적 상태 반환
-	EEnemyState GetEnemyState() const { return CurrentState; }
+	FORCEINLINE EEnemyState GetEnemyState() const { return CurrentState; }
+	FORCEINLINE EEnemyMoveState GetEnemyMoveState() const { return CurrentMoveState; }
+	FORCEINLINE EEnemyActionState GetEnemyActionState() const { return CurrentActionState; }
+
+	void SetEnemyMoveState(EEnemyMoveState NewMoveState);
+	void SetEnemyActionState(EEnemyActionState NewActionState);
 
 	//---------------------------------------------------------------
 	// Possess 시 BT 자동 실행 여부 반환.
@@ -65,9 +72,10 @@ public:
 
 	// 사망 여부
 	bool IsDead() const { return CurrentState == EEnemyState::Dead; }
+	bool IsDeadState() const { return CurrentActionState == EEnemyActionState::Dead; }
 
 	// Strafe 상태 여부
-	bool IsStrafeMode() const { return CurrentState == EEnemyState::Strafe; }
+	bool IsStrafeMode() const { return CurrentMoveState == EEnemyMoveState::Strafe; }
 
 	// 적 애셋 데이터 반환
 	const UEnemyAIData* GetEnemyAIData() const { return EnemyAIData; }
@@ -82,6 +90,10 @@ public:
 
 	// Strafe 상태일 때 캐릭터 매쉬 회전 관련 플래그 설정 함수
 	void SetStrafeMode(bool bEnable);
+
+	// Fatal Attack / groogy가 끝났을때 행동 재개 함수
+	void OnFatalAttackFinished();
+	void OnStunFinished();
 
 private:
 	// 패링 당했을 때 호출될 함수(델리게이트에 바인드해줄 함수)
@@ -100,6 +112,11 @@ protected:
 
 	virtual APatrolPath* GetPatrolPathData() const override;
 
+	virtual EEnemyMoveState GetMoveStateInterface() const override;
+	virtual EEnemyActionState GetActionStateInterface() const override;
+
+	virtual bool GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const override;
+
 protected:
 	// 공격할 때 사용할 데미지 정보 저장 변수
 	FDamageInfo CurrentDamageInfo;
@@ -108,6 +125,12 @@ protected:
 	// 적의 현재 상태
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|State")
 	EEnemyState CurrentState = EEnemyState::Idle;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|MovementState")
+	EEnemyMoveState CurrentMoveState = EEnemyMoveState::Idle;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|ActionState")
+	EEnemyActionState CurrentActionState = EEnemyActionState::None;
 
 	// AI Data -> Behavior Tree / Movement Speed
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Data")
@@ -144,6 +167,10 @@ protected:
 	// Strafe 여부 플래그
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
 	uint32 bIsStrafeMode : 1 = false;
+
+	// Fatal Attack 여부 플래그
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
+	uint32 bReceiveFatalAttack : 1 = false;
 
 	// Inherited via IFatalAttackableInterface
 	bool CanBeFatalAttacked(AActor* Attacker) const override;

@@ -47,3 +47,12 @@ enum class EEnemyActionState : uint8
 	Stance		/*그로기*/,
 	Dead		/*사망*/
 };
+
+// 적의 공격 선택 - Montage 설정
+UENUM(BlueprintType)
+enum class EEnemySelectAttack : uint8
+{
+	None		/*공격 선택 안함*/,
+	Attack01	/*공격01*/,
+	Attack02	/*공격02*/
+};

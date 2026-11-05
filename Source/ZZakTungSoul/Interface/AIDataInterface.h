@@ -10,6 +10,11 @@
 class UEnemyAnimationData;
 class APatrolPath;
 
+struct FDamageInfo;
+
+enum class EEnemyMoveState : uint8;
+enum class EEnemyActionState : uint8;
+
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
 class UAIDataInterface : public UInterface
@@ -43,4 +48,10 @@ public:
 
 	// 순찰 경로 반환 함수
 	virtual APatrolPath* GetPatrolPathData() const = 0;
+
+	// 행동 상태 반환 함수
+	virtual EEnemyMoveState GetMoveStateInterface() const = 0;
+	virtual EEnemyActionState GetActionStateInterface() const = 0;
+
+	virtual bool GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const = 0;
 };

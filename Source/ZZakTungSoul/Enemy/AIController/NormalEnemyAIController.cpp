@@ -94,7 +94,7 @@ void ANormalEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimu
 		BlackboardComponent->ClearValue(BBKEY_SEARCHLOCATION);
 	}
 
-
+	UpdateAIFocusState();
 }
 
 void ANormalEnemyAIController::UpdateTargetInfo()

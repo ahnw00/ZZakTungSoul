@@ -70,18 +70,26 @@ void UEnemyBaseAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	// Enemy 현재 상태 초기화
 	CurrentState = Owner->GetEnemyState();
+	CurrentMoveState = Owner->GetEnemyMoveState();
 
 	// 이동/정지 상태 설정
-	bIsIdle = CurrentState == EEnemyState::Idle;
+	//bIsIdle = CurrentState == EEnemyState::Idle;
+	bIsIdle = CurrentMoveState == EEnemyMoveState::Idle;
 
 	// 간보기 상태 설정
-	bIsStrafe = CurrentState == EEnemyState::Strafe;
+	//bIsStrafe = CurrentState == EEnemyState::Strafe;
+	bIsStrafe = CurrentMoveState == EEnemyMoveState::Strafe;
 }
 
 void UEnemyBaseAnimInstance::PlayStunMontage()
 {
 	StopAllMontages(1.f);
 	Montage_Play(StunMontage);
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &UEnemyBaseAnimInstance::OnStunMontageEnded);
+
+	Montage_SetEndDelegate(EndDelegate, StunMontage);
 }
 
 void UEnemyBaseAnimInstance::PlayGetFrontFatalAttackMontage()
@@ -93,5 +101,42 @@ void UEnemyBaseAnimInstance::PlayGetFrontFatalAttackMontage()
 void UEnemyBaseAnimInstance::PlayGetBackFatalAttackMontage()
 {
 	StopAllMontages(1.f);
-	Montage_Play(GetBackFatalAttackMontage);
+	Montage_Play(GetFatalAttackMontage);
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &UEnemyBaseAnimInstance::OnFatalMontageEnded);
+
+	Montage_SetEndDelegate(EndDelegate, GetFatalAttackMontage);
+}
+
+void UEnemyBaseAnimInstance::OnFatalMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bInterrupted)
+	{
+		return;
+	}
+
+	AEnemyBase* Enemy = Cast<AEnemyBase>(TryGetPawnOwner());
+	if (false == IsValid(Enemy))
+	{
+		return;
+	}
+
+	Enemy->OnFatalAttackFinished();
+}
+
+void UEnemyBaseAnimInstance::OnStunMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bInterrupted)
+	{
+		return;
+	}
+
+	AEnemyBase* Enemy = Cast<AEnemyBase>(TryGetPawnOwner());
+	if (false == IsValid(Enemy))
+	{
+		return;
+	}
+
+	Enemy->OnStunFinished();
 }

@@ -17,11 +17,19 @@ UEnemyBaseAnimInstance::UEnemyBaseAnimInstance()
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> GetFatalAttackMontageRef(
-		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_GetFatalAttacked_Montage1.Warrior_GetFatalAttacked_Montage1")
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_GetFrontFatalAttack1_Montage.Warrior_GetFrontFatalAttack1_Montage")
 	);
 	if (GetFatalAttackMontageRef.Succeeded())
 	{
-		GetFatalAttackMontage = GetFatalAttackMontageRef.Object;
+		GetFrontFatalAttackMontage = GetFatalAttackMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> GetBackFatalAttackMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_GetBackFatalAttack_Montage.Warrior_GetBackFatalAttack_Montage")
+	);
+	if (GetBackFatalAttackMontageRef.Succeeded())
+	{
+		GetBackFatalAttackMontage = GetBackFatalAttackMontageRef.Object;
 	}
 }
 
@@ -76,8 +84,14 @@ void UEnemyBaseAnimInstance::PlayStunMontage()
 	Montage_Play(StunMontage);
 }
 
-void UEnemyBaseAnimInstance::PlayGetFatalAttackMontage()
+void UEnemyBaseAnimInstance::PlayGetFrontFatalAttackMontage()
 {
 	StopAllMontages(1.f);
-	Montage_Play(GetFatalAttackMontage);
+	Montage_Play(GetFrontFatalAttackMontage);
+}
+
+void UEnemyBaseAnimInstance::PlayGetBackFatalAttackMontage()
+{
+	StopAllMontages(1.f);
+	Montage_Play(GetBackFatalAttackMontage);
 }

@@ -1,0 +1,24 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "ItemData/ConsumableDataAsset.h"
+#include <Interface/ItemFunctionInterface.h>
+#include "PotionDataAsset.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class ZZAKTUNGSOUL_API UPotionDataAsset 
+	: public UConsumableDataAsset, public IItemFunctionInterface
+{
+	GENERATED_BODY()
+	
+public:
+	UPotionDataAsset();
+
+	// Inherited via IItemFunctionInterface
+	void ItemFunction(AWarrior* User) const override;
+};

@@ -27,5 +27,5 @@ public:
 	virtual bool CanBeFatalAttacked(AActor* Attacker) const = 0;
 
 	// 페이탈 어택 당하는 함수
-	virtual void ReceiveFatalAttack(const FDamageInfo DamageInfo) = 0;
+	virtual void ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront) = 0;
 };

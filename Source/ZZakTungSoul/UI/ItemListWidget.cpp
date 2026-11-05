@@ -422,6 +422,16 @@ void UItemListWidget::EquipItem(const FGuid& InstanceID)
         return;
     }
 
+    bool bResult = WC->CheckItemInSlot(InstanceID, CurrentEquipSlot);
+
+    // Todo: 만약 장착된 아이템 버튼을 누르면 해제되도록
+    if (WC->CheckItemInSlot(InstanceID, CurrentEquipSlot))
+    {
+        WC->UnequipItem(CurrentEquipSlot);
+        return;
+    }
+
+
     WC->EquipItem(InstanceID, CurrentEquipSlot);
     UE_LOG(LogTemp, Log, TEXT("Equip Item"));
 }

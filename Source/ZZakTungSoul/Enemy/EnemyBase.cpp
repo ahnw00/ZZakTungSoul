@@ -438,27 +438,39 @@ APatrolPath* AEnemyBase::GetPatrolPathData() const
 
 bool AEnemyBase::CanBeFatalAttacked(AActor* Attacker) const
 {
-	if (CurrentState != EEnemyState::Groggy)
-		return false;
-
 	float Dot = FVector::DotProduct(Attacker->GetActorForwardVector(), GetActorForwardVector());
+
+	// 앞잡 가능
+	if (Dot > 0.9f)
+		return true;
 
 	// 그로기 상태에 걸린 적과 플레이어의 각이 크면 안돼
 	// 두 액터가 정확하게 마주볼 때 Dot값은 -1
-	if (Dot > -0.8f)
-		return false;
+	if (CurrentState == EEnemyState::Groggy)
+		return Dot < -0.8f;
 
-	return true;
+	return false;
 }
 
-void AEnemyBase::ReceiveFatalAttack(const FDamageInfo DamageInfo)
+void AEnemyBase::ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront)
 {
+	//if (!GetController())
+	//	return;
+	//GetController()->UnPossess();
+
 	// 페이탈 어택 당하는 애니메이션 재생
 	UEnemyBaseAnimInstance* Anim = Cast<UEnemyBaseAnimInstance>(GetMesh()->GetAnimInstance());
 	if (!Anim)
 		return;
 
-	Anim->PlayGetFatalAttackMontage();
+	if (bIsFront)
+	{
+		Anim->PlayGetFrontFatalAttackMontage();
+	}
+	else
+	{
+		Anim->PlayGetBackFatalAttackMontage();
+	}
 
 	// 페이탈 어택 데미지 적용
 	ReceiveDamage(DamageInfo, FHitResult());

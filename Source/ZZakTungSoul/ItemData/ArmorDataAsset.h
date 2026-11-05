@@ -16,11 +16,6 @@ class ZZAKTUNGSOUL_API UArmorDataAsset : public UItemDataAsset
 
 public:
 	UArmorDataAsset();
-
-	virtual FPrimaryAssetId GetPrimaryAssetId() const override
-	{
-		return FPrimaryAssetId("ItemData", GetFName());
-	}
 	
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
@@ -34,7 +29,4 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float Poise = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSoftObjectPtr<USkeletalMesh> ArmorMesh;
 };

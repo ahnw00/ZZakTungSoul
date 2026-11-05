@@ -54,12 +54,36 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 		ParryMontage = ParryMontageRef.Object;
 	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> FatalAttackMontageRef(
-		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_FatalAttack_Montage1.Warrior_FatalAttack_Montage1")
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> FrontFatalAttackMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_FatalAttack_Montage.Warrior_FatalAttack_Montage")
 	);
-	if (FatalAttackMontageRef.Succeeded())
+	if (FrontFatalAttackMontageRef.Succeeded())
 	{
-		FatalAttackMontage = FatalAttackMontageRef.Object;
+		FrontFatalAttackMontage = FrontFatalAttackMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> BackFatalAttackMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_BackFatalAttack_Montage.Warrior_BackFatalAttack_Montage")
+	);
+	if (BackFatalAttackMontageRef.Succeeded())
+	{
+		BackFatalAttackMontage = BackFatalAttackMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> PickUpMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_PickUp_Montage.Warrior_PickUp_Montage")
+	);
+	if (PickUpMontageRef.Succeeded())
+	{
+		PickUpMontage = PickUpMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DrinkMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_DrinkPotion_Montage.Warrior_DrinkPotion_Montage")
+	);
+	if (DrinkMontageRef.Succeeded())
+	{
+		DrinkMontage = DrinkMontageRef.Object;
 	}
 
 	const int32 NoneAttackMontageMaxCount = 4;
@@ -314,6 +338,15 @@ void UWarriorAnimInstance::AnimNotify_ComboCheck()
 	}
 }
 
+void UWarriorAnimInstance::AnimNotify_DrinkStart()
+{
+	auto Pawn = TryGetPawnOwner();
+	if (AWarrior* Warrior = Cast<AWarrior>(Pawn))
+	{
+		Warrior->SetLeftHandPotionMesh();
+	}
+}
+
 void UWarriorAnimInstance::PlayMontage(const EActionState CurrentActionState)
 {
 
@@ -424,14 +457,18 @@ bool UWarriorAnimInstance::PlayActionMontage()
 		return Montage_Play(Montage) > 0.f;
 	}
 
-	case EActionState::FatalAttack:
+	case EActionState::FrontFatalAttack:
 	{
-		return Montage_Play(FatalAttackMontage) > 0.f;
+		return Montage_Play(FrontFatalAttackMontage) > 0.f;
+	}
+
+	case EActionState::BackFatalAttack:
+	{
+		return Montage_Play(BackFatalAttackMontage) > 0.f;
 	}
 
 	case EActionState::Parry:
 	{
-		UE_LOG(LogTemp, Log, TEXT("Parry"));
 		return Montage_Play(ParryMontage) > 0.f;
 	}
 
@@ -467,6 +504,16 @@ bool UWarriorAnimInstance::PlayActionMontage()
 			return false;
 
 		return Montage_Play(Montage) > 0.f;
+	}
+
+	case EActionState::PickUp:
+	{
+		return Montage_Play(PickUpMontage) > 0.f;
+	}
+
+	case EActionState::Drink:
+	{
+		return Montage_Play(DrinkMontage) > 0.f;
 	}
 
 	default:

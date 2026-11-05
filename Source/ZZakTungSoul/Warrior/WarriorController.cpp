@@ -71,6 +71,12 @@ AWarriorController::AWarriorController()
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_interact(TEXT("/Game/Input/IA_Interact.IA_Interact"));
 	if (ia_interact.Succeeded()) IA_Interact = ia_interact.Object;
 
+	// 아이템 사용 키
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_upperbelt(TEXT("/Game/Input/IA_UpperBelt.IA_UpperBelt"));
+	if (ia_upperbelt.Succeeded()) IA_UpperBelt = ia_upperbelt.Object;
+	static ConstructorHelpers::FObjectFinder<UInputAction> ia_lowerbelt(TEXT("/Game/Input/IA_LowerBelt.IA_LowerBelt"));
+	if (ia_lowerbelt.Succeeded()) IA_LowerBelt = ia_lowerbelt.Object;
+
 	// 세이브/로드 테스트
 	static ConstructorHelpers::FObjectFinder<UInputAction> ia_save(TEXT("/Game/Input/IA_Save.IA_Save"));
 	if (ia_save.Succeeded()) IA_Save = ia_save.Object;
@@ -244,6 +250,8 @@ void AWarriorController::SetupInputComponent()
 	EnhancedInput->BindAction(IA_LockOn, ETriggerEvent::Completed, this, &AWarriorController::LockOn);
 	EnhancedInput->BindAction(IA_ChangeLockOn, ETriggerEvent::Triggered, this, &AWarriorController::ChangeLockOn);
 	EnhancedInput->BindAction(IA_Interact, ETriggerEvent::Completed, this, &AWarriorController::Interact);
+	EnhancedInput->BindAction(IA_UpperBelt, ETriggerEvent::Completed, this, &AWarriorController::UseUpperBeltItem);
+	EnhancedInput->BindAction(IA_LowerBelt, ETriggerEvent::Completed, this, &AWarriorController::UseLowerBeltItem);
 
 	//---------------------------------------------------------------
 	// 디버그 용 바인드
@@ -270,10 +278,10 @@ void AWarriorController::SetupInputComponent()
 	EnhancedInput->BindAction(IA_Menu, ETriggerEvent::Completed, this, &AWarriorController::ToggleMenuWindow);
 
 	// [UI]
-	InputComponent->BindKey(EKeys::C, IE_Pressed, this, &AWarriorController::ToggleStatusWindow);
-	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &AWarriorController::Interact);
-	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
-	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
+	//InputComponent->BindKey(EKeys::C, IE_Pressed, this, &AWarriorController::ToggleStatusWindow);
+	//InputComponent->BindKey(EKeys::E, IE_Pressed, this, &AWarriorController::Interact);
+	//InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
+	//InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AWarriorController::CloseBonfireMenu);
 	// [디버그] 소울 획득 키.
 	InputComponent->BindKey(EKeys::F1, IE_Pressed, this, &AWarriorController::DebugAddSouls);
 }
@@ -324,7 +332,9 @@ void AWarriorController::Move(const FInputActionValue& InputValue)
 			[[fallthrough]];
 		case EActionState::Attack:
 			[[fallthrough]];
-		case EActionState::FatalAttack:
+		case EActionState::FrontFatalAttack:
+			return;
+		case EActionState::BackFatalAttack:
 			return;
 		case EActionState::Hit:
 			return;
@@ -538,6 +548,22 @@ void AWarriorController::ActionReleased()
 	}
 }
 
+void AWarriorController::UseUpperBeltItem()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->UseBeltItem(EEquipmentSlot::UpperBelt);
+	}
+}
+
+void AWarriorController::UseLowerBeltItem()
+{
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->UseBeltItem(EEquipmentSlot::LowerBelt);
+	}
+}
+
 void AWarriorController::Interact()
 {
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
@@ -733,14 +759,15 @@ void AWarriorController::OpenBonfireMenu()
 	}
 }
 
-void AWarriorController::CloseBonfireMenu()
+bool AWarriorController::CloseBonfireMenu()
 {
 	if (BonfireMenuWidget && BonfireMenuWidget->IsInViewport())
 	{
 		// 서브메뉴 열려 있다면 서브메뉴만 닫기.
 		if (BonfireMenuWidget->CloseCurrentSubMenu())
 		{
-			return;
+			// 화톳불 메뉴가 열려있었으면 false 리턴
+			return false;
 		}
 
 		// 화톳불 메인 메뉴 상태일 때 전체 화톳불 메뉴 닫기.
@@ -755,7 +782,13 @@ void AWarriorController::CloseBonfireMenu()
 		
 		// 게임 전용 조작 모드 복구.
 		SetInputMode(FInputModeGameOnly());
+
+		// 열려있던걸 닫은 것도 열려있던거니까 false 리턴
+		return false;
 	}
+
+	// 열려있지 않았으면 true 리턴
+	return true;
 }
 
 void AWarriorController::EquipItem(const FGuid& InID, EEquipmentSlot InSlot)
@@ -766,7 +799,7 @@ void AWarriorController::EquipItem(const FGuid& InID, EEquipmentSlot InSlot)
 		return;
 	}
 
-	// Todo: 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
+	// 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
 	Warrior->EquipWeapon(InID, InSlot);
 
 	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
@@ -778,8 +811,42 @@ void AWarriorController::EquipItem(const FGuid& InID, EEquipmentSlot InSlot)
 	BeltWidget->OnEquipmentChanged();
 }
 
+void AWarriorController::UnequipItem(EEquipmentSlot InSlot)
+{
+	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
+	if (!Warrior)
+	{
+		return;
+	}
+
+	// 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
+	Warrior->UnequipItem(InSlot);
+
+	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
+	if (!BeltWidget)
+	{
+		return;
+	}
+
+	BeltWidget->OnEquipmentChanged();
+}
+
+bool AWarriorController::CheckItemInSlot(const FGuid& InID, EEquipmentSlot InSlot)
+{
+	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
+	if (!Warrior)
+	{
+		return false;
+	}
+
+	return Warrior->CheckItemInSlot(InID, InSlot);
+}
+
 void AWarriorController::ToggleMenuWindow()
 {
+	if (!CloseBonfireMenu())
+		return;
+
 	if (!MenuWidget)
 	{
 		return;

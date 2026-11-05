@@ -16,11 +16,6 @@ class ZZAKTUNGSOUL_API UWeaponDataAsset : public UItemDataAsset
 
 public:
 	UWeaponDataAsset();
-
-	virtual FPrimaryAssetId GetPrimaryAssetId() const override
-	{
-		return FPrimaryAssetId("ItemData", GetFName());
-	}
 	
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

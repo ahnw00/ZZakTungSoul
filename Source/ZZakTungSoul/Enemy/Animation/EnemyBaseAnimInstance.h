@@ -27,7 +27,8 @@ public:
 	// 일단은 스턴용만 만들어둠(일반화해둔 함수가 필요함)
 	void PlayStunMontage();
 
-	void PlayGetFatalAttackMontage();
+	void PlayGetFrontFatalAttackMontage();
+	void PlayGetBackFatalAttackMontage();
 
 protected:
 	// AnimInstance를 소유하는 오너
@@ -71,5 +72,8 @@ protected:
 	TObjectPtr<UAnimMontage> StunMontage;
 
 	UPROPERTY()
-	TObjectPtr<UAnimMontage> GetFatalAttackMontage;
+	TObjectPtr<UAnimMontage> GetFrontFatalAttackMontage;
+
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> GetBackFatalAttackMontage;
 };

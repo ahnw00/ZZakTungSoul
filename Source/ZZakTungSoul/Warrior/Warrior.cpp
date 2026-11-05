@@ -579,7 +579,7 @@ bool AWarrior::FatalAttack()
 	{
 		SetActionState(EActionState::BackFatalAttack);
 		RelativeLocation = FVector(-120.f, 0.f, 0.f);
-		TargetRotation.Yaw -= 32.f;
+		TargetRotation.Yaw -= 10.f;
 		CurrentFatalAttackable->ReceiveFatalAttack(DamageInfo, false);
 	}
 
@@ -1078,6 +1078,8 @@ void AWarrior::HpRecovery(float Amount)
 {
 	if (ActionState != EActionState::None)
 		return;
+
+	// 사용횟수 초과하면 사용 못하도록
 
 	SetActionState(EActionState::Drink);
 	AnimInstance->PlayActionMontage();

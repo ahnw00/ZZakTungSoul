@@ -31,6 +31,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void PostInitializeComponents() override;
+
 	// 데미지 처리 판정 -> 상위 클래스에서 인터페이스 사용함
 	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit) override;
 
@@ -95,6 +97,9 @@ public:
 	void OnFatalAttackFinished();
 	void OnStunFinished();
 
+	UFUNCTION()
+	void OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 private:
 	// 패링 당했을 때 호출될 함수(델리게이트에 바인드해줄 함수)
 	void OnGetParried();
@@ -116,6 +121,10 @@ protected:
 	virtual EEnemyActionState GetActionStateInterface() const override;
 
 	virtual bool GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const override;
+
+private:
+	UPROPERTY()
+	TObjectPtr<class UEnemyBaseAnimInstance> AnimInstance;
 
 protected:
 	// 공격할 때 사용할 데미지 정보 저장 변수

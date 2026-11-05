@@ -25,6 +25,9 @@ struct FInventoryItem
 
 	UPROPERTY()
 	int32 UpgradeLevel = 0;
+
+	UPROPERTY()
+	int32 UseCount = 0;
 };
 
 DECLARE_DELEGATE_OneParam(FOnItemObtainedDelegate, class UItemDataAsset* /*ObtainedItem*/)
@@ -44,6 +47,8 @@ public:
 	UItemDataAsset* GetItemData(const FInventoryItem& Item) const;
 
 	const FInventoryItem* FindItemByInstanceID(const FGuid& InInstanceID) const;
+
+	const FInventoryItem* FindItemByAssetID(const FPrimaryAssetId& AssetID) const;
 
 	const UItemDataAsset* FindItemDataByInstanceID(const FGuid& InInstanceID) const;
 

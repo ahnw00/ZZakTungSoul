@@ -18,6 +18,8 @@ void UInventoryComponent::AddItem(UItemDataAsset* ItemData, FGuid InID)
 	if (!ItemData)
 		return;
 
+	// 중복으로 가질 수 있는 아이템인지 확인
+
 	FInventoryItem AddedItem;
 
 	// 여러개 가질 수 있는 아이템 처리를 위한 FGuid 값
@@ -52,6 +54,16 @@ const FInventoryItem* UInventoryComponent::FindItemByInstanceID(const FGuid& InI
 		[&InInstanceID](const FInventoryItem& Item)
 		{
 			return Item.InstanceID == InInstanceID;
+		}
+	);
+}
+
+const FInventoryItem* UInventoryComponent::FindItemByAssetID(const FPrimaryAssetId& AssetID) const
+{
+	return Items.FindByPredicate(
+		[&AssetID](const FInventoryItem& Item)
+		{
+			return Item.AssetID == AssetID;
 		}
 	);
 }

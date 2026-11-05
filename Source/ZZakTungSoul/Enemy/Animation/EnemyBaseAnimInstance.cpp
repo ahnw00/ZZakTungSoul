@@ -86,10 +86,10 @@ void UEnemyBaseAnimInstance::PlayStunMontage()
 	StopAllMontages(1.f);
 	Montage_Play(StunMontage);
 
-	FOnMontageEnded EndDelegate;
-	EndDelegate.BindUObject(this, &UEnemyBaseAnimInstance::OnStunMontageEnded);
+	//FOnMontageEnded EndDelegate;
+	//EndDelegate.BindUObject(this, &UEnemyBaseAnimInstance::OnStunMontageEnded);
 
-	Montage_SetEndDelegate(EndDelegate, StunMontage);
+	//Montage_SetEndDelegate(EndDelegate, StunMontage);
 }
 
 void UEnemyBaseAnimInstance::PlayGetFrontFatalAttackMontage()
@@ -103,10 +103,10 @@ void UEnemyBaseAnimInstance::PlayGetBackFatalAttackMontage()
 	StopAllMontages(1.f);
 	Montage_Play(GetBackFatalAttackMontage);
 
-	FOnMontageEnded EndDelegate;
-	EndDelegate.BindUObject(this, &UEnemyBaseAnimInstance::OnFatalMontageEnded);
+	//FOnMontageEnded EndDelegate;
+	//EndDelegate.BindUObject(this, &UEnemyBaseAnimInstance::OnFatalMontageEnded);
 
-	Montage_SetEndDelegate(EndDelegate, GetBackFatalAttackMontage);
+	//Montage_SetEndDelegate(EndDelegate, GetBackFatalAttackMontage);
 }
 
 void UEnemyBaseAnimInstance::OnFatalMontageEnded(UAnimMontage* Montage, bool bInterrupted)

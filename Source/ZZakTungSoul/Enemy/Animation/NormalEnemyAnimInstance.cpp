@@ -72,7 +72,7 @@ bool UNormalEnemyAnimInstance::PlayActionMontage()
 	case EEnemyActionState::Block:
 		break;
 
-	case EEnemyActionState::Stance:
+	case EEnemyActionState::Groggy:
 		if (IsValid(GroggyMontage))
 		{
 			return Montage_Play(GroggyMontage) > 0.0f;

@@ -1,4 +1,4 @@
-﻿#include <Enemy/Boss/Clown/Components/ClownYabawiComponent.h>
+#include <Enemy/Boss/Clown/Components/ClownYabawiComponent.h>
 #include <Enemy/Boss/Clown/Gimmick/ClownYabawiBowl.h>
 #include <Enemy/Boss/Clown/BossClown.h>
 #include <Character/CharacterStatComponent.h>
@@ -48,8 +48,7 @@ bool UClownYabawiComponent::StartRound(AActor* Player, const TArray<FVector>& Po
 	for (const FVector& Position : Positions)
 	{
 		UClass* BowlType = Settings.BowlClass ? Settings.BowlClass.Get() : AClownYabawiBowl::StaticClass();
-		AClownYabawiBowl* Bowl =
-			GetWorld()->SpawnActor<AClownYabawiBowl>(BowlType, Position, Boss->GetActorRotation(), Params);
+		AClownYabawiBowl* Bowl = GetWorld()->SpawnActor<AClownYabawiBowl>(BowlType, Position, Boss->GetActorRotation(), Params);
 
 		if (!Bowl)
 		{
@@ -63,7 +62,7 @@ bool UClownYabawiComponent::StartRound(AActor* Player, const TArray<FVector>& Po
 	}
 
 	Bowls[CorrectBowl]->ShowBall(true);
-	// One shared countdown for the whole round, rather than one on every bowl.
+
 	FVector Center = FVector::ZeroVector;
 
 	for (const FVector& Position : Positions)
@@ -105,7 +104,6 @@ void UClownYabawiComponent::SetStage(EClownYabawiStage Next)
 	if (SelectionTimer)
 	{
 		SelectionTimer->SetVisibility(Next == EClownYabawiStage::Selection);
-		SelectionTimer->SetWorldRotation((Target->GetActorLocation() - SelectionTimer->GetComponentLocation()).Rotation());
 	}
 
 	if (Next == EClownYabawiStage::Selection)
@@ -148,7 +146,7 @@ void UClownYabawiComponent::UpdateSelectionTimer()
 	}
 
 	SelectionTimer->SetText(FText::FromString(FString::Printf(TEXT("ATTACK A BOWL  %.1fs"), GetSelectionRemaining())));
-	
+	SelectionTimer->SetWorldRotation((Target->GetActorLocation() - SelectionTimer->GetComponentLocation()).Rotation());
 }
 
 float UClownYabawiComponent::GetSelectionRemaining() const
@@ -304,8 +302,7 @@ void UClownYabawiComponent::TickComponent(
 	{
 		SwapTime += DeltaTime;
 		const float Alpha = FMath::Clamp(SwapTime / FMath::Clamp(Settings.ShuffleStepTime, 0.12f, 1.0f), 0.0f, 1.0f);
-		const FVector Side = FVector::CrossProduct((SwapStartB - SwapStartA).GetSafeNormal2D(), FVector::UpVector) *
-			FMath::Max(Settings.BowlDiameter, 100.0f) * 0.65f * FMath::Sin(PI * Alpha);
+		const FVector Side = FVector::CrossProduct((SwapStartB - SwapStartA).GetSafeNormal2D(), FVector::UpVector) * FMath::Max(Settings.BowlDiameter, 100.0f) * 0.65f * FMath::Sin(PI * Alpha);
 		Bowls[SwapA]->SetActorLocation(FMath::Lerp(SwapStartA, SwapStartB, Alpha) + Side);
 		Bowls[SwapB]->SetActorLocation(FMath::Lerp(SwapStartB, SwapStartA, Alpha) - Side);
 

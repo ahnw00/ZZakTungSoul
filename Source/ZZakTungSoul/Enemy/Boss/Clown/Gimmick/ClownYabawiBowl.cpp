@@ -53,7 +53,7 @@ void AClownYabawiBowl::Initialize(UClownYabawiComponent* Round, int32 InRoundID,
 	const float HitHalfHeight = FMath::Max(Settings.BowlHitHeight * 0.5f, HalfHeight);
 	AttackHitBox->SetBoxExtent(FVector(Diameter * 0.5f, Diameter * 0.5f, HitHalfHeight));
 	AttackHitBox->SetRelativeLocation(FVector(0.0f, 0.0f, HitHalfHeight));
-	// Overlap response lets weapons query the bowl without blocking character movement.
+
 	AttackHitBox->SetCollisionResponseToChannel(Settings.AttackTraceChannel, ECR_Overlap);
 
 	if (Settings.ExplosionMaterial)

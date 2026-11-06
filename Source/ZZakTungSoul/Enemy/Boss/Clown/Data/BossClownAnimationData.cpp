@@ -25,8 +25,7 @@ UBossClownAnimationData::UBossClownAnimationData()
 void UBossClownAnimationData::PostLoad()
 {
 	Super::PostLoad();
-	// Existing assets serialize their own pattern array, replacing constructor defaults.
-	// Append only the missing Yabawi entry; never replace the user's other attacks.
+
 	if (!PhaseOnePatterns.ContainsByPredicate(
 			[](const FClownPhaseOnePattern& Pattern)
 			{

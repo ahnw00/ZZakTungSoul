@@ -64,8 +64,7 @@ bool UBTDecorator_ClownCondition::CalculateRawConditionValue(UBehaviorTreeCompon
 	}
 
 	const float Distance = Clown->GetTargetSurfaceDistance(Target);
-	const float EffectiveMinDistance =
-		bCheckAttackData && AttackType == EBossClownAttack::CubeBarrage ? 600.0f : MinDistance;
+	const float EffectiveMinDistance = bCheckAttackData && AttackType == EBossClownAttack::CubeBarrage ? 600.0f : MinDistance;
 
 	if (Distance < EffectiveMinDistance || Distance > MaxDistance)
 	{
@@ -84,8 +83,7 @@ bool UBTDecorator_ClownCondition::CalculateRawConditionValue(UBehaviorTreeCompon
 		return false;
 	}
 
-	const bool bRanged = AttackType == EBossClownAttack::TripleBalls || AttackType == EBossClownAttack::ClapWave ||
-		AttackType == EBossClownAttack::CubeBarrage;
+	const bool bRanged = AttackType == EBossClownAttack::TripleBalls || AttackType == EBossClownAttack::ClapWave || AttackType == EBossClownAttack::CubeBarrage;
 
 	if (bCheckAttackData && bRanged && Distance < 450.0f)
 	{
@@ -106,9 +104,7 @@ bool UBTDecorator_ClownCondition::CalculateRawConditionValue(UBehaviorTreeCompon
 		return false;
 	}
 
-	const float BaseChance = bCubePriority || (bCheckAttackData && bRanged && Clown->PrefersClownRangedAttack())
-		? 1.0f
-		: (bCheckAttackData && AttackType == EBossClownAttack::CubeBarrage ? 0.85f : FMath::Clamp(Chance, 0.0f, 1.0f));
+	const float BaseChance = bCubePriority || (bCheckAttackData && bRanged && Clown->PrefersClownRangedAttack()) ? 1.0f : (bCheckAttackData && AttackType == EBossClownAttack::CubeBarrage ? 0.85f : FMath::Clamp(Chance, 0.0f, 1.0f));
 
 	return FMath::FRand() < BaseChance * (bCubePriority ? 1.0f : PatternScale);
 }

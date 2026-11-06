@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include <Enemy/Boss/Clown/BossClown.h>
 #include <Interface/CombatDamageInterface.h>
 #include <Enemy/Boss/Clown/Anim/BossClownAnimationInstance.h>
@@ -11,6 +9,8 @@
 #include <Engine/SkeletalMesh.h>
 #include <GameFramework/CharacterMovementComponent.h>
 #include <AIController.h>
+#include <BehaviorTree/BlackboardComponent.h>
+#include <Enemy/AI/EnemyAIBlackboardKey.h>
 #include <EnhancedInputComponent.h>
 #include <InputAction.h>
 #include <Kismet/GameplayStatics.h>
@@ -132,7 +132,6 @@ void ABossClown::CollectClownAttackChoices(
 		return;
 	}
 
-	// Phase usage belongs to the pattern and applies to all of its montage variants.
 	switch (BossPhase)
 	{
 	case EBossPhase::Phase1:
@@ -155,7 +154,6 @@ void ABossClown::CollectClownAttackChoices(
 		return;
 	}
 
-	// Yabawi uses its result rules instead of direct montage hit damage.
 	const bool bRequiresHitDamage = AttackType != EBossClownAttack::Yabawi;
 	const auto AddValidAttack = [&OutChoices, bRequiresHitDamage](const FEnemyAttackData& Attack)
 	{
@@ -177,6 +175,11 @@ void ABossClown::CollectClownAttackChoices(
 	for (const FEnemyAttackData& Variant : Pattern->AttackVariants)
 	{
 		AddValidAttack(Variant);
+	}
+
+	if (AttackType == EBossClownAttack::Yabawi && OutChoices.IsEmpty())
+	{
+		OutChoices.Add(&Pattern->Attack);
 	}
 }
 
@@ -200,7 +203,7 @@ bool ABossClown::IsClownCombatPhase() const
 
 bool ABossClown::CanStartClownYabawi() const
 {
-	return ActiveAttackID == INDEX_NONE && YabawiComponent && YabawiComponent->CanStart();
+	return ActiveAttackID == INDEX_NONE && GetEnemyState() != EEnemyState::Groggy && GetClownPatternSelectionScale(EBossClownAttack::Yabawi) > 0.0f && YabawiComponent && YabawiComponent->CanStart();
 }
 
 bool ABossClown::StartClownAttack(
@@ -227,7 +230,6 @@ bool ABossClown::StartClownAttack(
 		return false;
 	}
 
-	// Prefer a different montage, but allow the fallback when it is the only valid choice.
 	const FEnemyAttackData* AttackData = Choices[0];
 	Choices.RemoveAll(
 		[this](const FEnemyAttackData* Choice)
@@ -249,8 +251,7 @@ bool ABossClown::StartClownAttack(
 		return false;
 	}
 
-	const bool bMovementAttack =
-		AttackType == EBossClownAttack::FastChaseSlam || AttackType == EBossClownAttack::DashSweep;
+	const bool bMovementAttack = AttackType == EBossClownAttack::FastChaseSlam || AttackType == EBossClownAttack::DashSweep;
 
 	if (bMovementAttack && !GetCharacterMovement()->IsMovingOnGround())
 	{
@@ -447,7 +448,7 @@ bool ABossClown::PlayCurrentClownMontage()
 
 	UAnimMontage* Montage = CurrentClownAttack.Montage.Get();
 
-	if (Anim->Montage_Play(Montage) <= 0.0f)
+	if ((!Montage && CurrentAttackType != EBossClownAttack::Yabawi) || (Montage && Anim->Montage_Play(Montage) <= 0.0f))
 	{
 		FinishClownAttack(EBossClownAttackResult::Failed, false);
 
@@ -514,7 +515,7 @@ bool ABossClown::PlayCurrentClownMontage()
 
 			ClownAttackStage = EClownAttackStage::Yabawi;
 
-			if (Montage->GetNumSections() > 0)
+			if (Montage && Montage->GetNumSections() > 0)
 			{
 				const FName Section = Montage->GetSectionName(0);
 				Anim->Montage_SetNextSection(Section, Section, Montage);
@@ -527,19 +528,19 @@ bool ABossClown::PlayCurrentClownMontage()
 	RecentClownPatterns.SetNum(FMath::Min(RecentClownPatterns.Num(), 3));
 	LastClownPatternTime = GetWorld()->GetTimeSeconds();
 
-	FOnMontageEnded EndDelegate;
-	EndDelegate.BindUObject(this, &ABossClown::OnClownAttackEnded, ActiveAttackID);
-	Anim->Montage_SetEndDelegate(EndDelegate, Montage);
+	if (Montage)
+	{
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &ABossClown::OnClownAttackEnded, ActiveAttackID);
+		Anim->Montage_SetEndDelegate(EndDelegate, Montage);
+	}
 
 	float Timeout = FMath::Max(AttackTimeout, 0.1f);
 
 	if (CurrentAttackType == EBossClownAttack::Yabawi)
 	{
 		const FClownPhaseOnePattern& Rules = *GetPhaseOnePattern(EBossClownAttack::Yabawi);
-		Timeout = FMath::Max(Timeout,
-			FMath::Max(Rules.RevealTime, 0.5f) + FMath::Max(Rules.CoverTime, 0.2f) +
-				FMath::Clamp(Rules.ShuffleCount, 1, 32) * FMath::Clamp(Rules.ShuffleStepTime, 0.12f, 1.0f) +
-				FMath::Max(Rules.SelectionTime, 1.0f) + 10.0f);
+		Timeout = FMath::Max(Timeout, FMath::Max(Rules.RevealTime, 0.5f) + FMath::Max(Rules.CoverTime, 0.2f) + FMath::Clamp(Rules.ShuffleCount, 1, 32) * FMath::Clamp(Rules.ShuffleStepTime, 0.12f, 1.0f) + FMath::Max(Rules.SelectionTime, 1.0f) + 10.0f);
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(
@@ -621,8 +622,7 @@ void ABossClown::UpdateClownTraceDebug()
 
 		if (Player && Action)
 		{
-			UEnhancedInputComponent* DebugInput =
-				NewObject<UEnhancedInputComponent>(this, TEXT("ClownTraceDebugInput"));
+			UEnhancedInputComponent* DebugInput = NewObject<UEnhancedInputComponent>(this, TEXT("ClownTraceDebugInput"));
 			DebugInput->RegisterComponent();
 			DebugInput->Priority = 20;
 			DebugInput->BindAction(Action, ETriggerEvent::Started, this, &ABossClown::ToggleClownTraceDebug);
@@ -760,8 +760,7 @@ void ABossClown::TickClownAttack(float DeltaTime)
 	{
 		for (const TWeakObjectPtr<AActor>& Item : ClownProjectiles)
 		{
-			UClownProjectileComponent* Ball =
-				Item.IsValid() ? Item->FindComponentByClass<UClownProjectileComponent>() : nullptr;
+			UClownProjectileComponent* Ball = Item.IsValid() ? Item->FindComponentByClass<UClownProjectileComponent>() : nullptr;
 
 			if (Ball && !Ball->IsLaunched())
 			{
@@ -806,8 +805,7 @@ void ABossClown::TickClownAttack(float DeltaTime)
 			const float DashTime = MontageTime - Data->DashStartTime;
 			const float BlendTime = FMath::Min(0.15f, Data->DashDuration * 0.25f);
 			const float BlendIn = BlendTime > 0.0f ? FMath::Clamp(DashTime / BlendTime, 0.0f, 1.0f) : 1.0f;
-			const float BlendOut =
-				BlendTime > 0.0f ? FMath::Clamp((Data->DashDuration - DashTime) / BlendTime, 0.0f, 1.0f) : 1.0f;
+			const float BlendOut = BlendTime > 0.0f ? FMath::Clamp((Data->DashDuration - DashTime) / BlendTime, 0.0f, 1.0f) : 1.0f;
 			const float SpeedScale = FMath::Min(BlendIn, BlendOut);
 			GetCharacterMovement()->Velocity = DashDirection * Data->DashSpeed * SpeedScale;
 			AddMovementInput(DashDirection, 1.0f);
@@ -880,7 +878,6 @@ void ABossClown::EnterYabawiGroggy()
 		}
 	}
 
-	// Keep the current BT task running until the existing Groggy state has expired.
 }
 
 void ABossClown::CompleteClownYabawi(bool bCorrect)
@@ -915,7 +912,6 @@ void ABossClown::CompleteClownYabawi(bool bCorrect)
 		}
 	}
 
-	// The round has its own watchdog; recovery uses the standard pattern recovery time.
 	GetWorldTimerManager().ClearTimer(AttackTimeoutHandle);
 	BeginClownRecovery();
 }
@@ -986,7 +982,7 @@ void ABossClown::OnClownAttackEnded(UAnimMontage* Montage, bool bInterrupted, in
 		}
 		else
 		{
-			// The round component owns completion, even if a montage has no looping section.
+
 			if (ClownAttackStage == EClownAttackStage::Yabawi)
 			{
 				return;
@@ -1188,8 +1184,7 @@ void ABossClown::ClearClownProjectiles(bool bIncludeLaunched)
 	for (const TWeakObjectPtr<AActor>& Item : ClownProjectiles)
 	{
 		AActor* Actor = Item.Get();
-		UClownProjectileComponent* Projectile =
-			Actor ? Actor->FindComponentByClass<UClownProjectileComponent>() : nullptr;
+		UClownProjectileComponent* Projectile = Actor ? Actor->FindComponentByClass<UClownProjectileComponent>() : nullptr;
 
 		if (Actor && (bIncludeLaunched || !Projectile || !Projectile->IsLaunched()))
 		{
@@ -1244,10 +1239,7 @@ bool ABossClown::PrepareClownBalls()
 
 	const int32 Count = BallFormationCount;
 	// 바닥에 정확히 수직인 원. 플레이어 높이에 따라 소환 평면을 기울이지 않음.
-	const FVector Center = GetActorLocation() +
-		(Target ? Target->GetActorLocation() - GetActorLocation() : GetActorForwardVector()).GetSafeNormal2D() *
-			180.0f +
-		FVector(0.0f, 0.0f, 260.0f);
+	const FVector Center = GetActorLocation() + (Target ? Target->GetActorLocation() - GetActorLocation() : GetActorForwardVector()).GetSafeNormal2D() * 180.0f + FVector(0.0f, 0.0f, 260.0f);
 	const FVector Forward = (Target ? Target->GetActorLocation() - Center : GetActorForwardVector()).GetSafeNormal2D();
 	const FQuat Facing = FRotationMatrix::MakeFromX(Forward).ToQuat();
 	const FVector Right = Facing.GetRightVector();
@@ -1289,8 +1281,7 @@ bool ABossClown::FindClownCardGround(
 
 	if (Arena)
 	{
-		const FVector Local =
-			Arena->GetComponentTransform().InverseTransformPosition(FVector(Position.X, Position.Y, FloorZ));
+		const FVector Local = Arena->GetComponentTransform().InverseTransformPosition(FVector(Position.X, Position.Y, FloorZ));
 		const FVector Extent = Arena->GetUnscaledBoxExtent();
 
 		if (FMath::Abs(Local.X) > Extent.X || FMath::Abs(Local.Y) > Extent.Y)
@@ -1326,11 +1317,9 @@ bool ABossClown::FindClownCardGround(
 
 	const FHitResult& Ground = *FloorHit;
 	const FVector Direction = (Center - Ground.ImpactPoint).GetSafeNormal2D();
-	const FVector FootprintCenter =
-		Ground.ImpactPoint + Direction * (Height * 0.5f) + FVector(0.0f, 0.0f, Height * 0.5f + 16.0f);
+	const FVector FootprintCenter = Ground.ImpactPoint + Direction * (Height * 0.5f) + FVector(0.0f, 0.0f, Height * 0.5f + 16.0f);
 	// 생성 지점뿐 아니라 플레이어 쪽으로 쓰러지는 전체 영역에 소품이 있으면 제외.
-	const FCollisionShape Footprint =
-		FCollisionShape::MakeBox(FVector(Height * 0.5f + 5.0f, Width * 0.5f + 5.0f, Height * 0.5f + 5.0f));
+	const FCollisionShape Footprint = FCollisionShape::MakeBox(FVector(Height * 0.5f + 5.0f, Width * 0.5f + 5.0f, Height * 0.5f + 5.0f));
 
 	if (GetWorld()->OverlapBlockingTestByChannel(
 			FootprintCenter, Direction.Rotation().Quaternion(), ECC_Visibility, Footprint, Query) ||
@@ -1362,9 +1351,7 @@ bool ABossClown::PrepareClownCards()
 	const float Width = FMath::Clamp(Data->CardWidth, 350.0f, 550.0f);
 	// 하트 밑변의 안전 표시(100 x 120)에 인접 카드와 플레이어 캡슐이 겹치지 않도록 간격 확보.
 	const float AngleStep = 2.0f * PI / Count;
-	const float SafeRadius = Count > 2
-		? (Width * 0.5f + 157.0f + 60.0f * FMath::Abs(FMath::Cos(AngleStep))) / FMath::Sin(AngleStep) + 90.0f
-		: 600.0f;
+	const float SafeRadius = Count > 2 ? (Width * 0.5f + 157.0f + 60.0f * FMath::Abs(FMath::Cos(AngleStep))) / FMath::Sin(AngleStep) + 90.0f : 600.0f;
 	const float Radius = FMath::Max(FMath::Clamp(Data->CardRadius, 600.0f, 900.0f), SafeRadius);
 	const float Height = FMath::Clamp(Data->CardHeight, Radius - 100.0f, Radius + 50.0f);
 	const float Facing = FMath::FRandRange(0.0f, 2.0f * PI);
@@ -1398,9 +1385,7 @@ bool ABossClown::PrepareClownCards()
 		UTexture2D* Face = Faces[FMath::RandRange(0, Faces.Num() - 1)].Get();
 		FVector Direction = Center - Positions[Index];
 		Direction.Z = 0.0f;
-		UClownProjectileComponent* Projectile = Face
-			? CreateClownProjectile(Data->CardClass, Positions[Index], Direction.Rotation(), 0.0f, Data->CardActiveTime)
-			: nullptr;
+		UClownProjectileComponent* Projectile = Face ? CreateClownProjectile(Data->CardClass, Positions[Index], Direction.Rotation(), 0.0f, Data->CardActiveTime) : nullptr;
 
 		if (!Projectile)
 		{
@@ -1431,6 +1416,26 @@ bool ABossClown::PrepareClownCards()
 
 bool ABossClown::PrepareClownYabawi()
 {
+	if (ActiveAttackID == INDEX_NONE)
+	{
+		AAIController* AI = Cast<AAIController>(GetController());
+		UBlackboardComponent* Blackboard = AI ? AI->GetBlackboardComponent() : nullptr;
+		AActor* Player = Blackboard ? Cast<AActor>(Blackboard->GetValueAsObject(BBKEY_TARGETACTOR)) : nullptr;
+
+		if (!IsValid(Player))
+		{
+			Player = UGameplayStatics::GetPlayerPawn(this, 0);
+		}
+
+		int32 ExecutionID = INDEX_NONE;
+		return StartClownAttack(EBossClownAttack::Yabawi, Player, ExecutionID);
+	}
+
+	if (CurrentAttackType != EBossClownAttack::Yabawi)
+	{
+		return false;
+	}
+
 	const FClownPhaseOnePattern* Rules = GetPhaseOnePattern(EBossClownAttack::Yabawi);
 	AActor* Target = ClownAttackTarget.Get();
 
@@ -1544,8 +1549,7 @@ void ABossClown::TickClownSpecial(float MontageTime)
 		{
 			const float Angle = FMath::Lerp(-28.0f, 28.0f, (Index + FMath::FRand()) / NoteCount);
 			const FVector Direction = GetActorForwardVector().RotateAngleAxis(Angle, FVector::UpVector);
-			const FVector Spawn = Position + GetActorRightVector() * FMath::FRandRange(-150.0f, 150.0f) +
-				FVector(0.0f, 0.0f, FMath::FRandRange(-35.0f, 65.0f));
+			const FVector Spawn = Position + GetActorRightVector() * FMath::FRandRange(-150.0f, 150.0f) + FVector(0.0f, 0.0f, FMath::FRandRange(-35.0f, 65.0f));
 
 			if (UClownProjectileComponent* Projectile =
 					CreateClownProjectile(Data->ClapWaveClass, Spawn, Direction.Rotation(), Data->ClapWaveSpeed,
@@ -1583,8 +1587,7 @@ bool ABossClown::PrepareClownCubeMarch()
 
 	for (int32 Wave = 0; Wave < 3; ++Wave)
 	{
-		const FVector Direction =
-			Forward.RotateAngleAxis(Wave == 0 ? 0.0f : (Wave == 1 ? 90.0f : -45.0f), FVector::UpVector);
+		const FVector Direction = Forward.RotateAngleAxis(Wave == 0 ? 0.0f : (Wave == 1 ? 90.0f : -45.0f), FVector::UpVector);
 		const FVector Right = FVector::CrossProduct(FVector::UpVector, Direction);
 		const int32 SafeLane = FMath::RandRange(0, 3);
 
@@ -1608,8 +1611,7 @@ bool ABossClown::PrepareClownCubeMarch()
 	for (int32 Index = 0; Index < 27; ++Index)
 	{
 		const FVector Offset((Index % 3 - 1) * 98.0f, (Index / 3 % 3 - 1) * 98.0f, (Index / 9 - 1) * 98.0f);
-		UClownProjectileComponent* Piece = CreateClownProjectile(Data->CubeClass, Assembly + Offset,
-			FRotator::ZeroRotator, 1.0f, UClownProjectileComponent::CubeMarchDuration);
+		UClownProjectileComponent* Piece = CreateClownProjectile(Data->CubeClass, Assembly + Offset, FRotator::ZeroRotator, 1.0f, UClownProjectileComponent::CubeMarchDuration);
 
 		if (!Piece || !Data->CubePieces[Index])
 		{

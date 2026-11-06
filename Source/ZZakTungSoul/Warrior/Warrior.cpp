@@ -1018,7 +1018,7 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 void AWarrior::UnequipItem(EEquipmentSlot Slot)
 {
 	Equipment->UnequipItem(Slot);
-	UpdateCharacterStats();
+	CharacterStatComponent->ResetAttackPower();
 	UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 
 	switch (Slot)

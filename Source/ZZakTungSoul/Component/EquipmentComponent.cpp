@@ -49,6 +49,7 @@ void UEquipmentComponent::EquipItem(FGuid InstanceID, EEquipmentSlot Slot)
 void UEquipmentComponent::UnequipItem(EEquipmentSlot Slot)
 {
 	EquippedItems.Remove(Slot);
+    OnEquipItemImageChanged.Broadcast();
 }
 
 EEquipmentSlot UEquipmentComponent::FindOverlappedItem(FGuid TargetID, EEquipmentSlot InSlot)

@@ -181,12 +181,16 @@ void AWarrior::PostInitializeComponents()
 	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &AWarrior::OnBeginOverlap);
 	GetCapsuleComponent()->OnComponentEndOverlap.AddDynamic(this, &AWarrior::OnEndOverlap);
 
-	Equipment->OnUnequipItem.AddUObject(this, &AWarrior::UnequipItem);
+	if(Equipment)
+	{
+		Equipment->OnUnequipItem.AddUObject(this, &AWarrior::UnequipItem);
+		Equipment->OnEquipItem.AddUObject(this, &AWarrior::SaveWarriorEquipmentData);
+	}
 
-	// if (Inventory)
-	//{
-	//	Inventory->OnItemObtained.BindUObject(this, &AWarrior::ObtainItem);
-	// }
+	if (Inventory)
+	{
+		Inventory->OnItemObtained.AddUObject(this, &AWarrior::SaveWarriorInventoryData);
+	}
 }
 
 void AWarrior::Tick(float DeltaTime)
@@ -993,6 +997,10 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		Weapon->SetRelativeRotation(InItem->EquipRotation);
 		Weapon->SetRelativeScale3D(InItem->RelativeScale);
 		AttackTraceComponent->SetTraceMesh(Weapon);
+		
+		// 오른손 무기 기준으로 공격력 책정됨
+		CharacterStatComponent->ApplyWeaponAttackPower(InItem->AttackPower);
+		UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 	}
 	else if (Slot == EEquipmentSlot::LeftHand)
 	{
@@ -1002,14 +1010,16 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		LeftHandWeapon->SetRelativeScale3D(InItem->RelativeScale);
 		// Todo: 왼쪽 AttackTraceComponent에 메시 설정해주기
 	}
-
-	// Todo: 무기 스탯 연동해주기
+	
+	// Todo: 방어구도 여기서 해줘야해
 }
 
 // 스켈레탈 메쉬 해제
 void AWarrior::UnequipItem(EEquipmentSlot Slot)
 {
 	Equipment->UnequipItem(Slot);
+	UpdateCharacterStats();
+	UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 
 	switch (Slot)
 	{
@@ -1079,8 +1089,6 @@ void AWarrior::HpRecovery(float Amount)
 	if (ActionState != EActionState::None)
 		return;
 
-	// 사용횟수 초과하면 사용 못하도록
-
 	SetActionState(EActionState::Drink);
 	AnimInstance->PlayActionMontage();
 
@@ -1105,12 +1113,30 @@ void AWarrior::UseBeltItem(EEquipmentSlot Slot)
 
 	// 착용한 아이템 가져오기
 	FGuid ItemId = Equipment->GetEquippedItem(Slot);
+	// 비어있으면 return
 	if (ItemId == FGuid())
 		return;
 
 	const UItemDataAsset* ItemData = Inventory->FindItemDataByInstanceID(ItemId);
 	if (!ItemData)
 		return;
+
+	const FInventoryItem* Item = Inventory->FindItemByInstanceID(ItemId);
+	if (!Item)
+		return;
+
+	// 회복 물약이면 횟수 생각해서 사용해줘야해
+	if (ItemData->ItemName.ToString() == TEXT("회복 물약"))
+	{
+		if (Item->Quantity > PotionUseCount)
+		{
+			++PotionUseCount;
+		}
+		else
+		{
+			return;
+		}
+	}
 
 	const IItemFunctionInterface* FunctionInterface = Cast<IItemFunctionInterface>(ItemData);
 	if (!FunctionInterface)
@@ -1201,4 +1227,47 @@ void AWarrior::ReceiveDamageTest_2(const FDamageInfo& DamageInfo, const FHitResu
 {
 	SetActionState(EActionState::Hit);
 	AnimInstance->PlayActionMontage();
+}
+
+// PlayerState에 저장
+// 아이템 획득할 때, 장착할 때 호출해줘야해
+void AWarrior::SaveWarriorEquipmentData()
+{
+	// PlayerState에서 WarriorSaveData 가져오기
+	AWarriorPlayerState* PS = Cast<AWarriorPlayerState>(GetPlayerState());
+	if (!PS)
+		return;
+
+	FWarriorSaveData& SaveData = PS->GetSaveData();
+
+	// 가져온 WarriorSaveData에 값 넣어주기
+	// 넣어줘야 할 값: Equipment
+	SaveData.EquippedItems = Equipment->GetEquippedItems();
+}
+
+void AWarrior::SaveWarriorInventoryData()
+{
+	// PlayerState에서 WarriorSaveData 가져오기
+	AWarriorPlayerState* PS = Cast<AWarriorPlayerState>(GetPlayerState());
+	if (!PS)
+		return;
+
+	FWarriorSaveData& SaveData = PS->GetSaveData();
+
+	// 가져온 WarriorSaveData에 값 넣어주기
+	// 넣어줘야 할 값: Inventory
+	SaveData.Items = Inventory->GetItems();
+}
+
+void AWarrior::LoadWarriorData(const FWarriorSaveData& SaveData)
+{
+	// 가져와야 할 값: Inventory, Equipment
+	Inventory->SetItems(SaveData.Items);
+
+	Equipment->SetEquippedItems(SaveData.EquippedItems);
+	// 장착되어있는거 UI 업데이트해주기
+	for (const TPair<EEquipmentSlot, FGuid>& Pair : Equipment->GetEquippedItems())
+	{
+		EquipWeapon(Pair.Value, Pair.Key);
+	}
 }

@@ -562,14 +562,9 @@ void AEnemyBase::SetStrafeMode(bool bEnable)
 
 void AEnemyBase::OnGetParried()
 {
-	SetEnemyState(EEnemyState::Groggy);
-	SetEnemyActionState(EEnemyActionState::Groggy);
-
 	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
 	if (!AIController)
 		return;
-
-	AIController->SetAIWait(true);
 
 	// Trace 중단
 	if (IsValid(AttackTraceComponent))
@@ -577,6 +572,12 @@ void AEnemyBase::OnGetParried()
 		AttackTraceComponent->EndTrace();
 	}
 
+	AnimInstance->StopAllMontages(1.f);
+
+	AIController->SetAIWait(true);
+
+	SetEnemyState(EEnemyState::Groggy);
+	SetEnemyActionState(EEnemyActionState::Groggy);
 	AnimInstance->PlayStunMontage();
 }
 
@@ -627,6 +628,9 @@ void AEnemyBase::OnStunFinished()
 
 void AEnemyBase::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	if (bInterrupted)
+		return;
+
 	if (IsDeadState())
 	{
 		return;

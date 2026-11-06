@@ -19,7 +19,7 @@ public:
 	AWarriorPlayerState();
 
 	// Getter/Setter
-	FORCEINLINE const FWarriorSaveData& GetSaveData() const { return SaveData; }
+	FORCEINLINE FWarriorSaveData& GetSaveData() { return SaveData; }
 	
 	
 	void LoadSaveDataFrom(const FWarriorSaveData& NewSaveData);

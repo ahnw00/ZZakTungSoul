@@ -197,6 +197,9 @@ void AWarriorController::BeginPlay()
 			{
 				PlayerHUDWidget->GetBeltWidget()->SetEquipment(Warrior->GetEquipment());
 				PlayerHUDWidget->GetBeltWidget()->SetInventory(Warrior->GetInventory());
+
+				Warrior->GetEquipment()->OnEquipItemImageChanged.AddUObject(
+					PlayerHUDWidget->GetBeltWidget(), &UBeltWidget::OnEquipmentChanged);
 			}
 		}
 	}
@@ -212,6 +215,11 @@ void AWarriorController::BeginPlay()
 			Warrior->GetEquipment()->OnEquipItemImageChanged.AddUObject(
 				MenuWidget, &UMenuWidget::ChangeButtonsImage);
 		}
+	}
+
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->GetEquipment()->OnEquipItemImageChanged.Broadcast();
 	}
 }
 
@@ -809,14 +817,6 @@ void AWarriorController::EquipItem(const FGuid& InID, EEquipmentSlot InSlot)
 
 	// 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
 	Warrior->EquipWeapon(InID, InSlot);
-
-	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
-	if (!BeltWidget)
-	{
-		return;
-	}
-
-	BeltWidget->OnEquipmentChanged();
 }
 
 void AWarriorController::UnequipItem(EEquipmentSlot InSlot)
@@ -829,14 +829,6 @@ void AWarriorController::UnequipItem(EEquipmentSlot InSlot)
 
 	// 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
 	Warrior->UnequipItem(InSlot);
-
-	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
-	if (!BeltWidget)
-	{
-		return;
-	}
-
-	BeltWidget->OnEquipmentChanged();
 }
 
 bool AWarriorController::CheckItemInSlot(const FGuid& InID, EEquipmentSlot InSlot)

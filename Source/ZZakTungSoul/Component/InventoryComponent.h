@@ -25,12 +25,9 @@ struct FInventoryItem
 
 	UPROPERTY()
 	int32 UpgradeLevel = 0;
-
-	UPROPERTY()
-	int32 UseCount = 0;
 };
 
-DECLARE_DELEGATE_OneParam(FOnItemObtainedDelegate, class UItemDataAsset* /*ObtainedItem*/)
+DECLARE_MULTICAST_DELEGATE(FOnItemObtainedDelegate)
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ZZAKTUNGSOUL_API UInventoryComponent : public UActorComponent
@@ -42,13 +39,14 @@ public:
 	UInventoryComponent();
 
 	FORCEINLINE const TArray<FInventoryItem>& GetItems() const { return Items; }
+	FORCEINLINE void SetItems(TArray<FInventoryItem> InItems) { Items = InItems; }
 	void AddItem(UItemDataAsset* ItemData, FGuid InID);
 
 	UItemDataAsset* GetItemData(const FInventoryItem& Item) const;
 
 	const FInventoryItem* FindItemByInstanceID(const FGuid& InInstanceID) const;
 
-	const FInventoryItem* FindItemByAssetID(const FPrimaryAssetId& AssetID) const;
+	FInventoryItem* FindItemByAssetID(const FPrimaryAssetId& AssetID);
 
 	const UItemDataAsset* FindItemDataByInstanceID(const FGuid& InInstanceID) const;
 

@@ -69,6 +69,9 @@ public:
 	FRotator EquipRotation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float AttackPower = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FVector RelativeScale = FVector(1.f, 1.f, 1.f);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

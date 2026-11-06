@@ -19,8 +19,7 @@
 #include <Interface/CharacterStatInterface.h>
 
 #include <Enemy/EnemyBase.h>
-#include <>
-
+#include "UI/Notify/NotificationSubsystem.h"
 
 
 
@@ -178,6 +177,15 @@ void ABonfire::Interact(AActor* detectedActor)
 		{
 			PS->RegisterLitBonfire(BonfireID);
 			PS->SetLastBonfireID(BonfireID);
+		}
+
+		if (UNotificationSubsystem* NotificationSystem =
+			ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
+				GetWorld()->GetFirstLocalPlayerFromController()))
+		{
+			NotificationSystem->ShowNotification(
+				ENotificationType::BornFireLit
+			);
 		}
 
 		// [자동 저장]

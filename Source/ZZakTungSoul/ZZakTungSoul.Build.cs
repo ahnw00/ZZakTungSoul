@@ -31,7 +31,8 @@ public class ZZakTungSoul : ModuleRules
 			new string[] 
 		{
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"Niagara"
 		}
 		);
 

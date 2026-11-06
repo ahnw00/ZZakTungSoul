@@ -15,6 +15,12 @@ void UEquipmentComponent::InitializeComponent()
 
 }
 
+void UEquipmentComponent::BeginPlay()
+{
+    Super::BeginPlay();
+
+}
+
 void UEquipmentComponent::EquipItem(FGuid InstanceID, EEquipmentSlot Slot)
 {
     // 이미 장착된건 또 장착하려고 하면 넘어가
@@ -36,7 +42,7 @@ void UEquipmentComponent::EquipItem(FGuid InstanceID, EEquipmentSlot Slot)
 
     EquippedItems.Add(Slot, InstanceID);
 
-    OnEquipItem.Broadcast(InstanceID, Slot);
+    OnEquipItem.Broadcast();
     OnEquipItemImageChanged.Broadcast();
 }
 

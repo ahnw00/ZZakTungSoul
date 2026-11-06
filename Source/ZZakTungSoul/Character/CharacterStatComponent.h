@@ -143,9 +143,8 @@ public:
 	float GetStaminaRatio() const { return MaxStamina > 0.f ? FMath::Clamp(CurrentStamina / MaxStamina, 0.f, 1.f) : 0.f; }
 
 	
-
-
-
+	// 무기 착용시 공격력 증가시켜주는 함수
+	FORCEINLINE void ApplyWeaponAttackPower(float WeaponPower) { AttackPower += WeaponPower; }
 
 	// [스탯 제어 및 소모 함수].
 	UFUNCTION(BlueprintCallable, Category = "Stat")

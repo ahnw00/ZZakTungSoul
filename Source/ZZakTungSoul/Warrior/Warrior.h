@@ -9,6 +9,7 @@
 #include <Item/ItemObject.h>
 #include "Interface/CharacterStatInterface.h"
 #include <Interface/ItemInterface.h>
+#include <Interface/SaveLoadInterface.h>
 #include "Warrior.generated.h"
 
 
@@ -23,7 +24,8 @@ UCLASS()
 class ZZAKTUNGSOUL_API AWarrior 
 	: public ACharacterBase,
 	public ICharacterStatInterface,
-	public IItemInterface
+	public IItemInterface,
+	public ISaveLoadInterface
 {
 	GENERATED_BODY()
 	
@@ -245,6 +247,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<USkeletalMesh> PotionMesh;
 
+	UPROPERTY()
+	int32 PotionUseCount = 0;
+
 	// 상호작용 관련 변수
 private:
 	// 상호작용할 대상 저장 변수
@@ -258,4 +263,9 @@ public:
 	float TakeDamageTest_2(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);
 	void ReceiveDamageTest_1(const struct FDamageInfo& DamageInfo, const FHitResult& Hit);
 	void ReceiveDamageTest_2(const struct FDamageInfo& DamageInfo, const FHitResult& Hit);
+
+	void SaveWarriorEquipmentData();
+	void SaveWarriorInventoryData();
+	// Inherited via ISaveLoadInterface
+	void LoadWarriorData(const FWarriorSaveData& SaveData) override;
 };

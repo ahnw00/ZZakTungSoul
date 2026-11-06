@@ -3,6 +3,7 @@
 
 #include "Warrior/WarriorPlayerState.h"
 #include <Interface/CharacterStatInterface.h>
+#include <Interface/SaveLoadInterface.h>
 #include <Character/CharacterStatComponent.h>
 
 AWarriorPlayerState::AWarriorPlayerState()
@@ -14,13 +15,19 @@ void AWarriorPlayerState::LoadSaveDataFrom(const FWarriorSaveData& NewSaveData)
 {
 	SaveData = NewSaveData;
 
-	// [스탯 동기화].
+	// [스탯 로드].
 	if (ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(GetPawn()))
 	{
 		if (UCharacterStatComponent* StatComp = StatOwner->GetCharacterStatComponent())
 		{
 			StatComp->UpdateCharacterStat(SaveData.Attributes);
 		}
+	}
+
+	// [인벤토리, 장비 슬롯 로드]
+	if(ISaveLoadInterface* LoadOwner = Cast<ISaveLoadInterface>(GetPawn()))
+	{
+		LoadOwner->LoadWarriorData(SaveData);
 	}
 }
 

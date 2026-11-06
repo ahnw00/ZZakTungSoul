@@ -101,8 +101,7 @@ void UBTTask_ClownEvade::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 	else if (Action != EClownEvadeAction::Backjump && Elapsed < MoveDuration)
 	{
 		const float Alpha = FMath::Clamp(Elapsed / MoveDuration, 0.0f, 1.0f);
-		Move->MaxWalkSpeed =
-			FMath::Max(40.0f, FVector::Dist2D(MoveGoal, TacticalStart) / MoveDuration * 1.65f * FMath::Sin(PI * Alpha));
+		Move->MaxWalkSpeed = FMath::Max(40.0f, FVector::Dist2D(MoveGoal, TacticalStart) / MoveDuration * 1.65f * FMath::Sin(PI * Alpha));
 		const FVector ToGoal = MoveGoal - Clown->GetActorLocation();
 
 		if (ToGoal.Size2D() > 25.0f)
@@ -202,8 +201,7 @@ bool UBTTask_ClownEvade::FindSafeGoal(UBehaviorTreeComponent& OwnerComp, ABossCl
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ClownTacticalPath), false, Clown);
 	Params.AddIgnoredActor(Target);
 	FHitResult Hit;
-	const FCollisionShape Shape =
-		FCollisionShape::MakeCapsule(Clown->GetCapsuleComponent()->GetScaledCapsuleRadius() + 3.0f, Half);
+	const FCollisionShape Shape = FCollisionShape::MakeCapsule(Clown->GetCapsuleComponent()->GetScaledCapsuleRadius() + 3.0f, Half);
 
 	if (Action == EClownEvadeAction::Backjump)
 	{
@@ -227,19 +225,16 @@ bool UBTTask_ClownEvade::BuildJumpVelocity(ABossClown* Clown, AActor* Target, FV
 {
 	const float Gravity = FMath::Max(-Clown->GetCharacterMovement()->GetGravityZ(), 1.0f);
 	const FVector Displacement = MoveGoal - Clown->GetActorLocation();
-	const float Height =
-		FMath::Max(Clown->GetClownAnimationData()->BackjumpHeight, FMath::Max(Displacement.Z, 0.0f) + 10.0f);
+	const float Height = FMath::Max(Clown->GetClownAnimationData()->BackjumpHeight, FMath::Max(Displacement.Z, 0.0f) + 10.0f);
 	const float UpSpeed = FMath::Sqrt(2.0f * Gravity * Height);
-	const float FlightTime =
-		(UpSpeed + FMath::Sqrt(FMath::Max(UpSpeed * UpSpeed - 2.0f * Gravity * Displacement.Z, 0.0f))) / Gravity;
+	const float FlightTime = (UpSpeed + FMath::Sqrt(FMath::Max(UpSpeed * UpSpeed - 2.0f * Gravity * Displacement.Z, 0.0f))) / Gravity;
 	OutVelocity = Displacement.GetSafeNormal2D() * (Displacement.Size2D() / FlightTime);
 	OutVelocity.Z = UpSpeed;
 	Duration = FlightTime + 0.25f;
 
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ClownJumpArc), false, Clown);
 	Params.AddIgnoredActor(Target);
-	const FCollisionShape Shape = FCollisionShape::MakeCapsule(Clown->GetCapsuleComponent()->GetScaledCapsuleRadius(),
-		Clown->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+	const FCollisionShape Shape = FCollisionShape::MakeCapsule(Clown->GetCapsuleComponent()->GetScaledCapsuleRadius(), Clown->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 	const FVector Start = Clown->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f);
 	FVector Previous = Start;
 

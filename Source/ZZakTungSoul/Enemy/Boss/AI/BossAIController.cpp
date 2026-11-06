@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Enemy/Boss/AI/BossAIController.h"
 #include <Enemy/Boss/AI/BTService/BTService_BossCombatInfo.h>
 #include <Enemy/AI/BTService/BTService_UpdateCombatInfo.h>
@@ -163,8 +161,7 @@ void ABossAIController::PrepareBossComposite(UBTCompositeNode* Composite)
 			if (UBTTask_RunBehavior* RunBehavior = Cast<UBTTask_RunBehavior>(Task))
 			{
 				// 실행 전 복제본에서만 하위 트리 연결을 교체. 엔진에 공개 setter가 없음.
-				FObjectPropertyBase* BehaviorProperty =
-					FindFProperty<FObjectPropertyBase>(UBTTask_RunBehavior::StaticClass(), TEXT("BehaviorAsset"));
+				FObjectPropertyBase* BehaviorProperty = FindFProperty<FObjectPropertyBase>(UBTTask_RunBehavior::StaticClass(), TEXT("BehaviorAsset"));
 
 				if (BehaviorProperty && RunBehavior->GetSubtreeAsset())
 				{

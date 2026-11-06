@@ -18,9 +18,22 @@ void UInventoryComponent::AddItem(UItemDataAsset* ItemData, FGuid InID)
 	if (!ItemData)
 		return;
 
+	// 중복으로 가질 수 있는 아이템인지 확인
+	FInventoryItem* ExistedItem = FindItemByAssetID(ItemData->GetPrimaryAssetId());
+	if(ExistedItem)
+	{
+		int32 MaxStack = ItemData->MaxStack;
+		if (ExistedItem->Quantity < MaxStack)
+		{
+			++ExistedItem->Quantity;
+			// 회복 물약 소지 개수 늘려주기 위해 델리게이트 호출
+			OnItemObtained.Broadcast();
+			return;
+		}
+	}
+
 	FInventoryItem AddedItem;
 
-	// 여러개 가질 수 있는 아이템 처리를 위한 FGuid 값
 	AddedItem.InstanceID = InID;
 
 	AddedItem.AssetID = ItemData->GetPrimaryAssetId();
@@ -28,7 +41,7 @@ void UInventoryComponent::AddItem(UItemDataAsset* ItemData, FGuid InID)
 	Items.Add(AddedItem);
 
 	// 아이템 획득 시 델리게이트 호출
-	OnItemObtained.ExecuteIfBound(ItemData);
+	OnItemObtained.Broadcast();
 }
 
 UItemDataAsset* UInventoryComponent::GetItemData(const FInventoryItem& Item) const
@@ -52,6 +65,16 @@ const FInventoryItem* UInventoryComponent::FindItemByInstanceID(const FGuid& InI
 		[&InInstanceID](const FInventoryItem& Item)
 		{
 			return Item.InstanceID == InInstanceID;
+		}
+	);
+}
+
+FInventoryItem* UInventoryComponent::FindItemByAssetID(const FPrimaryAssetId& AssetID)
+{
+	return Items.FindByPredicate(
+		[&AssetID](FInventoryItem& Item)
+		{
+			return Item.AssetID == AssetID;
 		}
 	);
 }

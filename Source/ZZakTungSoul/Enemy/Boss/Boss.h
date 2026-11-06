@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <CoreMinimal.h>
 #include <Enemy/EnemyBase.h>
@@ -174,6 +174,16 @@ public:
 		return BossPhase;
 	}
 
+	UEnemyStatComponent* GetEnemyStatComponent() const
+	{
+		return EnemyStatComponet;
+	}
+
+	const FText& GetBossDisplayName() const
+	{
+		return BossDisplayName;
+	}
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -255,6 +265,8 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Boss|Phase")
 	EBossPhase BossPhase = EBossPhase::Waiting;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|UI")
+	FText BossDisplayName;
 private:
 	TWeakObjectPtr<AActor> EncounterTarget;
 	EBossPhase2TransitionStage Phase2TransitionStage = EBossPhase2TransitionStage::None;
@@ -285,4 +297,6 @@ private:
 
 	bool bEncounterStarted = false;
 	bool bLifecycleChanging = false;
+
+
 };

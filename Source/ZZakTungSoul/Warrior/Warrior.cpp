@@ -497,20 +497,20 @@ void AWarrior::Attack()
 	}
 	case EActionState::Block:
 		BlockEnd();
-		[[fallthrough]];
+		break;
 	case EActionState::Roll:
 		[[fallthrough]];
 	case EActionState::BackStep:
-		[[fallthrough]];
+		return;
 	case EActionState::Attack:
 	{
-		if (bCanComboInput)
+		if (bCanComboInput && !bComboQueued)
 		{
 			bComboQueued = true;
 			// UE_LOG(LogTemp, Warning, TEXT("Attack()== ComboQueued : %d"), bComboQueued);
-			return;
 		}
-		break;
+
+		return;
 	}
 	case EActionState::Hit:
 		return;

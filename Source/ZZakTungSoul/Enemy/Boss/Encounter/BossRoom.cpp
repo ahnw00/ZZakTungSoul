@@ -1,4 +1,4 @@
-#include <Enemy/Boss/Encounter/BossRoom.h>
+﻿#include <Enemy/Boss/Encounter/BossRoom.h>
 #include <Enemy/Boss/Encounter/BossRoomSubsystem.h>
 #include <Enemy/Boss/Boss.h>
 #include <Warrior/Warrior.h>
@@ -17,6 +17,11 @@
 #include <LevelSequenceActor.h>
 #include <LevelSequencePlayer.h>
 #include <MovieSceneSequencePlaybackSettings.h>
+#include "UI/BossHUDWidget.h"
+#include "Components/InputComponent.h"
+#include "InputCoreTypes.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+
 
 ABossRoom::ABossRoom()
 {
@@ -283,6 +288,55 @@ void ABossRoom::OnInteractionEndOverlap(
 	}
 }
 
+void ABossRoom::ShowBossHUD()
+{
+	if (!IsValid(BossActor.Get()))
+	{
+		return;
+	}
+
+	if (!BossHUDWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BossRoom: BossHUDWidgetClass is missing."));
+		return;
+	}
+
+	if (!IsValid(BossHUDWidget.Get()))
+	{
+		BossHUDWidget = CreateWidget<UBossHUDWidget>(
+			GetWorld(),
+			BossHUDWidgetClass
+		);
+	}
+
+	if (!IsValid(BossHUDWidget.Get()))
+	{
+		return;
+	}
+
+	if (!BossHUDWidget->IsInViewport())
+	{
+		BossHUDWidget->AddToViewport(1);
+	}
+
+	BossHUDWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	// 이 방에 지정된 실제 보스 연결
+	BossHUDWidget->BindBoss(BossActor.Get());
+}
+
+void ABossRoom::HideBossHUD()
+{
+	if (!IsValid(BossHUDWidget.Get()))
+	{
+		return;
+	}
+
+	BossHUDWidget->BindBoss(nullptr);
+	BossHUDWidget->RemoveFromParent();
+	BossHUDWidget = nullptr;
+}
+
 void ABossRoom::Interact(AActor* detectedActor)
 {
 	AWarrior* Player = Cast<AWarrior>(detectedActor);
@@ -448,12 +502,43 @@ void ABossRoom::LockPlayer(AWarrior* Player)
 	Controller->SetIgnoreLookInput(true);
 
 	bPlayerInputLocked = true;
+
+	// 시퀀스 동안 보스방이 입력을 먼저 처리
+	InputPriority = 100;
+	bBlockInput = true;
+
+	EnableInput(Controller);
+
+	if (InputComponent)
+	{
+		// 재입장 시 키 바인딩 중복 방지
+		InputComponent->KeyBindings.Reset();
+
+		// 이 입력 컴포넌트 아래의 일반 게임 입력 차단
+		InputComponent->bBlockInput = true;
+
+		// 스킵 입력만 허용
+		InputComponent->BindKey(
+			EKeys::Escape,
+			IE_Pressed,
+			this,
+			&ABossRoom::SkipIntro
+		).bConsumeInput = true;
+	}
+
+	bPlayerInputLocked = true;
+
+	// 현재 표시 중인 UI 숨기기
+	HideSequenceUI();
 }
 
 void ABossRoom::UnlockPlayer()
 {
 	if (APlayerController* Controller = LockedController.Get())
 	{
+		// 시퀀스용 입력 차단 해제
+		DisableInput(Controller);
+
 		if (bPlayerInputLocked)
 		{
 			Controller->SetIgnoreMoveInput(false);
@@ -469,6 +554,8 @@ void ABossRoom::UnlockPlayer()
 	bPlayerInputLocked = false;
 	LockedController.Reset();
 	PreviousViewTarget.Reset();
+
+	RestoreSequenceUI();
 }
 
 void ABossRoom::StopIntro()
@@ -535,7 +622,11 @@ void ABossRoom::BeginBattle()
 	{
 		UE_LOG(LogTemp, Error, TEXT("BossRoom: boss encounter failed to start."));
 		FailAttempt();
+		return;
 	}
+
+	// 전투 시작에 성공한 뒤 실제 보스의 HUD 표시
+	ShowBossHUD();
 }
 
 void ABossRoom::FailAttempt()
@@ -687,4 +778,63 @@ void ABossRoom::DebugResetRoom()
 	bChangingState = false;
 	RefreshGate();
 #endif
+}
+
+void ABossRoom::HideSequenceUI()
+{
+	if (bSequenceUIHidden)
+	{
+		return;
+	}
+
+	bSequenceUIHidden = true;
+	SavedUIVisibility.Reset();
+
+	TArray<UUserWidget*> Widgets;
+
+	// 현재 화면에 추가된 최상위 UI만 가져오기
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(
+		GetWorld(),
+		Widgets,
+		UUserWidget::StaticClass(),
+		true
+	);
+
+	for (UUserWidget* Widget : Widgets)
+	{
+		if (!IsValid(Widget))
+		{
+			continue;
+		}
+
+		// 원래 표시 상태 저장
+		SavedUIVisibility.Add(
+			TWeakObjectPtr<UUserWidget>(Widget),
+			Widget->GetVisibility()
+		);
+
+		Widget->SetVisibility(ESlateVisibility::Hidden);
+	}
+}
+
+void ABossRoom::RestoreSequenceUI()
+{
+	if (!bSequenceUIHidden)
+	{
+		return;
+	}
+
+	for (const auto& Entry : SavedUIVisibility)
+	{
+		UUserWidget* Widget = Entry.Key.Get();
+
+		// 연출 중 제거된 UI는 건너뛰기
+		if (IsValid(Widget) && Widget->IsInViewport())
+		{
+			Widget->SetVisibility(Entry.Value);
+		}
+	}
+
+	SavedUIVisibility.Reset();
+	bSequenceUIHidden = false;
 }

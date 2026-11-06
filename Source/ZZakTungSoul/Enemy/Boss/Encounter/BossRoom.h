@@ -1,8 +1,9 @@
-#pragma once
+﻿#pragma once
 
 #include <CoreMinimal.h>
 #include <GameFramework/Actor.h>
 #include <Interface/InteractableInterface.h>
+#include "Blueprint/UserWidget.h"
 #include "BossRoom.generated.h"
 
 class ABoss;
@@ -16,6 +17,7 @@ class UBoxComponent;
 class UArrowComponent;
 class UStaticMeshComponent;
 class UBossRoomSubsystem;
+class UBossHUDWidget;
 
 UENUM(BlueprintType)
 enum class EBossRoomState : uint8
@@ -98,6 +100,12 @@ private:
 	void OnInteractionEndOverlap(
 		UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+	void ShowBossHUD();
+	void HideBossHUD();
+
+	void HideSequenceUI();
+	void RestoreSequenceUI();
+
 protected:
 	//---------------------------------------------------------------
 	// 보스방 컴포넌트.
@@ -157,6 +165,9 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "BossRoom|State")
 	EBossRoomState RoomState = EBossRoomState::Ready;
 
+	// 보스방 BP에서 표시할 위젯 클래스 지정
+	UPROPERTY(EditDefaultsOnly, Category = "BossRoom|UI")
+	TSubclassOf<UBossHUDWidget> BossHUDWidgetClass;
 private:
 	//---------------------------------------------------------------
 	// 실행 중 생성한 시퀀스 플레이어와 액터.
@@ -184,4 +195,14 @@ private:
 
 	bool bPlayerInputLocked = false;
 	bool bChangingState = false;
+
+	// 이 보스방이 생성한 체력바
+	UPROPERTY(Transient)
+	TObjectPtr<UBossHUDWidget> BossHUDWidget;
+
+
+	// 시퀀스 시작 전 각 위젯의 표시 상태
+	TMap<TWeakObjectPtr<UUserWidget>, ESlateVisibility> SavedUIVisibility;
+
+	bool bSequenceUIHidden = false;
 };

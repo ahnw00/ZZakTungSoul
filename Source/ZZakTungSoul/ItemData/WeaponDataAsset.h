@@ -19,9 +19,6 @@ public:
 	
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float AttackPower = 0.f;  // 실제 플레이어 공격력 스탯에 영향을 주는 수치
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float DamageNegation = 0.f; // 막기 하고 있을 때의 데미지 경감률(스탯에 영향을 주는 수치 아님)
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

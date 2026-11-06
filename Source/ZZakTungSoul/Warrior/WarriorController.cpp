@@ -40,6 +40,8 @@
 #include <Enemy/Boss/Boss.h>
 #include <Enemy/Boss/Clown/BossClown.h>
 #include <Enemy/Components/EnemyStatComponent.h>
+#include <UI/Notify/NotificationSubsystem.h>
+#include "Engine/LocalPlayer.h"
 
 AWarriorController::AWarriorController()
 {
@@ -197,6 +199,9 @@ void AWarriorController::BeginPlay()
 			{
 				PlayerHUDWidget->GetBeltWidget()->SetEquipment(Warrior->GetEquipment());
 				PlayerHUDWidget->GetBeltWidget()->SetInventory(Warrior->GetInventory());
+
+				Warrior->GetEquipment()->OnEquipItemImageChanged.AddUObject(
+					PlayerHUDWidget->GetBeltWidget(), &UBeltWidget::OnEquipmentChanged);
 			}
 		}
 	}
@@ -212,6 +217,11 @@ void AWarriorController::BeginPlay()
 			Warrior->GetEquipment()->OnEquipItemImageChanged.AddUObject(
 				MenuWidget, &UMenuWidget::ChangeButtonsImage);
 		}
+	}
+
+	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
+	{
+		Warrior->GetEquipment()->OnEquipItemImageChanged.Broadcast();
 	}
 }
 
@@ -625,14 +635,6 @@ void AWarriorController::TriggerDebugNum1()
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(""));
 
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->SetWeaponState(EWeaponState::None);
-	}
-}
-
-void AWarriorController::TriggerDebugNum2()
-{
 	auto Test = Cast<ABoss>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoss::StaticClass()));
 
 	if (!Test)
@@ -646,26 +648,64 @@ void AWarriorController::TriggerDebugNum2()
 	ActorCom->SetCurrentHp(10);
 }
 
+void AWarriorController::TriggerDebugNum2()
+{
+	UNotificationSubsystem* NotificationSystem =
+		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
+			GetLocalPlayer()
+		);
+
+	if (NotificationSystem)
+	{
+		NotificationSystem->ShowNotification(
+			ENotificationType::Death
+		);
+	}
+}
+
 void AWarriorController::TriggerDebugNum3()
 {
-	// PrepareClownYabawi
+	UNotificationSubsystem* NotificationSystem =
+		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
+			GetLocalPlayer()
+		);
 
-	auto Test = Cast<ABossClown>(UGameplayStatics::GetActorOfClass(GetWorld(), ABossClown::StaticClass()));
-
-	if (!Test)
-		return;
-
-	Test->PrepareClownYabawi();
+	if (NotificationSystem)
+	{
+		NotificationSystem->ShowNotification(
+			ENotificationType::BossClear
+		);
+	}
 }
 
 void AWarriorController::TriggerDebugNum4()
 {
+	UNotificationSubsystem* NotificationSystem =
+		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
+			GetLocalPlayer()
+		);
 
+	if (NotificationSystem)
+	{
+		NotificationSystem->ShowNotification(
+			ENotificationType::BornFireLit
+		);
+	}
 }
 
 void AWarriorController::TriggerDebugNum5()
 {
+	UNotificationSubsystem* NotificationSystem =
+		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
+			GetLocalPlayer()
+		);
 
+	if (NotificationSystem)
+	{
+		NotificationSystem->ShowNotification(
+			ENotificationType::Region
+		);
+	}
 }
 
 void AWarriorController::TriggerDebugNum6()
@@ -809,14 +849,6 @@ void AWarriorController::EquipItem(const FGuid& InID, EEquipmentSlot InSlot)
 
 	// 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
 	Warrior->EquipWeapon(InID, InSlot);
-
-	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
-	if (!BeltWidget)
-	{
-		return;
-	}
-
-	BeltWidget->OnEquipmentChanged();
 }
 
 void AWarriorController::UnequipItem(EEquipmentSlot InSlot)
@@ -829,14 +861,6 @@ void AWarriorController::UnequipItem(EEquipmentSlot InSlot)
 
 	// 현재 장비 착용 함수로 구현되어있는데 아이템 장비 함수로 구현해야함
 	Warrior->UnequipItem(InSlot);
-
-	UBeltWidget* BeltWidget = PlayerHUDWidget->GetBeltWidget();
-	if (!BeltWidget)
-	{
-		return;
-	}
-
-	BeltWidget->OnEquipmentChanged();
 }
 
 bool AWarriorController::CheckItemInSlot(const FGuid& InID, EEquipmentSlot InSlot)

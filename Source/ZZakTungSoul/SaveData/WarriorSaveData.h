@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include <Component/InventoryComponent.h>
+#include <ItemData/ItemDataAsset.h>
 #include "WarriorSaveData.generated.h"
 
 USTRUCT(BlueprintType)
@@ -46,10 +48,19 @@ struct FWarriorSaveData
     FWarriorAttributeData Attributes;
 
     UPROPERTY()
+    TArray<FInventoryItem> Items;
+
+    UPROPERTY()
+    TMap<EEquipmentSlot, FGuid> EquippedItems;
+
+    UPROPERTY()
     float CurrentHP = 0.f;
 
     UPROPERTY()
     float CurrentFP = 0.f;
+
+    UPROPERTY()
+    int32 PotionUseCount = 0;
 
     UPROPERTY()
     TArray<FName> LitBonfireIDs;

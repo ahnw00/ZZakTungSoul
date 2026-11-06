@@ -33,6 +33,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void PostInitializeComponents() override;
+
 	// 데미지 처리 판정 -> 상위 클래스에서 인터페이스 사용함
 	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit) override;
 
@@ -97,6 +99,9 @@ public:
 	void OnFatalAttackFinished();
 	void OnStunFinished();
 
+	UFUNCTION()
+	void OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 	// 공격중 목표를 향해 보간 회전
 	void RotateToTarget(AActor* TargetActor, float DeltaTime, float RotationSpeed, float MaxAngle);
 
@@ -121,6 +126,10 @@ protected:
 	virtual EEnemyActionState GetActionStateInterface() const override;
 
 	virtual bool GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const override;
+
+private:
+	UPROPERTY()
+	TObjectPtr<class UEnemyBaseAnimInstance> AnimInstance;
 
 public:
 	FOnEnemyDied OnEnemyDied;

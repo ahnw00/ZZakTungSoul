@@ -7,6 +7,7 @@
 #include <Enemy/Animation/EnemyBaseAnimInstance.h>
 #include <Enemy/Components/AttackTraceComponent.h>
 #include <Enemy/Components/EnemyStatComponent.h>
+#include <Enemy/Animation/EnemyBaseAnimInstance.h>
 #include <Character/CharacterStatComponent.h>
 #include <Interface/CombatDamageInterface.h>
 #include <Data/DamageInfo.h>
@@ -100,6 +101,17 @@ void AEnemyBase::BeginPlay()
 	if (EnemyStatComponet)
 	{
 		EnemyStatComponet->OnEnemyHpZero.AddUObject(this, &AEnemyBase::SetDead);
+	}
+}
+
+void AEnemyBase::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	AnimInstance = Cast<UEnemyBaseAnimInstance>(GetMesh()->GetAnimInstance());
+	if (AnimInstance)
+	{
+		AnimInstance->OnMontageEnded.AddDynamic(this, &AEnemyBase::OnActionMontageEnded);
 	}
 }
 
@@ -200,7 +212,7 @@ void AEnemyBase::UpdateMovementSpeedState()
 	}
 
 	// 행동 상태에 따른 이동 속도
-	if (CurrentActionState == EEnemyActionState::Hit || CurrentActionState == EEnemyActionState::Stance || CurrentActionState == EEnemyActionState::Dead)
+	if (CurrentActionState == EEnemyActionState::Hit || CurrentActionState == EEnemyActionState::Groggy || CurrentActionState == EEnemyActionState::Dead)
 	{
 		Movement->MaxWalkSpeed = 0.0f;
 		return;
@@ -270,7 +282,7 @@ void AEnemyBase::UpdateRotationModeState()
 	case EEnemyActionState::Attack:
 	case EEnemyActionState::Hit:
 	case EEnemyActionState::Avoid:
-	case EEnemyActionState::Stance:
+	case EEnemyActionState::Groggy:
 	case EEnemyActionState::Dead:
 
 		bUseControllerRotationYaw = false;
@@ -477,7 +489,7 @@ void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
 		bool bCanChanged = NewActionState == EEnemyActionState::None ||
 			NewActionState == EEnemyActionState::Dead ||
 			NewActionState == EEnemyActionState::Hit  ||
-			NewActionState == EEnemyActionState::Stance;
+			NewActionState == EEnemyActionState::Groggy;
 
 		if (false == bCanChanged)
 		{
@@ -556,14 +568,9 @@ void AEnemyBase::SetStrafeMode(bool bEnable)
 
 void AEnemyBase::OnGetParried()
 {
-	SetEnemyState(EEnemyState::Groggy);
-	SetEnemyActionState(EEnemyActionState::Stance);
-
 	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
 	if (!AIController)
 		return;
-
-	AIController->SetAIWait(true);
 
 	// Trace 중단
 	if (IsValid(AttackTraceComponent))
@@ -571,12 +578,12 @@ void AEnemyBase::OnGetParried()
 		AttackTraceComponent->EndTrace();
 	}
 
-	UEnemyBaseAnimInstance* AnimInstance = Cast<UEnemyBaseAnimInstance>(GetMesh()->GetAnimInstance());
-	if (!AnimInstance)
-	{
-		return;
-	}
+	AnimInstance->StopAllMontages(1.f);
 
+	AIController->SetAIWait(true);
+
+	SetEnemyState(EEnemyState::Groggy);
+	SetEnemyActionState(EEnemyActionState::Groggy);
 	AnimInstance->PlayStunMontage();
 }
 
@@ -594,7 +601,7 @@ void AEnemyBase::OnFatalAttackFinished()
 		return;
 	}
 
-	if (GetEnemyActionState() == EEnemyActionState::Stance)
+	if (GetEnemyActionState() == EEnemyActionState::Groggy)
 	{
 		SetEnemyActionState(EEnemyActionState::None);
 	}
@@ -613,10 +620,29 @@ void AEnemyBase::OnStunFinished()
 		return;
 	}
 
-	if (GetEnemyActionState() == EEnemyActionState::Stance)
+	if (GetEnemyActionState() == EEnemyActionState::Groggy)
 	{
 		SetEnemyActionState(EEnemyActionState::None);
 	}
+
+	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+	if (AIController)
+	{
+		AIController->SetAIWait(false);
+	}
+}
+
+void AEnemyBase::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bInterrupted)
+		return;
+
+	if (IsDeadState())
+	{
+		return;
+	}
+
+	SetEnemyActionState(EEnemyActionState::None);
 
 	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
 	if (AIController)
@@ -712,12 +738,9 @@ bool AEnemyBase::GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const
 
 bool AEnemyBase::CanBeFatalAttacked(AActor* Attacker) const
 {
-	if (CurrentActionState != EEnemyActionState::Stance)
-		return false;
-
 	float Dot = FVector::DotProduct(Attacker->GetActorForwardVector(), GetActorForwardVector());
 
-	// 앞잡 가능
+	// 뒤잡 가능
 	if (Dot > 0.9f)
 		return true;
 
@@ -744,10 +767,12 @@ void AEnemyBase::ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront)
 
 	if (bIsFront)
 	{
+		SetEnemyActionState(EEnemyActionState::GetFrontFatalAttack);
 		Anim->PlayGetFrontFatalAttackMontage();
 	}
 	else
 	{
+		SetEnemyActionState(EEnemyActionState::GetBackFatalAttack);
 		Anim->PlayGetBackFatalAttackMontage();
 	}
 

@@ -19,11 +19,9 @@ public:
 	void Initialize(UClownYabawiComponent* Round, int32 InRoundID, const FClownPhaseOnePattern& Settings);
 	void SetAttackSelectionEnabled(bool bEnabled);
 
-	// Called by the player's weapon hit route, not by an overlap or the E key.
 	UFUNCTION(BlueprintCallable, Category = "Clown|Yabawi")
 	bool ReceivePlayerAttack(AActor* Player, const FHitResult& Hit);
 
-	// Optional future Chaos hook. Keep this actor alive until the round finishes.
 	UFUNCTION(BlueprintNativeEvent, Category = "Clown|Yabawi")
 	void OnBowlStruck(const FHitResult& Hit);
 	virtual void OnBowlStruck_Implementation(const FHitResult& Hit);

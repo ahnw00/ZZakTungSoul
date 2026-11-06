@@ -802,8 +802,7 @@ void ABoss::SetPhase2TransitionStage(EBossPhase2TransitionStage Stage)
 	// 수색은 플레이어의 발견 트리거를 기다리고 시간으로 완료하지 않음.
 	if (bUsePhase2PlaceholderTimings && Stage != EBossPhase2TransitionStage::Searching)
 	{
-		const float Delay = Stage == EBossPhase2TransitionStage::Disappearing ? Phase2DisappearPlaceholderTime
-																			  : Phase2EmergencePlaceholderTime;
+		const float Delay = Stage == EBossPhase2TransitionStage::Disappearing ? Phase2DisappearPlaceholderTime : Phase2EmergencePlaceholderTime;
 		FTimerDelegate NextStage = FTimerDelegate::CreateWeakLambda(this,
 			[this, TransitionID, Stage]()
 			{

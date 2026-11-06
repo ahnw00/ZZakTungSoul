@@ -44,7 +44,9 @@ enum class EEnemyActionState : uint8
 	Hit			/*피격*/,
 	Avoid		/*회피*/,
 	Block		/*가드*/,
-	Stance		/*그로기*/,
+	Groggy		/*그로기*/,
+	GetFrontFatalAttack,
+	GetBackFatalAttack,
 	Dead		/*사망*/
 };
 

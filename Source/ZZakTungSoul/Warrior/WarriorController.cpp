@@ -2,6 +2,7 @@
 
 
 #include "Warrior/WarriorController.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Warrior.h"
 #include <Warrior/WarriorPlayerState.h>
 
@@ -545,18 +546,15 @@ void AWarriorController::ActionPressed()
 
 void AWarriorController::ActionReleased()
 {
-	bActionPressed = false;
+    if (!bActionPressed)
+        return;
 
-	float HoldTime = GetWorld()->GetTimeSeconds() - PressStarted;
-
-	if (HoldTime < 0.2f)
-	{
-		Dodge();
-	}
-	else
-	{
-		SprintEnd();
-	}
+    bActionPressed = false;
+    float HoldTime = GetWorld()->GetTimeSeconds() - PressStarted;
+    if (HoldTime < 0.2f)
+        Dodge();
+    else
+        SprintEnd();
 }
 
 void AWarriorController::UseUpperBeltItem()
@@ -973,4 +971,66 @@ bool AWarriorController::TeleportToBonfire(const FName& TargetBonfireID)
 
 	return true;
 
+}
+
+
+void AWarriorController::BeginDeathPresentation()
+{
+    bActionPressed = false;
+    PressStarted = 0.f;
+    ControlDir = FVector::ZeroVector;
+    FlushPressedKeys();
+
+    if (StatusWindowWidget)
+        StatusWindowWidget->RemoveFromParent();
+    if (MenuWidget)
+    {
+        MenuWidget->ResetMenuWidget();
+        MenuWidget->RemoveFromParent();
+    }
+    if (BonfireMenuWidget)
+        BonfireMenuWidget->RemoveFromParent();
+
+    DeathHiddenWidgets.Empty();
+    TArray<UUserWidget*> Widgets;
+    UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Widgets, UUserWidget::StaticClass(), true);
+    for (UUserWidget* Widget : Widgets)
+    {
+        if (!IsValid(Widget) || !Widget->IsInViewport())
+            continue;
+        DeathHiddenWidgets.Add(TWeakObjectPtr<UUserWidget>(Widget), Widget->GetVisibility());
+        Widget->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    SetIgnoreMoveInput(true);
+    SetIgnoreLookInput(true);
+    SetInputMode(FInputModeUIOnly());
+    bShowMouseCursor = false;
+}
+
+void AWarriorController::EndDeathPresentation()
+{
+    bActionPressed = false;
+    PressStarted = 0.f;
+    ControlDir = FVector::ZeroVector;
+    FlushPressedKeys();
+
+    for (const auto& Entry : DeathHiddenWidgets)
+    {
+        UUserWidget* Widget = Entry.Key.Get();
+        if (IsValid(Widget) && Widget->IsInViewport())
+            Widget->SetVisibility(Entry.Value);
+    }
+    DeathHiddenWidgets.Empty();
+
+    if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+    {
+        if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer))
+            Subsystem->AddMappingContext(IMC_Warrior, 0);
+    }
+
+    ResetIgnoreMoveInput();
+    ResetIgnoreLookInput();
+    SetInputMode(FInputModeGameOnly());
+    bShowMouseCursor = false;
 }

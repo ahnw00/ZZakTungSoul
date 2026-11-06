@@ -1,4 +1,4 @@
-#include <Enemy/Boss/Encounter/BossRoomSubsystem.h>
+﻿#include <Enemy/Boss/Encounter/BossRoomSubsystem.h>
 
 bool UBossRoomSubsystem::HasEntered(FName RoomID) const
 {
@@ -39,4 +39,17 @@ void UBossRoomSubsystem::MarkCleared(FName RoomID)
 void UBossRoomSubsystem::ResetRoom(FName RoomID)
 {
 	RoomProgress.Remove(RoomID);
+}
+
+const TMap<FName, FBossRoomProgress>&
+UBossRoomSubsystem::GetProgressForSave() const
+{
+	return RoomProgress;
+}
+
+void UBossRoomSubsystem::LoadProgressFromSave(
+	const TMap<FName, FBossRoomProgress>& SavedProgress)
+{
+	// 기존 실행 중 이력을 저장된 이력으로 교체
+	RoomProgress = SavedProgress;
 }

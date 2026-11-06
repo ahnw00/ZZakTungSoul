@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include <Component/InventoryComponent.h>
 #include <ItemData/ItemDataAsset.h>
+#include "BossRoomSaveData.h"
 #include "WarriorSaveData.generated.h"
 
 USTRUCT(BlueprintType)
@@ -67,4 +68,7 @@ struct FWarriorSaveData
 
     UPROPERTY()
     FName LastBonfireID;
+
+    UPROPERTY()
+    TMap<FName, FBossRoomProgress> BossRoomProgress;
 };

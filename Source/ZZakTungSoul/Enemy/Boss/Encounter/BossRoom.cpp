@@ -21,7 +21,8 @@
 #include "Components/InputComponent.h"
 #include "InputCoreTypes.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-
+#include "Engine/LocalPlayer.h"
+#include "UI/Notify/NotificationSubsystem.h"
 
 ABossRoom::ABossRoom()
 {
@@ -159,41 +160,41 @@ void ABossRoom::BeginPlay()
 		}
 	}
 
-	RefreshGate();
+	//RefreshGate();
+	bRoomInitialized = true;
+	ApplySavedProgress();
 }
 
 void ABossRoom::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (bChangingState || (RoomState != EBossRoomState::Intro && RoomState != EBossRoomState::Fighting))
+	if (bChangingState ||
+		(RoomState != EBossRoomState::Intro &&
+			RoomState != EBossRoomState::Fighting))
 	{
 		return;
 	}
 
-	//---------------------------------------------------------------
-	// 보스와 플레이어가 동시에 사망했다면 클리어 우선.
-	//
-	//---------------------------------------------------------------
-	if (IsValid(BossActor.Get()) && BossActor->GetBossPhase() == EBossPhase::Dead)
+	// 동시 사망이면 보스 처치 성공을 우선
+	if (IsValid(BossActor.Get()) &&
+		BossActor->GetBossPhase() == EBossPhase::Dead)
 	{
 		FinishClear();
-
 		return;
 	}
 
-	if (!IsValid(BossActor.Get()) || !IsPlayerAlive(EncounterPlayer.Get()))
+	// 보스가 없어졌거나 플레이어가 사망한 경우
+	if (!IsValid(BossActor.Get()) ||
+		!IsPlayerAlive(EncounterPlayer.Get()))
 	{
 		FailAttempt();
-
 		return;
 	}
 
-	//---------------------------------------------------------------
-	// 보스 내부 초기화 또는 연출 취소와 방 상태 동기화.
-	//
-	//---------------------------------------------------------------
-	if (RoomState == EBossRoomState::Fighting && BossActor->GetBossPhase() == EBossPhase::Waiting)
+	// 보스가 내부적으로 초기화됐다면 방도 실패 처리
+	if (RoomState == EBossRoomState::Fighting &&
+		BossActor->GetBossPhase() == EBossPhase::Waiting)
 	{
 		FailAttempt();
 	}
@@ -203,6 +204,7 @@ void ABossRoom::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	bChangingState = true;
 	StopIntro();
+	HideBossHUD();
 
 	//---------------------------------------------------------------
 	// 플레이어의 상호작용 목록에서 제거.
@@ -290,6 +292,8 @@ void ABossRoom::OnInteractionEndOverlap(
 
 void ABossRoom::ShowBossHUD()
 {
+	GetWorldTimerManager().ClearTimer(BossHUDHideTimer);
+
 	if (!IsValid(BossActor.Get()))
 	{
 		return;
@@ -327,6 +331,8 @@ void ABossRoom::ShowBossHUD()
 
 void ABossRoom::HideBossHUD()
 {
+	GetWorldTimerManager().ClearTimer(BossHUDHideTimer);
+
 	if (!IsValid(BossHUDWidget.Get()))
 	{
 		return;
@@ -518,12 +524,12 @@ void ABossRoom::LockPlayer(AWarrior* Player)
 		InputComponent->bBlockInput = true;
 
 		// 스킵 입력만 허용
-		InputComponent->BindKey(
-			EKeys::Escape,
-			IE_Pressed,
-			this,
-			&ABossRoom::SkipIntro
-		).bConsumeInput = true;
+		//InputComponent->BindKey(
+		//	EKeys::Escape,
+		//	IE_Pressed,
+		//	this,
+		//	&ABossRoom::SkipIntro
+		//).bConsumeInput = true;
 	}
 
 	bPlayerInputLocked = true;
@@ -646,6 +652,7 @@ void ABossRoom::FailAttempt()
 	bChangingState = true;
 
 	StopIntro();
+	HideBossHUD();
 
 	if (IsValid(BossActor.Get()))
 	{
@@ -662,24 +669,44 @@ void ABossRoom::FailAttempt()
 void ABossRoom::FinishClear()
 {
 	if (bChangingState || RoomState == EBossRoomState::Cleared)
-	{
 		return;
-	}
 
 	bChangingState = true;
 
 	StopIntro();
-
 	RoomState = EBossRoomState::Cleared;
 
+	// 마지막 체력 감소와 데미지 숫자를 보여준 뒤 체력바 제거.
+	if (BossHUDHideDelay > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(BossHUDHideTimer, this, &ABossRoom::HideBossHUD, BossHUDHideDelay, false);
+	}
+	else
+	{
+		HideBossHUD();
+	}
+
+	// 보스방 클리어 이력 기록.
 	if (UBossRoomSubsystem* Progress = GetRoomSubsystem())
 	{
 		Progress->MarkCleared(RoomID);
 	}
 
-	EncounterPlayer.Reset();
+	// 기존 보스 처치 COMPLETE 알림 표시.
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+	{
+		if (ULocalPlayer* LocalPlayer = PC->GetLocalPlayer())
+		{
+			if (UNotificationSubsystem* Notifications = LocalPlayer->GetSubsystem<UNotificationSubsystem>())
+			{
+				Notifications->ShowNotification(ENotificationType::BossClear);
+			}
+		}
+	}
 
+	EncounterPlayer.Reset();
 	bChangingState = false;
+
 	RefreshGate();
 }
 
@@ -715,6 +742,7 @@ void ABossRoom::DebugResetRoom()
 	bChangingState = true;
 
 	StopIntro();
+	HideBossHUD();
 
 	AWarrior* Player = Cast<AWarrior>(UGameplayStatics::GetPlayerPawn(this, 0));
 
@@ -837,4 +865,106 @@ void ABossRoom::RestoreSequenceUI()
 
 	SavedUIVisibility.Reset();
 	bSequenceUIHidden = false;
+}
+
+void ABossRoom::ApplySavedProgress()
+{
+	// BeginPlay에서 초기 정보가 준비된 뒤 적용
+	if (!bRoomInitialized || RoomID.IsNone())
+	{
+		return;
+	}
+
+	UBossRoomSubsystem* Progress = GetRoomSubsystem();
+
+	if (!Progress || bChangingState)
+	{
+		return;
+	}
+
+	bChangingState = true;
+
+	// 현재 진행 중인 전투와 연출 표시 정리
+	StopIntro();
+	HideBossHUD();
+	EncounterPlayer.Reset();
+
+	if (Progress->IsCleared(RoomID))
+	{
+		// 저장본에서 이미 처치한 보스
+		RoomState = EBossRoomState::Cleared;
+
+		if (IsValid(BossActor.Get()))
+		{
+			BossActor->ResetEncounter();
+			BossActor->Destroy();
+		}
+
+		BossActor = nullptr;
+	}
+	else
+	{
+		// 저장본에서 아직 처치하지 않은 보스
+		RoomState = EBossRoomState::Ready;
+
+		if (IsValid(BossActor.Get()) &&
+			BossActor->GetBossPhase() != EBossPhase::Dead)
+		{
+			// 살아 있는 보스는 전투 초기화
+			BossActor->ResetEncounter();
+		}
+		else if (InitialBossClass)
+		{
+			// 현재 보스가 죽었거나 제거됐다면 재생성
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride =
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			Params.TransformScaleMethod =
+				ESpawnActorScaleMethod::OverrideRootScale;
+
+			ABoss* NewBoss = GetWorld()->SpawnActor<ABoss>(
+				InitialBossClass.Get(),
+				BossInitialTransform,
+				Params
+			);
+
+			if (IsValid(NewBoss))
+			{
+				if (IsValid(BossActor.Get()))
+				{
+					BossActor->Destroy();
+				}
+
+				NewBoss->SetEncounterArena(
+					InitialBossArena.Get()
+				);
+
+				BossActor = NewBoss;
+			}
+			else
+			{
+				UE_LOG(
+					LogTemp,
+					Error,
+					TEXT("BossRoom: failed to restore boss for %s."),
+					*RoomID.ToString()
+				);
+			}
+		}
+		else
+		{
+			UE_LOG(
+				LogTemp,
+				Error,
+				TEXT("BossRoom: initial boss class missing for %s."),
+				*RoomID.ToString()
+			);
+		}
+	}
+
+	bChangingState = false;
+
+	// 시청 이력과 클리어 상태에 맞춰 안개문 갱신
+	RefreshGate();
 }

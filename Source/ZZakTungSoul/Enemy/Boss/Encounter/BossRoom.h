@@ -4,6 +4,7 @@
 #include <GameFramework/Actor.h>
 #include <Interface/InteractableInterface.h>
 #include "Blueprint/UserWidget.h"
+#include "TimerManager.h"
 #include "BossRoom.generated.h"
 
 class ABoss;
@@ -37,6 +38,8 @@ public:
 	ABossRoom();
 
 	virtual void Interact(AActor* detectedActor) override;
+
+	void ApplySavedProgress();
 
 	//---------------------------------------------------------------
 	// 플레이어 사망 등 외부 실패 처리에서도 호출 가능.
@@ -168,6 +171,11 @@ protected:
 	// 보스방 BP에서 표시할 위젯 클래스 지정
 	UPROPERTY(EditDefaultsOnly, Category = "BossRoom|UI")
 	TSubclassOf<UBossHUDWidget> BossHUDWidgetClass;
+
+	// 보스 처치 후 체력바를 유지할 시간
+	UPROPERTY(EditDefaultsOnly, Category = "BossRoom|UI",
+		meta = (ClampMin = "0.0"))
+	float BossHUDHideDelay = 2.5f;
 private:
 	//---------------------------------------------------------------
 	// 실행 중 생성한 시퀀스 플레이어와 액터.
@@ -205,4 +213,7 @@ private:
 	TMap<TWeakObjectPtr<UUserWidget>, ESlateVisibility> SavedUIVisibility;
 
 	bool bSequenceUIHidden = false;
+	FTimerHandle BossHUDHideTimer;
+
+	bool bRoomInitialized = false;
 };

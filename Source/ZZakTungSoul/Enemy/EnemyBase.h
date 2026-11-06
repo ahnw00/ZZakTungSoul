@@ -16,6 +16,8 @@ class UEnemyAnimationData;
 class UCharacterStatComponent;
 class APatrolPath;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnEnemyDied, AEnemyBase*);
+
 /**
  * 
  */
@@ -119,6 +121,9 @@ protected:
 	virtual EEnemyActionState GetActionStateInterface() const override;
 
 	virtual bool GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const override;
+
+public:
+	FOnEnemyDied OnEnemyDied;
 
 protected:
 	// 공격할 때 사용할 데미지 정보 저장 변수

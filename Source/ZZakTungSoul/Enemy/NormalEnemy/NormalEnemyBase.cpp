@@ -3,6 +3,7 @@
 
 #include "Enemy/NormalEnemy/NormalEnemyBase.h"
 #include <Enemy/Data/EnemyAnimationMontageData.h>
+#include <Enemy/Animation/NormalEnemyAnimInstance.h>
 #include <Enemy/Data/EnemyAttackData.h>
 
 bool ANormalEnemyBase::GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const
@@ -44,4 +45,19 @@ bool ANormalEnemyBase::GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo)
     DamageInfo = AttackData->DamageInfo[Index];
 
     return true;
+}
+
+void ANormalEnemyBase::DeadStart()
+{
+    Super::DeadStart();
+
+    SetActorEnableCollision(false);
+
+    UNormalEnemyAnimInstance* AnimInstance = Cast<UNormalEnemyAnimInstance>(GetMesh()->GetAnimInstance());
+    if (!AnimInstance)
+    {
+        return;
+    }
+
+    AnimInstance->PlayActionMontage();
 }

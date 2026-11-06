@@ -14,6 +14,7 @@
 #include <GameFramework/CharacterMovementComponent.h>
 #include <Components/SkeletalMeshComponent.h>
 #include <Components/BoxComponent.h>
+#include <Components/CapsuleComponent.h>
 #include <Kismet/KismetMathLibrary.h>
 #include <Engine/SkeletalMesh.h>
 
@@ -420,13 +421,16 @@ void AEnemyBase::SetDead()
 	// 상위 클래스 공통 로직 실행
 	Super::SetDead();
 
+	// Spawner에 사망 상태 발행
+	OnEnemyDied.Broadcast(this);
+
 	// 실제 사망 로직 실행
 	DeadStart();
 }
 
 void AEnemyBase::DeadStart()
 {
-
+	
 }
 
 void AEnemyBase::SetEnemyMoveState(EEnemyMoveState NewMoveState)

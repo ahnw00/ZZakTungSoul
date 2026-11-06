@@ -145,6 +145,10 @@ public:
 	
 	// 무기 착용시 공격력 증가시켜주는 함수
 	FORCEINLINE void ApplyWeaponAttackPower(float WeaponPower) { AttackPower += WeaponPower; }
+	FORCEINLINE void ResetAttackPower()
+	{
+		AttackPower = GetStatInitialValue(AttackPowerKey);
+	}
 
 	// [스탯 제어 및 소모 함수].
 	UFUNCTION(BlueprintCallable, Category = "Stat")

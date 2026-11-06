@@ -71,11 +71,17 @@ void ANormalEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimu
 	if (Stimulus.WasSuccessfullySensed())
 	{
 		// 플레이어 감지 성공
-		BlackboardComponent->SetValueAsObject(BBKEY_TARGETACTOR, Actor);
-		BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, true);
+		BlackboardComponent->SetValueAsObject(BBKEY_TARGETACTOR, Actor);		
+	}
+	
+	AActor* TargetActor = Cast<AActor>(BlackboardComponent->GetValueAsObject(BBKEY_TARGETACTOR));
+	if (false == IsValid(TargetActor) || TargetActor != Actor)
+	{
+		return;
+	}
 
-		UpdateTargetInfo();
-
+	if (!GetWorldTimerManager().IsTimerActive(TargetInfoUpdateTimerHandle))
+	{
 		GetWorldTimerManager().SetTimer(
 			TargetInfoUpdateTimerHandle,
 			this,
@@ -84,17 +90,8 @@ void ANormalEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimu
 			true
 		);
 	}
-	else
-	{
-		GetWorldTimerManager().ClearTimer(TargetInfoUpdateTimerHandle);
 
-		// Blackboard 초기화
-		BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
-
-		BlackboardComponent->ClearValue(BBKEY_SEARCHLOCATION);
-	}
-
-	UpdateAIFocusState();
+	UpdateTargetInfo();
 }
 
 void ANormalEnemyAIController::UpdateTargetInfo()
@@ -105,17 +102,44 @@ void ANormalEnemyAIController::UpdateTargetInfo()
 		return;
 	}
 
-	// 시야 안에 Target이 있을때 만 갱신
-	if (!BlackboardComp->GetValueAsBool(BBKEY_HASLINEOFSIGHT))
-	{
-		return;
-	}
-
 	// TargetActor 가져오기
 	AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(BBKEY_TARGETACTOR));
 	if (!IsValid(TargetActor))
 	{
 		GetWorldTimerManager().ClearTimer(TargetInfoUpdateTimerHandle);
+		BlackboardComp->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
+
+		UpdateAIFocusState();
+
+		return;
+	}
+
+	APawn* ControllingPawn = GetPawn();
+	if (false == IsValid(ControllingPawn) || false == IsValid(SightConfig))
+	{
+		return;
+	}
+
+	// 타겟과의 거리
+	const float Distance = FVector::DistSquared(ControllingPawn->GetActorLocation(), TargetActor->GetActorLocation());
+
+	const bool bIsInRange = Distance <= FMath::Square(SightConfig->LoseSightRadius);
+
+	// 장애물 확인
+	const bool bHasLOS = bIsInRange && LineOfSightTo(TargetActor);
+
+	const bool bPreviousLOS = BlackboardComp->GetValueAsBool(BBKEY_HASLINEOFSIGHT);
+
+	if (bPreviousLOS != bHasLOS)
+	{
+		BlackboardComp->SetValueAsBool(BBKEY_HASLINEOFSIGHT, bHasLOS);
+		BlackboardComp->ClearValue(BBKEY_SEARCHLOCATION);
+
+		UpdateAIFocusState();
+	}
+
+	if (false == bHasLOS)
+	{
 		return;
 	}
 

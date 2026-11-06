@@ -79,7 +79,7 @@ void AEnemyAIController::UpdateAIFocusState()
 	case EEnemyActionState::Attack:
 	case EEnemyActionState::Hit:
 	case EEnemyActionState::Avoid:
-	case EEnemyActionState::Stance:
+	case EEnemyActionState::Groggy:
 	case EEnemyActionState::Dead:
 
 		ClearFocus(EAIFocusPriority::Gameplay);

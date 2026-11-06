@@ -43,6 +43,9 @@ public:
 	virtual bool GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const override;
 
 protected:
+	virtual void DeadStart() override;
+
+protected:
 	// PatrolPath 참조
 	UPROPERTY(EditInstanceOnly, Category = "Enemy|Patrol")
 	TObjectPtr<APatrolPath> PatrolPath;

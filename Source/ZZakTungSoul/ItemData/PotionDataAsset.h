@@ -19,6 +19,11 @@ class ZZAKTUNGSOUL_API UPotionDataAsset
 public:
 	UPotionDataAsset();
 
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override
+	{
+		return FPrimaryAssetId("ItemData", GetFName());
+	}
+
 	// Inherited via IItemFunctionInterface
 	void ItemFunction(AWarrior* User) const override;
 };

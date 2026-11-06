@@ -7,7 +7,7 @@
 #include <ItemData/ItemDataAsset.h>
 #include "EquipmentComponent.generated.h"
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEquipItem, FGuid, EEquipmentSlot);
+DECLARE_MULTICAST_DELEGATE(FOnEquipItem);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnequipItem, EEquipmentSlot);
 DECLARE_MULTICAST_DELEGATE(FOnEquipItemImageChanged);
 
@@ -23,8 +23,12 @@ public:
 
 protected:
 	virtual void InitializeComponent() override;
+	virtual void BeginPlay() override;
 
 public:
+	FORCEINLINE const TMap<EEquipmentSlot, FGuid> GetEquippedItems() const { return EquippedItems; }
+	FORCEINLINE void SetEquippedItems(TMap<EEquipmentSlot, FGuid> InEquippedItems) { EquippedItems = InEquippedItems; }
+
 	void EquipItem(FGuid InstanceID, EEquipmentSlot Slot);
 
 	void UnequipItem(EEquipmentSlot Slot);

@@ -83,7 +83,7 @@ ABossRoom::ABossRoom()
 	FogMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FogMesh"));
 	FogMesh->SetupAttachment(SceneRoot);
 	FogMesh->SetRelativeLocation(FVector(0, 0, 150));
-	// FogMesh->SetRelativeRotation(FRotator(90, 0, 0));
+
 	FogMesh->SetRelativeScale3D(FVector(3, 4, 1));
 	FogMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	FogMesh->SetGenerateOverlapEvents(false);
@@ -92,7 +92,7 @@ ABossRoom::ABossRoom()
 	OhterSideFogMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OhterSideFogMesh"));
 	OhterSideFogMesh->SetupAttachment(SceneRoot);
 	OhterSideFogMesh->SetRelativeLocation(FVector(0, 0, 150));
-	// OhterSideFogMesh->SetRelativeRotation(FRotator(90, 0, 0));
+
 	OhterSideFogMesh->SetRelativeScale3D(FVector(3, 4, 1));
 	OhterSideFogMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	OhterSideFogMesh->SetGenerateOverlapEvents(false);
@@ -245,7 +245,7 @@ bool ABossRoom::IsPlayerAlive(AWarrior* Player) const
 
 	const UCharacterStatComponent* Stat = Player->GetCharacterStatComponent();
 
-	return true; // Stat && Stat->GetCurrentHP() > 0.0f;
+	return true;
 }
 
 void ABossRoom::OnFirstEntryBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -348,8 +348,7 @@ bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog)
 		//---------------------------------------------------------------
 		ALevelSequenceActor* CreatedIntroActor = nullptr;
 
-		IntroPlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(
-			GetWorld(), IntroSequence.Get(), Settings, CreatedIntroActor);
+		IntroPlayer = ULevelSequencePlayer::CreateLevelSequencePlayer( GetWorld(), IntroSequence.Get(), Settings, CreatedIntroActor);
 		IntroActor = CreatedIntroActor;
 
 		if (!IsValid(IntroPlayer.Get()) || !IsValid(IntroActor.Get()))

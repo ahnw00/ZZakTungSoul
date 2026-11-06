@@ -40,6 +40,8 @@
 #include <Enemy/Boss/Boss.h>
 #include <Enemy/Boss/Clown/BossClown.h>
 #include <Enemy/Components/EnemyStatComponent.h>
+#include <UI/Notify/NotificationSubsystem.h>
+#include "Engine/LocalPlayer.h"
 
 AWarriorController::AWarriorController()
 {
@@ -625,14 +627,6 @@ void AWarriorController::TriggerDebugNum1()
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(""));
 
-	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
-	{
-		Warrior->SetWeaponState(EWeaponState::None);
-	}
-}
-
-void AWarriorController::TriggerDebugNum2()
-{
 	auto Test = Cast<ABoss>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoss::StaticClass()));
 
 	if (!Test)
@@ -646,26 +640,64 @@ void AWarriorController::TriggerDebugNum2()
 	ActorCom->SetCurrentHp(10);
 }
 
+void AWarriorController::TriggerDebugNum2()
+{
+	UNotificationSubsystem* NotificationSystem =
+		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
+			GetLocalPlayer()
+		);
+
+	if (NotificationSystem)
+	{
+		NotificationSystem->ShowNotification(
+			ENotificationType::Death
+		);
+	}
+}
+
 void AWarriorController::TriggerDebugNum3()
 {
-	// PrepareClownYabawi
+	UNotificationSubsystem* NotificationSystem =
+		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
+			GetLocalPlayer()
+		);
 
-	auto Test = Cast<ABossClown>(UGameplayStatics::GetActorOfClass(GetWorld(), ABossClown::StaticClass()));
-
-	if (!Test)
-		return;
-
-	Test->PrepareClownYabawi();
+	if (NotificationSystem)
+	{
+		NotificationSystem->ShowNotification(
+			ENotificationType::BossClear
+		);
+	}
 }
 
 void AWarriorController::TriggerDebugNum4()
 {
+	UNotificationSubsystem* NotificationSystem =
+		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
+			GetLocalPlayer()
+		);
 
+	if (NotificationSystem)
+	{
+		NotificationSystem->ShowNotification(
+			ENotificationType::BornFireLit
+		);
+	}
 }
 
 void AWarriorController::TriggerDebugNum5()
 {
+	UNotificationSubsystem* NotificationSystem =
+		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
+			GetLocalPlayer()
+		);
 
+	if (NotificationSystem)
+	{
+		NotificationSystem->ShowNotification(
+			ENotificationType::Region
+		);
+	}
 }
 
 void AWarriorController::TriggerDebugNum6()

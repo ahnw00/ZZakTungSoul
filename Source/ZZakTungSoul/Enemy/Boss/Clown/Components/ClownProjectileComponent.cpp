@@ -30,14 +30,8 @@ UClownProjectileComponent::UClownProjectileComponent()
 
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
-		const FString BallPath = FString::Printf(
-			TEXT(
-				"/Game/Assets/Beach_Ball_-_Low_Poly/beach_ball_low_poly/Textures/beach_ball_low_poly_texture_%d.beach_ball_low_poly_texture_%d"),
-			Index, Index);
-		const FString CubePath = FString::Printf(
-			TEXT(
-				"/Game/Assets/CC0_-_Magic_Cube/cc0_magic_cube/Textures/cc0_magic_cube_texture_%d.cc0_magic_cube_texture_%d"),
-			Index, Index);
+		const FString BallPath = FString::Printf( TEXT( "/Game/Assets/Beach_Ball_-_Low_Poly/beach_ball_low_poly/Textures/beach_ball_low_poly_texture_%d.beach_ball_low_poly_texture_%d"), Index, Index);
+		const FString CubePath = FString::Printf( TEXT( "/Game/Assets/CC0_-_Magic_Cube/cc0_magic_cube/Textures/cc0_magic_cube_texture_%d.cc0_magic_cube_texture_%d"), Index, Index);
 		ConstructorHelpers::FObjectFinder<UTexture2D> BallTextureRef(*BallPath);
 		ConstructorHelpers::FObjectFinder<UTexture2D> CubeTextureRef(*CubePath);
 		BallTextures.Add(BallTextureRef.Object);
@@ -512,8 +506,7 @@ void UClownProjectileComponent::TickCubeMarch(float DeltaTime)
 			const float FloorZ = CubeStart.Z;
 			CubeStart = Center + CubeStartOffset;
 			CubeEnd = Center + CubeEndOffset;
-			const UBoxComponent* Arena =
-				CubeAimArena.IsValid() ? CubeAimArena->FindComponentByClass<UBoxComponent>() : nullptr;
+			const UBoxComponent* Arena = CubeAimArena.IsValid() ? CubeAimArena->FindComponentByClass<UBoxComponent>() : nullptr;
 
 			if (Arena)
 			{
@@ -522,10 +515,8 @@ void UClownProjectileComponent::TickCubeMarch(float DeltaTime)
 				for (FVector* Point : {&CubeStart, &CubeEnd})
 				{
 					FVector Local = Arena->GetComponentTransform().InverseTransformPosition(*Point);
-					Local.X =
-						FMath::Clamp(Local.X, -FMath::Max(Extent.X - 52.0f, 0.0f), FMath::Max(Extent.X - 52.0f, 0.0f));
-					Local.Y =
-						FMath::Clamp(Local.Y, -FMath::Max(Extent.Y - 52.0f, 0.0f), FMath::Max(Extent.Y - 52.0f, 0.0f));
+					Local.X = FMath::Clamp(Local.X, -FMath::Max(Extent.X - 52.0f, 0.0f), FMath::Max(Extent.X - 52.0f, 0.0f));
+					Local.Y = FMath::Clamp(Local.Y, -FMath::Max(Extent.Y - 52.0f, 0.0f), FMath::Max(Extent.Y - 52.0f, 0.0f));
 					*Point = Arena->GetComponentTransform().TransformPosition(Local);
 				}
 			}
@@ -582,8 +573,7 @@ void UClownProjectileComponent::TickCubeMarch(float DeltaTime)
 	}
 	else if (CubeElapsed >= CubeMarchTime - 1.8f)
 	{
-		Position = FMath::Lerp(
-			CubeAssembly, CubeStart, FMath::SmoothStep(0.0f, 1.0f, (CubeElapsed - CubeMarchTime + 1.8f) / 0.8f));
+		Position = FMath::Lerp( CubeAssembly, CubeStart, FMath::SmoothStep(0.0f, 1.0f, (CubeElapsed - CubeMarchTime + 1.8f) / 0.8f));
 	}
 
 	FHitResult BlockingHit;

@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include <Enemy/Boss/Anim/BossAnimInstance.h>
 
 UBossAnimInstance::UBossAnimInstance()
@@ -68,8 +66,7 @@ void UBossAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		DesiredDirection = FMath::FindDeltaAngleDegrees(PawnRot.Yaw, MoveRot.Yaw);
 	}
 
-	Direction = FMath::FInterpTo(
-		Direction, Direction + FMath::FindDeltaAngleDegrees(Direction, DesiredDirection), DeltaSeconds, 10.0f);
+	Direction = FMath::FInterpTo( Direction, Direction + FMath::FindDeltaAngleDegrees(Direction, DesiredDirection), DeltaSeconds, 10.0f);
 	Direction = FRotator::NormalizeAxis(Direction);
 
 	//---------------------------------------------------------------

@@ -15,7 +15,7 @@ class AClownYabawiBowl;
 UENUM(BlueprintType)
 enum class EBossClownAttack : uint8
 {
-	// Attack behavior identifiers. Montage phase usage is configured per attack entry.
+
 	HammerSweep,
 	HammerSlam,
 	FastChaseSlam,
@@ -25,7 +25,6 @@ enum class EBossClownAttack : uint8
 	SpawnCards,
 	CubeBarrage,
 
-	// Uses the same Attack / AttackVariants montage and phase settings as other attacks.
 	Yabawi,
 };
 
@@ -101,7 +100,6 @@ struct FClownPhaseOnePattern
 		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "200"))
 	float BowlSpacing = 280.0f;
 
-	// The query box reaches above the bowl so ordinary weapon swings can hit it.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
 		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "50"))
 	float BowlHitHeight = 160.0f;

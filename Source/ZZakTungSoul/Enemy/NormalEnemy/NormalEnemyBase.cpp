@@ -53,11 +53,11 @@ void ANormalEnemyBase::DeadStart()
 
     SetActorEnableCollision(false);
 
-    UNormalEnemyAnimInstance* AnimInstance = Cast<UNormalEnemyAnimInstance>(GetMesh()->GetAnimInstance());
-    if (!AnimInstance)
+    UNormalEnemyAnimInstance* NormalEnemyAnimInstance = Cast<UNormalEnemyAnimInstance>(GetMesh()->GetAnimInstance());
+    if (!NormalEnemyAnimInstance)
     {
         return;
     }
 
-    AnimInstance->PlayActionMontage();
+    NormalEnemyAnimInstance->PlayActionMontage();
 }

@@ -5,6 +5,7 @@
 #include <Engine/OverlapResult.h>
 
 #include <GamePlay/ZTSGameMode.h>
+#include <Gimmick/RestorePropSubsystem.h>
 
 #include <Components/StaticMeshComponent.h>
 #include <Components/SphereComponent.h>
@@ -226,5 +227,11 @@ void ABonfire::Interact(AActor* detectedActor)
 
 		// 휴식 델리게이트 방송.
 		OnBonfireRest.Broadcast();
+
+		// 부서진 프롭 복원.
+		if (URestorePropSubsystem* RestoreProp = GetWorld()->GetSubsystem<URestorePropSubsystem>())
+		{
+			RestoreProp->RestoreProps();
+		}
 	}
 }

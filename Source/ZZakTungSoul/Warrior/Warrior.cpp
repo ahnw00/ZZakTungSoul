@@ -138,6 +138,10 @@ AWarrior::AWarrior()
 	// Trace 무기 판정 -> 장착 가능한 무기 수만큼 컴포너트 추가하면 됩니다. EX) 쌍검 쓸거면 하나 더 추가...
 	// Trace Component 설정
 	AttackTraceComponent = CreateDefaultSubobject<UAttackTraceComponent>(TEXT("RightAttackTraceComponent"));
+	AttackTraceComponentLeft = CreateDefaultSubobject<UAttackTraceComponent>(TEXT("LeftAttackTraceComponent"));
+	AttackTraceComponentLeft->ComponentTags.Remove(TEXT("AttackTrace"));
+	AttackTraceComponentLeft->ComponentTags.AddUnique(TEXT("AttackTraceLeft"));
+
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> PotionMeshRef(
 		TEXT("/Game/Assets/Low_Poly_Soda_Can/SKM_CanLowGrade.SKM_CanLowGrade")
@@ -1009,6 +1013,10 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		LeftHandWeapon->SetRelativeRotation(InItem->EquipRotation);
 		LeftHandWeapon->SetRelativeScale3D(InItem->RelativeScale);
 		// Todo: 왼쪽 AttackTraceComponent에 메시 설정해주기
+		AttackTraceComponentLeft->SetTraceMesh(LeftHandWeapon);
+
+		CharacterStatComponent->ApplyWeaponAttackPower(InItem->AttackPower);
+		UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 	}
 	
 	// Todo: 방어구도 여기서 해줘야해

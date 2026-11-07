@@ -436,8 +436,12 @@ void AEnemyBase::SetDead()
 	// Spawner에 사망 상태 발행
 	OnEnemyDied.Broadcast(this);
 
-	// 실제 사망 로직 실행
-	DeadStart();
+	// FatalAttack 중이면 건너뛰기
+	if (false == bReceiveFatalAttack)
+	{
+		// 실제 사망 로직 실행
+		DeadStart();
+	}
 }
 
 void AEnemyBase::DeadStart()
@@ -489,7 +493,9 @@ void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
 		bool bCanChanged = NewActionState == EEnemyActionState::None ||
 			NewActionState == EEnemyActionState::Dead ||
 			NewActionState == EEnemyActionState::Hit  ||
-			NewActionState == EEnemyActionState::Groggy;
+			NewActionState == EEnemyActionState::Groggy ||
+			NewActionState == EEnemyActionState::GetFrontFatalAttack ||
+			NewActionState == EEnemyActionState::GetBackFatalAttack;
 
 		if (false == bCanChanged)
 		{
@@ -598,10 +604,13 @@ void AEnemyBase::OnFatalAttackFinished()
 
 	if (IsDeadState())
 	{
+		DeadStart();
 		return;
 	}
 
-	if (GetEnemyActionState() == EEnemyActionState::Groggy)
+	if (GetEnemyActionState() == EEnemyActionState::Groggy ||
+		GetEnemyActionState() == EEnemyActionState::GetBackFatalAttack ||
+		GetEnemyActionState() == EEnemyActionState::GetFrontFatalAttack)
 	{
 		SetEnemyActionState(EEnemyActionState::None);
 	}
@@ -639,6 +648,7 @@ void AEnemyBase::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 
 	if (IsDeadState())
 	{
+		DeadStart();
 		return;
 	}
 

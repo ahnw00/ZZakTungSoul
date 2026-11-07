@@ -215,6 +215,9 @@ protected:
 	TObjectPtr<class UAttackTraceComponent> AttackTraceComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
+	TObjectPtr<class UAttackTraceComponent> AttackTraceComponentLeft;
+
+	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
 	TObjectPtr<class UAttackTraceComponent> ParryTraceComponent;
 	
 

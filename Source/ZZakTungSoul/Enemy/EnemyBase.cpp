@@ -76,7 +76,6 @@ AEnemyBase::AEnemyBase()
 
 	// AIController 설정
 	AIControllerClass = AEnemyAIController::StaticClass();
-	AIControllerClass = AEnemyAIController::StaticClass();
 
 	// AI제어 타입 설정
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;

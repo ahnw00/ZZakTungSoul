@@ -152,8 +152,6 @@ protected:
 	FTimerHandle RespawnTimer;
 	bool bDeathMontageFinished = false;
 
-	UFUNCTION()
-	void HandlePlayerHPChanged(float CurrentHP, float MaxHP);
 public:
 
 	void SprintStart();

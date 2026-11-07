@@ -47,6 +47,8 @@
 #include <EngineUtils.h>
 #include <GameFramework/PlayerController.h>
 
+#include "GameFramework/GameModeBase.h"
+
 AWarrior::AWarrior()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need
@@ -169,10 +171,7 @@ void AWarrior::BeginPlay()
 
 	if (CharacterStatComponent)
 	{
-		CharacterStatComponent->OnHPChanged.AddUniqueDynamic(
-			this,
-			&AWarrior::HandlePlayerHPChanged
-		);
+		CharacterStatComponent->OnHPZero.AddUObject(this, &AWarrior::SetDead);
 	}
 
 	// Delegate 연결
@@ -465,14 +464,6 @@ void AWarrior::SetDead()
 
     UE_LOG(LogTemp, Warning, TEXT("[Death] 사망 몽타주가 없거나 재생에 실패했습니다."));
     FinishDeathMontage();
-}
-
-void AWarrior::HandlePlayerHPChanged(float CurrentHP, float MaxHP)
-{
-	if (!IsDead() && MaxHP > 0.f && CurrentHP <= 0.f)
-	{
-		SetDead();
-	}
 }
 
 void AWarrior::SprintStart()
@@ -1381,12 +1372,42 @@ void AWarrior::RespawnAtLastBonfire()
         return;
     }
 
-    const FName LastBonfireID = PS->GetLastBonfireID();
-    if (LastBonfireID.IsNone() || !PC->TeleportToBonfire(LastBonfireID))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[Respawn] 마지막 화톳불 이동 실패: %s"), *LastBonfireID.ToString());
-        return;
-    }
+	const FName LastBonfireID = PS->GetLastBonfireID();
+
+	// 마지막 화톳불로 우선 이동
+	bool bMoved = !LastBonfireID.IsNone()
+		&& PC->TeleportToBonfire(LastBonfireID);
+
+	// 기록이 없거나 이동에 실패하면 PlayerStart 사용
+	if (!bMoved)
+	{
+		AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
+		AActor* Start = GameMode
+			? GameMode->FindPlayerStart(PC)
+			: nullptr;
+
+		if (IsValid(Start))
+		{
+			const FRotator StartRotation = Start->GetActorRotation();
+
+			bMoved = TeleportTo(
+				Start->GetActorLocation(),
+				StartRotation
+			);
+
+			if (bMoved)
+			{
+				PC->SetControlRotation(StartRotation);
+			}
+		}
+	}
+
+	if (!bMoved)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[Respawn] 화톳불 및 PlayerStart 복귀 실패"));
+		return;
+	}
 
     if (AnimInstance)
         AnimInstance->Montage_Stop(0.f);

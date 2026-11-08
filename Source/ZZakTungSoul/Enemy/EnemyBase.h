@@ -58,6 +58,9 @@ protected:
 	// 사망 시 실제 실행될 로직 함수 -> 자식 클래스에서 각자 구현
 	virtual void DeadStart();
 
+	// 피격 함수
+	virtual void HitStart();
+
 public:
 	// Getter / Setter
 	// 현재 적 상태 반환
@@ -104,6 +107,9 @@ public:
 
 	// 공격중 목표를 향해 보간 회전
 	void RotateToTarget(AActor* TargetActor, float DeltaTime, float RotationSpeed, float MaxAngle);
+
+	// 자체 초기화
+	virtual void ResetEnemy(const FTransform& SpawnTransform);
 
 private:
 	// 패링 당했을 때 호출될 함수(델리게이트에 바인드해줄 함수)
@@ -180,6 +186,10 @@ protected:
 	// 공격 판정을 위한 Trace Component
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
 	TObjectPtr<class UAttackTraceComponent> AttackTraceComponent;
+
+	// 현재 재생 중인 Montage
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> CurrentFatalMontage = nullptr;
 
 	// Strafe 여부 플래그
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")

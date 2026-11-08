@@ -4,6 +4,8 @@
 #include "Enemy/NormalEnemy/NormalEnemyBase.h"
 #include <Enemy/Data/EnemyAnimationMontageData.h>
 #include <Enemy/Animation/NormalEnemyAnimInstance.h>
+#include <Enemy/Components/AttackTraceComponent.h>
+#include <Enemy/EnemyAIController.h>
 #include <Enemy/Data/EnemyAttackData.h>
 
 bool ANormalEnemyBase::GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const
@@ -60,4 +62,33 @@ void ANormalEnemyBase::DeadStart()
     }
 
     NormalEnemyAnimInstance->PlayActionMontage();
+}
+
+void ANormalEnemyBase::HitStart()
+{
+    UNormalEnemyAnimInstance* NormalEnemyAnimInstance = Cast<UNormalEnemyAnimInstance>(GetMesh()->GetAnimInstance());
+    if (!NormalEnemyAnimInstance)
+    {
+        SetEnemyActionState(EEnemyActionState::None);
+        return;
+    }
+
+    AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+    if (IsValid(AIController))
+    {
+        AIController->SetAIWait(true);
+        AIController->StopMovement();
+    }
+
+    if (IsValid(AttackTraceComponent))
+    {
+        AttackTraceComponent->EndTrace();
+    }
+
+    // Montage 실행
+    if (false == NormalEnemyAnimInstance->PlayActionMontage())
+    {
+        SetEnemyActionState(EEnemyActionState::None);
+        AIController->SetAIWait(false);
+    }
 }

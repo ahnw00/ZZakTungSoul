@@ -73,6 +73,17 @@ void UEnemyStatComponent::ApplyDamage(const FDamageInfo& DamageInfo)
 	UE_LOG(LogTemp, Log, TEXT("Current HP: %f"), CurrentHp);
 }
 
+void UEnemyStatComponent::ResetEnemyStat()
+{
+	// 스탯 및 상태 초기화
+	InitializeEnemyStat();
+
+	bIsPoiseOver = false;
+	bIsStanceOver = false;
+
+	OnEnemyHpChanged.Broadcast(CurrentHp, MaxHp);
+}
+
 void UEnemyStatComponent::InitializeEnemyStat()
 {
 	// Enemy Stat DataTable Row 가져오기

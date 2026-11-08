@@ -50,6 +50,11 @@ ANormalEnemyAIController::ANormalEnemyAIController()
 
 void ANormalEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
+	if (false == IsAIActive())
+	{
+		return;
+	}
+
 	if (!Actor)
 	{
 		return;
@@ -96,6 +101,11 @@ void ANormalEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimu
 
 void ANormalEnemyAIController::UpdateTargetInfo()
 {
+	if (false == IsAIActive())
+	{
+		return;
+	}
+
 	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
 	if (nullptr == BlackboardComp)
 	{
@@ -155,4 +165,59 @@ void ANormalEnemyAIController::UpdateTargetInfo()
 	{
 		BlackboardComp->SetValueAsVector(BBKEY_LASTKNOWNDIRECTION, TargetVelocity.GetSafeNormal());
 	}
+}
+
+void ANormalEnemyAIController::ActiveInitialize(bool bActive)
+{
+	if (false == IsValid(EnemyPerceptionComponent))
+	{
+		return;
+	}
+
+	if (bActive)
+	{
+		ClearTargetInfo();
+
+		EnemyPerceptionComponent->SetSenseEnabled(UAISense_Sight::StaticClass(), true);
+		EnemyPerceptionComponent->RequestStimuliListenerUpdate();
+	}
+	else
+	{
+		EnemyPerceptionComponent->SetSenseEnabled(UAISense_Sight::StaticClass(), false);
+		EnemyPerceptionComponent->ForgetAll();
+
+		ClearTargetInfo();
+	}
+}
+
+void ANormalEnemyAIController::ClearTargetInfo()
+{
+	GetWorldTimerManager().ClearTimer(TargetInfoUpdateTimerHandle);
+
+	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
+	if (false == IsValid(BlackboardComp))
+	{
+		return;
+	}
+
+	// Blackboard 초기화
+	// Target Actor
+	BlackboardComp->ClearValue(BBKEY_TARGETACTOR);
+
+	// Has Line Of Sight
+	BlackboardComp->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
+
+	// Location
+	BlackboardComp->ClearValue(BBKEY_LASTKNOWNLOCATION);
+	BlackboardComp->ClearValue(BBKEY_LASTKNOWNDIRECTION);
+	BlackboardComp->ClearValue(BBKEY_SEARCHLOCATION);
+	BlackboardComp->ClearValue(BBKEY_STRAFELOCATION);
+
+	BlackboardComp->SetValueAsBool(BBKEY_ISCLOSETOTARGET, false);
+	BlackboardComp->SetValueAsBool(BBKEY_ISINATTACKRANGE, false);
+	BlackboardComp->SetValueAsBool(BBKEY_ISINCOMBATRANGE, false);
+
+	BlackboardComp->SetValueAsFloat(BBKEY_TARGETDISTANCE, -1.0f);
+
+	ClearFocus(EAIFocusPriority::Gameplay);
 }

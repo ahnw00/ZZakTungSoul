@@ -9,6 +9,7 @@
 #include <BehaviorTree/BehaviorTree.h>
 #include <BehaviorTree/BlackboardData.h>
 #include <BehaviorTree/BlackboardComponent.h>
+#include <BrainComponent.h>
 
 AEnemyAIController::AEnemyAIController()
 {
@@ -120,6 +121,11 @@ void AEnemyAIController::UpdateAIFocusState()
 	}
 }
 
+void AEnemyAIController::ActiveInitialize(bool bActive)
+{
+
+}
+
 void AEnemyAIController::StopAIController()
 {
 	UBehaviorTreeComponent* BTComp = Cast< UBehaviorTreeComponent>(BrainComponent);
@@ -216,4 +222,87 @@ void AEnemyAIController::SetAIWait(bool bIsWait)
 	{
 		StopMovement();
 	}
+}
+
+void AEnemyAIController::SetAIActive(bool bActive)
+{
+	AEnemyBase* Enemy = Cast<AEnemyBase>(GetPawn());
+	if (false == IsValid(Enemy) || Enemy->IsDead())
+	{
+		return;
+	}
+
+	// 중복 방지
+	if (bAIActive == bActive)
+	{
+		return;
+	}
+
+	UBrainComponent* BrainComp = GetBrainComponent();
+	if (false == IsValid(BrainComp))
+	{
+		return;
+	}
+
+	if (bActive)
+	{
+		ActiveInitialize(true);
+
+		// AI On
+		BrainComp->RestartLogic();
+
+		UpdateAIFocusState();
+	}
+	else
+	{
+		// AI Off
+		BrainComp->StopLogic(TEXT("Far from Player"));
+
+		StopMovement();
+
+		ClearFocus(EAIFocusPriority::Gameplay);
+
+		ActiveInitialize(false);
+	}
+
+	bAIActive = bActive;
+
+	UE_LOG(LogTemp, Warning, TEXT("AI Active %s : %s"), *GetNameSafe(Enemy), bAIActive ? TEXT("On") : TEXT("OFF"));
+}
+
+void AEnemyAIController::EnemyContollerReset()
+{
+	UBrainComponent* BrainComp = GetBrainComponent();
+	if (IsValid(BrainComp))
+	{
+		BrainComp->StopLogic(TEXT("Reset Enemy"));
+	}
+
+	StopMovement();
+	ClearFocus(EAIFocusPriority::Gameplay);
+
+	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
+	if (false == IsValid(BlackboardComp))
+	{
+		return;
+	}
+
+	BlackboardComp->ClearValue(BBKEY_TARGETACTOR);
+
+	BlackboardComp->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
+	BlackboardComp->SetValueAsBool(BBKEY_ISWAIT, false);
+	BlackboardComp->SetValueAsBool(BBKEY_ISINCOMBATRANGE, false);
+	BlackboardComp->SetValueAsBool(BBKEY_ISINATTACKRANGE, false);
+	BlackboardComp->SetValueAsBool(BBKEY_ISCLOSETOTARGET, false);
+
+	BlackboardComp->ClearValue(BBKEY_LASTKNOWNLOCATION);
+	BlackboardComp->ClearValue(BBKEY_LASTKNOWNDIRECTION);
+	BlackboardComp->ClearValue(BBKEY_SEARCHLOCATION);
+	BlackboardComp->ClearValue(BBKEY_STRAFELOCATION);
+	BlackboardComp->ClearValue(BBKEY_PATROLLOCATION);
+
+	BlackboardComp->SetValueAsInt(BBKEY_PATROLINDEX, 0);
+	BlackboardComp->SetValueAsFloat(BBKEY_TARGETDISTANCE, 0.0f);
+
+	bAIActive = false;
 }

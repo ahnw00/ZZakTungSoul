@@ -9,6 +9,7 @@
 #include <Enemy/AI/EnemyAIBlackboardKey.h>
 
 #include <Engine/World.h>
+#include <Engine/TargetPoint.h>
 #include <BehaviorTree/BlackboardComponent.h>
 
 // Sets default values
@@ -95,8 +96,13 @@ AEnemyBase* AEnemySpawner::SpawnEnemy(int32 Index)
 		return nullptr;
 	}
 
+	if (false == IsValid(SpawnData.SpawnPoint))
+	{
+		return nullptr;
+	}
+
 	// 상대 Transform -> 월드 Transform 변환
-	const FTransform WorldTransform = SpawnData.SpawnTransform * GetActorTransform();
+	const FTransform WorldTransform = SpawnData.SpawnPoint->GetActorTransform();
 
 	// Spawn Actor Deferred
 	AEnemyBase* NewEnemy = World->SpawnActorDeferred<AEnemyBase>(
@@ -187,9 +193,16 @@ void AEnemySpawner::ResetEnemies()
 				AIController->EnemyContollerReset();
 			}
 
-			const FTransform SpawnTransform = SpawnDataList[Index].SpawnTransform * GetActorTransform();
+			ATargetPoint* SpawnPoint = SpawnDataList[Index].SpawnPoint.Get();
+			if (false == IsValid(SpawnPoint))
+			{
+				continue;
+			}
+
+			const FTransform SpawnTransform = SpawnPoint->GetActorTransform();
 
 			Enemy->ResetEnemy(SpawnTransform);
+
 			if (IsValid(AIController))
 			{
 				UBlackboardComponent* BlackboardComp = AIController->GetBlackboardComponent();

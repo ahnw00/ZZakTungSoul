@@ -42,6 +42,9 @@ public:
 	// Reset
 	void EnemyContollerReset();
 
+	// AI최초 실행 시 진행할 로직
+	bool StartAIFirstAction(AActor* TargetActor);
+
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 

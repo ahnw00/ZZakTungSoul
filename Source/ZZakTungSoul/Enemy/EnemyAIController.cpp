@@ -148,7 +148,7 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 	// 자동 실행을 사용하지 않는 적은 BT 시작을 건너뜀.
 	//
 	//---------------------------------------------------------------
-	if (!Enemy || !Enemy->ShouldAutoStartAI())
+	if (!Enemy)
 	{
 		return;
 	}
@@ -179,6 +179,14 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 	BlackboardComponent->ClearValue(BBKEY_TARGETACTOR);
 	BlackboardComponent->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
 	BlackboardComponent->SetValueAsVector(BBKEY_HOMELOCATION, Enemy->GetActorLocation());
+
+	if (false == Enemy->ShouldAutoStartAI())
+	{
+		bAIActive = false;
+		ActiveInitialize(false);
+
+		return;
+	}
 
 	// Behavior Tree 실행
 	RunBehaviorTree(BehaviorTreeAsset);
@@ -281,6 +289,8 @@ void AEnemyAIController::EnemyContollerReset()
 	StopMovement();
 	ClearFocus(EAIFocusPriority::Gameplay);
 
+	bAIActive = false;
+
 	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
 	if (false == IsValid(BlackboardComp))
 	{
@@ -303,6 +313,35 @@ void AEnemyAIController::EnemyContollerReset()
 
 	BlackboardComp->SetValueAsInt(BBKEY_PATROLINDEX, 0);
 	BlackboardComp->SetValueAsFloat(BBKEY_TARGETDISTANCE, 0.0f);
+}
 
-	bAIActive = false;
+bool AEnemyAIController::StartAIFirstAction(AActor* TargetActor)
+{
+	AEnemyBase* Enemy = Cast<AEnemyBase>(GetPawn());
+	if (false == IsValid(Enemy) || false == IsValid(TargetActor) || Enemy->IsDeadState())
+	{
+		return false;
+	}
+
+	// 중복 실행 방지 - 이미 AI 활성화 상태
+	if (bAIActive)
+	{
+		return false;
+	}
+
+	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
+	if (false == IsValid(BlackboardComp))
+	{
+		return false;
+	}
+
+	BlackboardComp->SetValueAsObject(BBKEY_TARGETACTOR, TargetActor);
+	BlackboardComp->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
+	BlackboardComp->SetValueAsVector(BBKEY_LASTKNOWNLOCATION, TargetActor->GetActorLocation());
+
+	bAIActive = true;
+
+	UpdateAIFocusState();
+
+	return true;
 }

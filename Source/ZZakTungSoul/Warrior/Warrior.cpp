@@ -114,14 +114,15 @@ AWarrior::AWarrior()
 	// [인벤토리 컴포넌트]
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	// [렌턴 관련 컴포넌트]
-	Lantern = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LanternMesh"));
+	Lantern = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LanternMesh"));
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> LanternMeshRef(
-		TEXT("/Game/Assets/Lighting_Fixtures_Set_1_Free/Bulb.Bulb")
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> LanternMeshRef(
+		TEXT("/Game/Assets/Lighting_Fixtures_Set_1_Free/SKM_Bulb.SKM_Bulb")
 	);
 	if (LanternMeshRef.Succeeded())
 	{
-		Lantern->SetStaticMesh(LanternMeshRef.Object);
+		//Lantern->SetSkeletalMesh(LanternMeshRef.Object);
+		LanternMesh = LanternMeshRef.Object;
 		Lantern->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
 		Lantern->SetRelativeLocation(FVector(-40.f, 8.f, 10.f));
 	}
@@ -166,6 +167,10 @@ void AWarrior::BeginPlay()
 		// Test
 		AttackTraceComponent->SetTraceMesh(Weapon);
 	}
+
+	// Material Instance Dynamic 생성
+	// 방어구를 장착해주려면 머티리얼의 파라미터에 런타임 중에 접근해야해서
+	ArmorMID = GetMesh()->CreateAndSetMaterialInstanceDynamic(0);
 }
 
 void AWarrior::PostInitializeComponents()
@@ -855,6 +860,28 @@ void AWarrior::SetLeftHandPotionMesh()
 	LeftHandWeapon->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
 }
 
+void AWarrior::EquipArmor(const UItemDataAsset* ItemData)
+{
+	if (!ArmorMID || !ItemData) return;
+
+	FString ParameterName = TEXT("Equip_") + ItemData->ItemName.ToString();
+	FName ParameterFName(*ParameterName);
+
+	float Value = 0.f;
+	ArmorMID->SetScalarParameterValue(ParameterFName, 1.f);
+}
+
+void AWarrior::UnequipArmor(const UItemDataAsset* ItemData)
+{
+	if (!ArmorMID || !ItemData) return;
+
+	FString ParameterName = TEXT("Equip_") + ItemData->ItemName.ToString();
+	FName ParameterFName(*ParameterName);
+
+	float Value = 0.f;
+	ArmorMID->SetScalarParameterValue(ParameterFName, 0.f);
+}
+
 //void AWarrior::Interact()
 //{
 //	//if (CurrentInteractable)
@@ -989,20 +1016,24 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 	// 이 함수가 호출되기 전에 장착 가능한 슬롯은 이미 걸러져서 또 확인 안해도 돼
 	// AttackTraceComponent도 왼쪽 오른쪽 다 있어야해
 
-	// 임시
-	if (Slot == EEquipmentSlot::RightHand)
+	switch (Slot)
+	{
+	case EEquipmentSlot::None:
+		break;
+	case EEquipmentSlot::RightHand:
 	{
 		Weapon->SetSkeletalMesh(InItem->SkeletalMesh.Get());
 		Weapon->SetRelativeLocation(InItem->RelaiveLocation);
 		Weapon->SetRelativeRotation(InItem->EquipRotation);
 		Weapon->SetRelativeScale3D(InItem->RelativeScale);
 		AttackTraceComponent->SetTraceMesh(Weapon);
-		
+
 		// 오른손 무기 기준으로 공격력 책정됨
 		CharacterStatComponent->ApplyWeaponAttackPower(InItem->AttackPower);
 		UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 	}
-	else if (Slot == EEquipmentSlot::LeftHand)
+		break;
+	case EEquipmentSlot::LeftHand:
 	{
 		LeftHandWeapon->SetSkeletalMesh(InItem->SkeletalMesh.Get());
 		LeftHandWeapon->SetRelativeLocation(InItem->RelaiveLocation);
@@ -1010,13 +1041,56 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		LeftHandWeapon->SetRelativeScale3D(InItem->RelativeScale);
 		// Todo: 왼쪽 AttackTraceComponent에 메시 설정해주기
 	}
-	
-	// Todo: 방어구도 여기서 해줘야해
+		break;
+	case EEquipmentSlot::Head:
+	{
+		EquipArmor(InItem);
+	}
+		break;
+	case EEquipmentSlot::Chest:
+	{
+		EquipArmor(InItem);
+	}
+		break;
+	case EEquipmentSlot::Arms:
+	{
+		EquipArmor(InItem);
+	}
+		break;
+	case EEquipmentSlot::Legs:
+	{
+		EquipArmor(InItem);
+	}
+		break;
+	case EEquipmentSlot::UpperBelt:
+	{
+		if (InItem->ItemName.ToString() == TEXT("랜턴"))
+		{
+			Lantern->SetSkeletalMesh(LanternMesh);
+		}
+	}
+		break;
+	case EEquipmentSlot::LowerBelt:
+	{
+		if (InItem->ItemName.ToString() == TEXT("랜턴"))
+		{
+			Lantern->SetSkeletalMesh(LanternMesh);
+		}
+	}
+		break;
+	default:
+		break;
+	}
 }
 
 // 스켈레탈 메쉬 해제
 void AWarrior::UnequipItem(EEquipmentSlot Slot)
 {
+	FGuid ItemID = Equipment->GetEquippedItem(Slot);
+	const UItemDataAsset* ItemData = Inventory->FindItemDataByInstanceID(ItemID);
+	if (!ItemData)
+		return;
+
 	Equipment->UnequipItem(Slot);
 	CharacterStatComponent->ResetAttackPower();
 	UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
@@ -1032,16 +1106,40 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 		LeftHandWeapon->SetSkeletalMesh(nullptr);
 		break;
 	case EEquipmentSlot::Head:
+	{
+		UnequipArmor(ItemData);
+	}
 		break;
 	case EEquipmentSlot::Chest:
+	{
+		UnequipArmor(ItemData);
+	}
 		break;
 	case EEquipmentSlot::Arms:
+	{
+		UnequipArmor(ItemData);
+	}
 		break;
 	case EEquipmentSlot::Legs:
+	{
+		UnequipArmor(ItemData);
+	}
 		break;
 	case EEquipmentSlot::UpperBelt:
+	{
+		if (ItemData->ItemName.ToString() == TEXT("랜턴"))
+		{
+			Lantern->SetSkeletalMesh(nullptr);
+		}
+	}
 		break;
 	case EEquipmentSlot::LowerBelt:
+	{
+		if (ItemData->ItemName.ToString() == TEXT("랜턴"))
+		{
+			Lantern->SetSkeletalMesh(nullptr);
+		}
+	}
 		break;
 	default:
 		break;

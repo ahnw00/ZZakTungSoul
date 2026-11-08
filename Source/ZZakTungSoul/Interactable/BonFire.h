@@ -12,6 +12,7 @@ class AWarrior;
 class AWarriorPlayerState;
 class USphereComponent;
 class UArrowComponent;
+class UNiagaraComponent;
 
 // 화톳불 상태.
 UENUM(BlueprintType)
@@ -46,6 +47,9 @@ public:
 	FORCEINLINE UArrowComponent* GetTeleportPoint() const { return TeleportPoint; }
 	FTransform GetTeleportTransform() const;
 
+	// 세이브 데이터화 화톳불 활성화 상태 동기화.
+	void SyncLitState(const AWarriorPlayerState* PS);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -53,8 +57,7 @@ protected:
 	// 작동 가능 검사.
 	bool CanInteractBonfire(AWarrior* Interactor) const;
 	
-	// 세이브 데이터화 화톳불 활성화 상태 동기화.
-	void SyncLitState(const AWarriorPlayerState* PS);
+	
 
 	UFUNCTION()
 	void OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, 
@@ -64,6 +67,10 @@ protected:
 		int32 OtherBodyIndex);
 
 protected:
+	// 루트 컴포넌트.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
+	TObjectPtr<USceneComponent> SceneRoot;
+
 	// 외형 메시.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
@@ -86,6 +93,10 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
 	TObjectPtr<UArrowComponent> TeleportPoint;
+
+	// Lit 상태에서 불 이펙트.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
+	TObjectPtr<UNiagaraComponent> FireEffect;
 
 	// 현재 화톳불 상태.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|State")

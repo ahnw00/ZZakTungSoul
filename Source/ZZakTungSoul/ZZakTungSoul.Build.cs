@@ -24,7 +24,9 @@ public class ZZakTungSoul : ModuleRules
 			"AssetRegistry",
 
             "LevelSequence",
-            "MovieScene"
+            "MovieScene",
+
+			"Niagara"
         });
 
 		PrivateDependencyModuleNames.AddRange(

@@ -3,6 +3,7 @@
 
 #include "Interactable/Bonfire.h"
 #include <Engine/OverlapResult.h>
+#include <NiagaraComponent.h>
 
 #include <GamePlay/ZTSGameMode.h>
 #include <Gimmick/RestorePropSubsystem.h>
@@ -29,9 +30,12 @@ ABonfire::ABonfire()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	
+	// 루트 컴포넌트.
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	RootComponent = SceneRoot;
 	// 외형 메시 컴포넌트 지정.
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
-	RootComponent = MeshComponent;
+	MeshComponent->SetupAttachment(RootComponent);
 	// 상호작용 감지용 구체 콜리전.
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
 	InteractionSphere->SetupAttachment(RootComponent);
@@ -45,6 +49,11 @@ ABonfire::ABonfire()
 	TeleportPoint->SetupAttachment(RootComponent);
 	TeleportPoint->SetRelativeLocation(FVector(120.f, 0.f, 0.f));
 	TeleportPoint->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
+
+	// 불 이펙트. Lit 상태에서 활성화.
+	FireEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FireEffect"));
+	FireEffect->SetupAttachment(RootComponent);
+	FireEffect->SetAutoActivate(false);
 
 }
 FTransform ABonfire::GetTeleportTransform() const
@@ -126,7 +135,11 @@ void ABonfire::SyncLitState(const AWarriorPlayerState* PS)
 	{
 		BonfireState = EBonfireState::Lit;
 
-		// TODO: 활성화 효과 등은 여기서 활성화 예정.
+		// 저장 데이터 점화한 화톳불은 불 이펙트 활성화.
+		if (FireEffect)
+		{
+			FireEffect->Activate(true);
+		}
 	}
 }
 
@@ -172,6 +185,11 @@ void ABonfire::Interact(AActor* detectedActor)
 	if (BonfireState == EBonfireState::Unlit)
 	{
 		BonfireState = EBonfireState::Lit;
+
+		if (FireEffect)
+		{
+			FireEffect->Activate(true);
+		}
 
 		// PlayerState에 활성화한 화톳불로 등록 및 마지막 화톳불 갱신.
 		if (AWarriorPlayerState* PS = Interactor->GetPlayerState<AWarriorPlayerState>())

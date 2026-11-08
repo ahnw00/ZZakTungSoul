@@ -5,6 +5,8 @@
 #include <Kismet/GameplayStatics.h>
 #include <Warrior/WarriorPlayerState.h>
 #include "Warrior/WarriorController.h"
+#include <Interactable/BonFire.h>
+#include <EngineUtils.h>
 
 AZTSGameMode::AZTSGameMode()
 {
@@ -112,6 +114,11 @@ void AZTSGameMode::LoadGame()
 				// PlayerState로 정보 로드
 				WarriorPlayerState->LoadSaveDataFrom(WarriorLoadGame->GetSaveData());
 				UE_LOG(LogTemp, Log, TEXT("Warrior Data Loaded"));
+
+				for (TActorIterator<ABonfire> It(GetWorld()); It; ++It)
+				{
+					It->SyncLitState(WarriorPlayerState);
+				}
 
 				// 마지막 상호작용 화톳불로 순간이동.
 				const FName LastBonfireID = WarriorPlayerState->GetLastBonfireID();

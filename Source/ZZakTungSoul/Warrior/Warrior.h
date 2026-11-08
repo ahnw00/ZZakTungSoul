@@ -15,7 +15,6 @@
 
 // [전방 선언].
 class UCharacterStatComponent;
-class IInteractionInterface;
 
 /**
  * 
@@ -189,7 +188,6 @@ public:
 	//FORCEINLINE UArrowComponent GetLockOnPoint() { return LockOnPoint; }
 
 private:
-	class IInteractionInterface* CurrentInteractable = nullptr;
 	class IFatalAttackableInterface* CurrentFatalAttackable = nullptr;
 
 public:

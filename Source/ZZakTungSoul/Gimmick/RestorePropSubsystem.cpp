@@ -20,6 +20,12 @@ void URestorePropSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	Records.Reset();
 	for (TActorIterator<ARestorableProp> It(&InWorld); It; ++It)
 	{
+		// component로 restorableprop있는 경우 예외 설정
+		if (Cast<ARestorableProp>(It->GetParentActor()))
+		{
+			continue;
+		}
+
 		FRestorablePropRecord& Record = Records.AddDefaulted_GetRef();
 		Record.PropClass = It->GetClass();
 		Record.Transform = It->GetActorTransform();

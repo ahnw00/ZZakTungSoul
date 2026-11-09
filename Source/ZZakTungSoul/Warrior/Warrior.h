@@ -88,10 +88,13 @@ private:
 	class UInventoryComponent* Inventory;
 
 	UPROPERTY(VisibleAnywhere, Category = "Lantern")
-	class UStaticMeshComponent* Lantern;
+	class USkeletalMeshComponent* Lantern;
 
 	UPROPERTY(VisibleAnywhere, Category = "LanternLight")
 	class UPointLightComponent* LanternLight;
+
+	UPROPERTY()
+	class USkeletalMesh* LanternMesh;
 
 
 	class ACharacter* LockOnTarget;
@@ -227,6 +230,10 @@ public:
 
 	void UnequipItem(EEquipmentSlot Slot);
 
+	void EquipArmor(const UItemDataAsset* ItemData);
+
+	void UnequipArmor(const UItemDataAsset* ItemData);
+
 	bool CheckItemInSlot(const FGuid& InID, EEquipmentSlot Slot);
 
 	// Inherited via IItemInterface
@@ -253,6 +260,9 @@ private:
 	UPROPERTY()
 	int32 PotionUseCount = 0;
 
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> ArmorMID;
+
 	// 상호작용 관련 변수
 private:
 	// 상호작용할 대상 저장 변수
@@ -271,4 +281,13 @@ public:
 	void SaveWarriorInventoryData();
 	// Inherited via ISaveLoadInterface
 	void LoadWarriorData(const FWarriorSaveData& SaveData) override;
+
+private:
+	inline static const FName HeadSlotKey = TEXT("Head");
+	inline static const FName ChestSlotKey = TEXT("Chest");
+	inline static const FName ArmsSlotKey = TEXT("Arms");
+	inline static const FName LegsSlotKey = TEXT("Legs");
+
+	inline static const FName CoupangKey = TEXT("Coupang");
+	inline static const FName PostOfficeKey = TEXT("PostOffice");
 };

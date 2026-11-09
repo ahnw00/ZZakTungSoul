@@ -26,6 +26,15 @@ protected:
 	// 타겟 정보 갱신 함수
 	void UpdateTargetInfo();
 
+	virtual void ActiveInitialize(bool bActive) override;
+
+	// Blackboard 초기화
+	void ClearTargetInfo();
+
+public:
+	// Hit시 플레이어 인지
+	void RecognizeTarget(AActor* NewTarget);
+
 protected:
 	// 관측 타이머
 	FTimerHandle TargetInfoUpdateTimerHandle;

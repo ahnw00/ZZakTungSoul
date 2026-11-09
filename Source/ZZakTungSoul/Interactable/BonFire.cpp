@@ -25,6 +25,7 @@
 #include <Interface/CharacterStatInterface.h>
 
 #include <Enemy/EnemyBase.h>
+#include <Enemy/Spawner/EnemySpawnSubsystem.h>
 
 
 
@@ -272,6 +273,12 @@ void ABonfire::Interact(AActor* detectedActor)
 
 		// 휴식 델리게이트 방송.
 		OnBonfireRest.Broadcast();
+
+		// 적 초기화
+		if (UEnemySpawnSubsystem* SpawnSubsystem = GetWorld()->GetSubsystem<UEnemySpawnSubsystem>())
+		{
+			SpawnSubsystem->ResetAllEnemies();
+		}
 
 		// 부서진 프롭 복원.
 		if (URestorePropSubsystem* RestoreProp = GetWorld()->GetSubsystem<URestorePropSubsystem>())

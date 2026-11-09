@@ -4,6 +4,7 @@
 #include "Enemy/EnemyBase.h"
 #include <Enemy/EnemyAIController.h>
 #include <Enemy/Data/EnemyAIData.h>
+#include <Enemy/AIController/NormalEnemyAIController.h>
 #include <Enemy/Animation/EnemyBaseAnimInstance.h>
 #include <Enemy/Components/AttackTraceComponent.h>
 #include <Enemy/Components/EnemyStatComponent.h>
@@ -17,6 +18,7 @@
 #include <Components/BoxComponent.h>
 #include <Components/CapsuleComponent.h>
 #include <Kismet/KismetMathLibrary.h>
+#include <Kismet/GameplayStatics.h>
 #include <Engine/SkeletalMesh.h>
 
 AEnemyBase::AEnemyBase()
@@ -119,7 +121,7 @@ void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& 
 {
 	//Super::ReceiveDamage(DamageInfo, Hit);
 
-	if (IsDead())
+	if (IsDead() || IsDeadState())
 	{
 		return;
 	}
@@ -146,6 +148,35 @@ void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& 
 	}
 
 	EnemyStatComponet->ApplyDamage(DamageInfo);
+
+	if (ANormalEnemyAIController* AIController = Cast<ANormalEnemyAIController>(GetController()))
+	{
+		APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		if (IsValid(Player))
+		{
+			AIController->RecognizeTarget(Player);
+		}
+	}
+
+	// 피격 Montage
+	if (IsDead() || IsDeadState())
+	{
+		return;
+	}
+
+	if (bReceiveFatalAttack)
+	{
+		return;
+	}
+
+	if (false == EnemyStatComponet->IsPoiseOver())
+	{
+		return;
+	}
+
+	SetEnemyActionState(EEnemyActionState::Hit);
+
+	HitStart();
 }
 
 void AEnemyBase::UpdateMovementSpeed()
@@ -320,16 +351,16 @@ void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
 	ICombatDamageInterface* HitTarget = Cast<ICombatDamageInterface>(HitActor);
 	if (nullptr == HitTarget)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Attack Noooooooooo Hit!!!!!"));
+		//UE_LOG(LogTemp, Log, TEXT("Attack Noooooooooo Hit!!!!!"));
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Attack Hit!!!!!@!@!@@@@@@!"));
+	//UE_LOG(LogTemp, Log, TEXT("Attack Hit!!!!!@!@!@@@@@@!"));
 
 	// 데미지 처리
 	HitTarget->ReceiveDamage(CurrentDamageInfo, Hit);
 
-	UE_LOG(LogTemp, Log, TEXT("Attack %f : %f : %f"), CurrentDamageInfo.AttackDamage, CurrentDamageInfo.PoiseDamage, CurrentDamageInfo.StanceDamage);
+	//UE_LOG(LogTemp, Log, TEXT("Attack %f : %f : %f"), CurrentDamageInfo.AttackDamage, CurrentDamageInfo.PoiseDamage, CurrentDamageInfo.StanceDamage);
 
 	/* 스탯 컴포넌트 가져오기
 	TargetStatComp = HitTarget->GetCharacterStatComponent();
@@ -436,13 +467,22 @@ void AEnemyBase::SetDead()
 	// Spawner에 사망 상태 발행
 	OnEnemyDied.Broadcast(this);
 
-	// 실제 사망 로직 실행
-	DeadStart();
+	// FatalAttack 중이면 건너뛰기
+	if (false == bReceiveFatalAttack)
+	{
+		// 실제 사망 로직 실행
+		DeadStart();
+	}
 }
 
 void AEnemyBase::DeadStart()
 {
 	
+}
+
+void AEnemyBase::HitStart()
+{
+
 }
 
 void AEnemyBase::SetEnemyMoveState(EEnemyMoveState NewMoveState)
@@ -489,7 +529,9 @@ void AEnemyBase::SetEnemyActionState(EEnemyActionState NewActionState)
 		bool bCanChanged = NewActionState == EEnemyActionState::None ||
 			NewActionState == EEnemyActionState::Dead ||
 			NewActionState == EEnemyActionState::Hit  ||
-			NewActionState == EEnemyActionState::Groggy;
+			NewActionState == EEnemyActionState::Groggy ||
+			NewActionState == EEnemyActionState::GetFrontFatalAttack ||
+			NewActionState == EEnemyActionState::GetBackFatalAttack;
 
 		if (false == bCanChanged)
 		{
@@ -595,13 +637,17 @@ void AEnemyBase::OnFatalAttackFinished()
 	}
 	
 	bReceiveFatalAttack = false;
+	CurrentFatalMontage = nullptr;
 
-	if (IsDeadState())
+	if (IsDeadState() || IsDead())
 	{
+		DeadStart();
 		return;
 	}
 
-	if (GetEnemyActionState() == EEnemyActionState::Groggy)
+	if (GetEnemyActionState() == EEnemyActionState::Groggy ||
+		GetEnemyActionState() == EEnemyActionState::GetBackFatalAttack ||
+		GetEnemyActionState() == EEnemyActionState::GetFrontFatalAttack)
 	{
 		SetEnemyActionState(EEnemyActionState::None);
 	}
@@ -634,10 +680,19 @@ void AEnemyBase::OnStunFinished()
 
 void AEnemyBase::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	// Fatal Attack Montage가 종료된 경우
+	if (bReceiveFatalAttack && Montage == CurrentFatalMontage)
+	{
+		CurrentFatalMontage = nullptr;
+		OnFatalAttackFinished();
+		return;
+	}
+
 	if (bInterrupted)
 		return;
 
-	if (IsDeadState())
+	// Fatal Attack 중 다른 Montage End 무시
+	if (IsDeadState() || bReceiveFatalAttack)
 	{
 		return;
 	}
@@ -689,6 +744,56 @@ void AEnemyBase::RotateToTarget(AActor* TargetActor, float DeltaTime, float Rota
 	const FRotator NewRotation = FMath::RInterpTo(FRotator(0.0f, CurrentRotation.Yaw, 0.0f), TargetRotation,DeltaTime ,RotationSpeed);
 
 	SetActorRotation(FRotator(CurrentRotation.Pitch, NewRotation.Yaw, CurrentRotation.Roll));
+}
+
+void AEnemyBase::ResetEnemy(const FTransform& SpawnTransform)
+{
+	// 건너뛰기
+	if (IsDeadState())
+	{
+		return;
+	}
+
+	if (IsValid(AttackTraceComponent))
+	{
+		AttackTraceComponent->EndTrace();
+	}
+
+	if (IsValid(AnimInstance))
+	{
+		AnimInstance->StopAllMontages(0.0f);
+	}
+
+	bReceiveFatalAttack = false;
+	bIsStrafeMode = false;
+
+	CurrentDamageInfo = FDamageInfo();
+
+	// 스탯 초기화
+	if (IsValid(EnemyStatComponet))
+	{
+		EnemyStatComponet->ResetEnemyStat();
+	}
+
+	// 상태 초기화
+	SetEnemyActionState(EEnemyActionState::None);
+	SetEnemyMoveState(EEnemyMoveState::Idle);
+	
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (IsValid(Movement))
+	{
+		Movement->StopMovementImmediately();
+		Movement->SetMovementMode(MOVE_Walking);
+	}
+
+	// Transform 복구
+	SetActorLocationAndRotation(SpawnTransform.GetLocation(), SpawnTransform.GetRotation(), false, nullptr, ETeleportType::TeleportPhysics);
+
+	UpdateMovementSpeedState();
+	UpdateRotationModeState();
+
+	// Collision 복구
+	SetActorEnableCollision(true);
 }
 
 float AEnemyBase::GetCombatRangeData()
@@ -763,6 +868,13 @@ void AEnemyBase::ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront)
 	if (!Anim)
 		return;
 
+	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+	if (AIController)
+	{
+		AIController->SetAIWait(true);
+		AIController->StopMovement();
+	}
+
 	bReceiveFatalAttack = true;
 
 	if (bIsFront)
@@ -775,6 +887,8 @@ void AEnemyBase::ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront)
 		SetEnemyActionState(EEnemyActionState::GetBackFatalAttack);
 		Anim->PlayGetBackFatalAttackMontage();
 	}
+
+	CurrentFatalMontage = Anim->GetCurrentActiveMontage();
 
 	// 페이탈 어택 데미지 적용
 	ReceiveDamage(DamageInfo, FHitResult());

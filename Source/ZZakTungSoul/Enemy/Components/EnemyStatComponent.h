@@ -59,6 +59,8 @@ public:
 
 	void ApplyDamage(const struct FDamageInfo& DamageInfo);
 
+	void ResetEnemyStat();
+
 protected:
 	// Enemy Stat 초기화 함수
 	void InitializeEnemyStat();

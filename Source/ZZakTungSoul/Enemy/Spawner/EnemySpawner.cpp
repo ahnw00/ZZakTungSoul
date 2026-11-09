@@ -3,9 +3,14 @@
 
 #include "Enemy/Spawner/EnemySpawner.h"
 #include <Enemy/EnemyBase.h>
+#include <Enemy/EnemyAIController.h>
 #include <Enemy/NormalEnemy/NormalEnemyBase.h>
+#include <Enemy/Spawner/EnemySpawnSubsystem.h>
+#include <Enemy/AI/EnemyAIBlackboardKey.h>
 
 #include <Engine/World.h>
+#include <Engine/TargetPoint.h>
+#include <BehaviorTree/BlackboardComponent.h>
 
 // Sets default values
 AEnemySpawner::AEnemySpawner()
@@ -25,6 +30,29 @@ void AEnemySpawner::BeginPlay()
 	DeadFlags.Init(false, SpawnDataList.Num());
 
 	SpawnEnemies();
+
+	// Subsystem에 Spawner 등록
+	if (UWorld* World = GetWorld())
+	{
+		if (UEnemySpawnSubsystem* SpawnSubsystem = World->GetSubsystem<UEnemySpawnSubsystem>())
+		{
+			SpawnSubsystem->RegisterSpawner(this);
+		}
+	}
+}
+
+void AEnemySpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// Subsystem에 Spawner 등록 해제
+	if (UWorld* World = GetWorld())
+	{
+		if (UEnemySpawnSubsystem* SpawnSubsystem = World->GetSubsystem<UEnemySpawnSubsystem>())
+		{
+			SpawnSubsystem->UnregisterSpawner(this);
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AEnemySpawner::SpawnEnemies()
@@ -68,8 +96,13 @@ AEnemyBase* AEnemySpawner::SpawnEnemy(int32 Index)
 		return nullptr;
 	}
 
+	if (false == IsValid(SpawnData.SpawnPoint))
+	{
+		return nullptr;
+	}
+
 	// 상대 Transform -> 월드 Transform 변환
-	const FTransform WorldTransform = SpawnData.SpawnTransform * GetActorTransform();
+	const FTransform WorldTransform = SpawnData.SpawnPoint->GetActorTransform();
 
 	// Spawn Actor Deferred
 	AEnemyBase* NewEnemy = World->SpawnActorDeferred<AEnemyBase>(
@@ -114,6 +147,72 @@ AEnemyBase* AEnemySpawner::GetSpawnEnemy(int32 Index) const
 	AEnemyBase* Enemy = SpawnedEnemies[Index].Get();
 
 	return IsValid(Enemy) ? Enemy : nullptr;
+}
+
+void AEnemySpawner::ResetEnemies()
+{
+	for (int32 Index = 0; Index < SpawnDataList.Num(); ++Index)
+	{
+		if (false == SpawnedEnemies.IsValidIndex(Index) || false == DeadFlags.IsValidIndex(Index))
+		{
+			continue;
+		}
+
+		AEnemyBase* Enemy = SpawnedEnemies[Index].Get();
+
+		// 사망한 적은 Destroy 후 재생성
+		if (DeadFlags[Index])
+		{
+			if (IsValid(Enemy))
+			{
+				if (false == Enemy->Destroy())
+				{
+					continue;
+				}
+			}
+
+			SpawnedEnemies[Index] = nullptr;
+
+			DeadFlags[Index] = false;
+
+			AEnemyBase* NewEnemy = SpawnEnemy(Index);
+			if (false == IsValid(NewEnemy))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Enemy Respawn Failed!~!! : %d"), Index);
+			}
+
+			continue;
+		}
+
+		// 생존 적 초기화
+		if (IsValid(Enemy))
+		{
+			AEnemyAIController* AIController = Cast<AEnemyAIController>(Enemy->GetController());
+			if (IsValid(AIController))
+			{
+				AIController->EnemyContollerReset();
+			}
+
+			ATargetPoint* SpawnPoint = SpawnDataList[Index].SpawnPoint.Get();
+			if (false == IsValid(SpawnPoint))
+			{
+				continue;
+			}
+
+			const FTransform SpawnTransform = SpawnPoint->GetActorTransform();
+
+			Enemy->ResetEnemy(SpawnTransform);
+
+			if (IsValid(AIController))
+			{
+				UBlackboardComponent* BlackboardComp = AIController->GetBlackboardComponent();
+				if (IsValid(BlackboardComp))
+				{
+					BlackboardComp->SetValueAsVector(BBKEY_HOMELOCATION, SpawnTransform.GetLocation());
+				}
+			}
+		}
+	}
 }
 
 void AEnemySpawner::HandleEnemyDied(AEnemyBase* DeadEnemy, int32 Index)

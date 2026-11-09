@@ -31,6 +31,10 @@ protected:
 	// Blackboard 초기화
 	void ClearTargetInfo();
 
+public:
+	// Hit시 플레이어 인지
+	void RecognizeTarget(AActor* NewTarget);
+
 protected:
 	// 관측 타이머
 	FTimerHandle TargetInfoUpdateTimerHandle;

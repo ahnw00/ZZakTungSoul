@@ -4,6 +4,7 @@
 #include "Enemy/EnemyBase.h"
 #include <Enemy/EnemyAIController.h>
 #include <Enemy/Data/EnemyAIData.h>
+#include <Enemy/AIController/NormalEnemyAIController.h>
 #include <Enemy/Animation/EnemyBaseAnimInstance.h>
 #include <Enemy/Components/AttackTraceComponent.h>
 #include <Enemy/Components/EnemyStatComponent.h>
@@ -17,6 +18,7 @@
 #include <Components/BoxComponent.h>
 #include <Components/CapsuleComponent.h>
 #include <Kismet/KismetMathLibrary.h>
+#include <Kismet/GameplayStatics.h>
 #include <Engine/SkeletalMesh.h>
 
 AEnemyBase::AEnemyBase()
@@ -146,6 +148,15 @@ void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& 
 	}
 
 	EnemyStatComponet->ApplyDamage(DamageInfo);
+
+	if (ANormalEnemyAIController* AIController = Cast<ANormalEnemyAIController>(GetController()))
+	{
+		APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		if (IsValid(Player))
+		{
+			AIController->RecognizeTarget(Player);
+		}
+	}
 
 	// 피격 Montage
 	if (IsDead() || IsDeadState())

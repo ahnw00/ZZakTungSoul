@@ -221,3 +221,35 @@ void ANormalEnemyAIController::ClearTargetInfo()
 
 	ClearFocus(EAIFocusPriority::Gameplay);
 }
+
+void ANormalEnemyAIController::RecognizeTarget(AActor* NewTarget)
+{
+	if (false == IsAIActive() || false == IsValid(NewTarget))
+	{
+		return;
+	}
+
+	UBlackboardComponent* BlackboardComp = GetBlackboardComponent();
+	if (false == IsValid(BlackboardComp))
+	{
+		return;
+	}
+
+	// 플레이어 인식
+	BlackboardComp->SetValueAsObject(BBKEY_TARGETACTOR, NewTarget);
+
+	BlackboardComp->SetValueAsVector(BBKEY_LASTKNOWNLOCATION, NewTarget->GetActorLocation());
+
+	if (!GetWorldTimerManager().IsTimerActive(TargetInfoUpdateTimerHandle))
+	{
+		GetWorldTimerManager().SetTimer(
+			TargetInfoUpdateTimerHandle,
+			this,
+			&ANormalEnemyAIController::UpdateTargetInfo,
+			FMath::Max(0.01f, UpdateInterval),
+			true
+		);
+	}
+
+	UpdateTargetInfo();
+}

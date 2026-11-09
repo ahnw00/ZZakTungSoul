@@ -13,6 +13,8 @@ class AWarriorPlayerState;
 class USphereComponent;
 class UArrowComponent;
 class UNiagaraComponent;
+class UAudioComponent;
+class USoundBase;
 
 // 화톳불 상태.
 UENUM(BlueprintType)
@@ -97,6 +99,14 @@ protected:
 	// Lit 상태에서 불 이펙트.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
 	TObjectPtr<UNiagaraComponent> FireEffect;
+
+	// 불 붙일 때 나는 소리.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bonfire|Audio")
+	TObjectPtr<USoundBase> IgniteSound;
+
+	// Lit 상태 불 지속 소리.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|Components")
+	TObjectPtr<UAudioComponent> FireLoopAudio;
 
 	// 현재 화톳불 상태.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bonfire|State")

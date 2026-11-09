@@ -8,6 +8,10 @@
 #include <GamePlay/ZTSGameMode.h>
 #include <Gimmick/RestorePropSubsystem.h>
 
+#include <Components/AudioComponent.h>
+#include <Kismet/GameplayStatics.h>
+#include <Sound/SoundBase.h>
+
 #include <Components/StaticMeshComponent.h>
 #include <Components/SphereComponent.h>
 #include <Components/ArrowComponent.h>
@@ -54,6 +58,11 @@ ABonfire::ABonfire()
 	FireEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FireEffect"));
 	FireEffect->SetupAttachment(RootComponent);
 	FireEffect->SetAutoActivate(false);
+
+	// Lit 상태 불타는 소리 지속음.
+	FireLoopAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("FireLoopAudio"));
+	FireLoopAudio->SetupAttachment(RootComponent);
+	FireLoopAudio->SetAutoActivate(false);
 
 }
 FTransform ABonfire::GetTeleportTransform() const
@@ -140,6 +149,12 @@ void ABonfire::SyncLitState(const AWarriorPlayerState* PS)
 		{
 			FireEffect->Activate(true);
 		}
+
+		// 불 타는 지속음.
+		if (FireLoopAudio)
+		{
+			FireLoopAudio->Play();
+		}
 	}
 }
 
@@ -189,6 +204,18 @@ void ABonfire::Interact(AActor* detectedActor)
 		if (FireEffect)
 		{
 			FireEffect->Activate(true);
+		}
+
+		// 한 번만 재생하는 불 붙이는 소리.
+		if (IgniteSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, IgniteSound, GetActorLocation());
+		}
+
+		// 불 타는 지속음.
+		if (FireLoopAudio)
+		{
+			FireLoopAudio->Play();
 		}
 
 		// PlayerState에 활성화한 화톳불로 등록 및 마지막 화톳불 갱신.

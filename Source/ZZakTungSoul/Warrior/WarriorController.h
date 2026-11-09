@@ -5,7 +5,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include <ItemData/ItemDataAsset.h>
+#include "Components/SlateWrapperTypes.h"
 #include "WarriorController.generated.h"
+
+class UUserWidget;
 
 // [전방 선언].
 class UPlayerHUDWidget;
@@ -24,6 +27,9 @@ class ZZAKTUNGSOUL_API AWarriorController : public APlayerController
 	
 public:
 	AWarriorController();
+
+	void BeginDeathPresentation();
+	void EndDeathPresentation();
 
 protected:
 	// Called when the game starts or when spawned
@@ -137,6 +143,7 @@ private:
 
 	float PressStarted = 0.f;
 	bool bActionPressed = false;
+	TMap<TWeakObjectPtr<UUserWidget>, ESlateVisibility> DeathHiddenWidgets;
 
 	void ActionPressed();
 	void ActionReleased();

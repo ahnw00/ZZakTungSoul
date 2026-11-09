@@ -11,12 +11,8 @@ class UStaticMesh;
 class UMaterialInterface;
 class UTexture2D;
 class UBoxComponent;
-
-//---------------------------------------------------------------
 // 일반 Actor BP에 추가하는 발사체 이동 / 피해 전달 컴포넌트.
 // 판정은 BP에 추가한 기존 AttackTraceComponent가 담당.
-//
-//---------------------------------------------------------------
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class ZZAKTUNGSOUL_API UClownProjectileComponent : public UActorComponent
 {
@@ -36,22 +32,22 @@ public:
 	void SetVisualSpin(const FRotator& Rate);
 	void ArmCubeMarch(UStaticMesh* Piece, const FVector& Assembly, const FVector& Start, const FVector& End,
 		float MarchTime, bool bShowPath);
-	void SetCubeAim(AActor* Target, AActor* Arena, const FVector& Center);
+	void SetCubeAim(AActor* Target, const FVector& Center);
 	static constexpr float CubeMarchCycle = 2.4f;
 	static constexpr float CubeMarchDuration = 9.6f;
 
 	// 고정 위치에 카드 소환 / 예고 / 낙하. 피해는 기존 Trace 사용.
-	void ArmCard(const FVector& GroundLocation, float WarningTime, float Height, float Width, float FallTime,
+	void ArmCard(const FVector& GroundLocation, float StandTime, float Height, float Width, float FallTime,
 		UTexture2D* Face, bool bSafe);
 	bool IsLaunched() const
 	{
 		return bLaunched;
 	}
 
-	UPROPERTY(EditAnywhere, Category = "Projectile|Card")
+	UPROPERTY(EditAnywhere, Category = "Projectile|Cube|Path")
 	TObjectPtr<UStaticMesh> WarningMesh;
 
-	UPROPERTY(EditAnywhere, Category = "Projectile|Card")
+	UPROPERTY(EditAnywhere, Category = "Projectile|Cube|Path")
 	TObjectPtr<UMaterialInterface> WarningMaterial;
 
 protected:
@@ -81,17 +77,22 @@ private:
 	FDamageInfo Damage;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UStaticMeshComponent> WarningMarker;
+	TObjectPtr<UStaticMeshComponent> CubePathMarker;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UBoxComponent> CubeCollision;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UBoxComponent> CardCollision;
+
 	TWeakObjectPtr<UStaticMeshComponent> VisualMesh;
+
 	FVector CardOrigin = FVector::ZeroVector;
 	float CardElapsed = 0.0f;
-	float CardWarningTime = 1.2f;
+	float CardStandTime = 1.2f;
 	float CardRiseTime = 0.45f;
 	float CardTravel = 650.0f;
+	float CardWidth = 550.0f;
 	float CardFallTime = 0.65f;
 	float CardYaw = 0.0f;
 	bool bSafeCard = false;
@@ -100,17 +101,20 @@ private:
 
 	TArray<TWeakObjectPtr<UAttackTraceComponent>> AttackTraces;
 	TSet<TWeakObjectPtr<AActor>> HitActors;
+
 	FVector FlightDirection = FVector::ForwardVector;
 	FRotator VisualSpin = FRotator::ZeroRotator;
 	float Speed = 700.0f;
 	float LifeTime = 6.0f;
 	bool bLaunched = false;
+
 	bool bCubeMarch = false;
 	bool bCubeTracing = false;
+	bool bCubeGrounded = false;
 	float CubeElapsed = 0.0f;
 	float CubeMarchTime = 0.0f;
+
 	TWeakObjectPtr<AActor> CubeAimTarget;
-	TWeakObjectPtr<AActor> CubeAimArena;
 	FVector CubeStartOffset = FVector::ZeroVector;
 	FVector CubeEndOffset = FVector::ZeroVector;
 	bool bCubeAimLocked = false;

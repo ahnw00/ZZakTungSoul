@@ -43,12 +43,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
 	FBossPhase2StageRequested, ABoss*, Boss, EBossPhase2TransitionStage, Stage, int32, TransitionID);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
 	FBossPhase2TransitionStopped, ABoss*, Boss, int32, TransitionID, bool, bCancelled);
-
-//---------------------------------------------------------------
 // 보스전 진행 단계는 FSM으로 관리.
 // 이동과 일반 공격의 행동 선택은 기존 BT 사용.
-//
-//---------------------------------------------------------------
 UCLASS()
 class ZZAKTUNGSOUL_API ABoss : public AEnemyBase
 {
@@ -56,42 +52,24 @@ class ZZAKTUNGSOUL_API ABoss : public AEnemyBase
 
 public:
 	ABoss();
-
-	//---------------------------------------------------------------
+	virtual void SetDead() override;
+	AActor* GetEncounterTarget() const { return EncounterTarget.Get(); }
 	// 입장 연출과 첫 공격이 끝나기 전에는 BT 자동 실행 차단.
-	//
-	//---------------------------------------------------------------
 	virtual bool ShouldAutoStartAI() const override
 	{
 		return false;
 	}
-
-	//---------------------------------------------------------------
 	// 보스방 진입 시 타깃을 전달하고 전투 시작 요청.
-	//
-	//---------------------------------------------------------------
 	UFUNCTION(BlueprintCallable, Category = "Boss|Encounter")
 	bool StartEncounter(AActor* Target);
-
-	//---------------------------------------------------------------
 	// 실패한 보스전을 재도전 대기 상태로 초기화.
 	// 이미 처치한 보스는 초기화하지 않음.
-	//
-	//---------------------------------------------------------------
 	UFUNCTION(BlueprintCallable, Category = "Boss|Encounter")
 	void ResetEncounter();
-
-	//---------------------------------------------------------------
 	// 정상 종료 또는 스킵 시 해당 연출 완료.
-	//
-	//---------------------------------------------------------------
 	UFUNCTION(BlueprintCallable, Category = "Boss|Presentation")
 	void CompletePresentation(int32 PresentationID);
-
-	//---------------------------------------------------------------
 	// 해당 연출을 취소하고 보스전 초기화.
-	//
-	//---------------------------------------------------------------
 	UFUNCTION(BlueprintCallable, Category = "Boss|Presentation")
 	void CancelPresentation(int32 PresentationID);
 
@@ -112,7 +90,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Boss|Phase2Transition")
 	int32 GetPhase2TransitionID() const
 	{
-		return Phase2TransitionID;
+		return ActivePresentation == EBossPresentation::Phase2Transition ? ActivePresentationID : INDEX_NONE;
 	}
 
 	// 사라짐 시퀀스의 OnFinished에서 요청 당시 ID로 호출.
@@ -131,22 +109,18 @@ public:
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Boss|Phase2Transition")
 	TObjectPtr<AActor> Phase2EmergencePoint;
 
-	// 사라짐/등장 연출의 임시 시간. 수색은 항상 플레이어 발견 신호를 기다림.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Boss|Phase2Transition")
+	// 시간 기반 연출을 사용하는 런타임 설정. 끄면 BP/시퀀스 완료 신호를 기다린다. 수색은 항상 발견 신호로 완료한다.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Boss|Phase2Transition", meta = (DisplayName = "Use Timed Phase2 Transition"))
 	bool bUsePhase2PlaceholderTimings = true;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Boss|Phase2Transition",
-		meta = (ClampMin = "0.01", EditCondition = "bUsePhase2PlaceholderTimings"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Phase2Transition",
+		meta = (ClampMin = "0.01", EditCondition = "bUsePhase2PlaceholderTimings", DisplayName = "Phase2 Disappear Duration"))
 	float Phase2DisappearPlaceholderTime = 0.35f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Boss|Phase2Transition",
-		meta = (ClampMin = "0.01", EditCondition = "bUsePhase2PlaceholderTimings"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Phase2Transition",
+		meta = (ClampMin = "0.01", EditCondition = "bUsePhase2PlaceholderTimings", DisplayName = "Phase2 Emergence Duration"))
 	float Phase2EmergencePlaceholderTime = 0.35f;
-
-	//---------------------------------------------------------------
 	// 보스 데이터 반환.
-	//
-	//---------------------------------------------------------------
 	const UBossAIData* GetBossAIData() const
 	{
 		return BossAIData;
@@ -163,15 +137,21 @@ public:
 	virtual void SetEncounterArena(AActor* Arena)
 	{
 	}
-
-	//---------------------------------------------------------------
 	// 현재 보스 페이즈 반환.
-	//
-	//---------------------------------------------------------------
 	UFUNCTION(BlueprintPure, Category = "Boss|Phase")
 	EBossPhase GetBossPhase() const
 	{
 		return BossPhase;
+	}
+
+	UEnemyStatComponent* GetEnemyStatComponent() const
+	{
+		return EnemyStatComponet;
+	}
+
+	const FText& GetBossDisplayName() const
+	{
+		return BossDisplayName;
 	}
 
 protected:
@@ -182,11 +162,7 @@ protected:
 	virtual void HandleAttackTraceHit(const FHitResult& Hit) override;
 	virtual void InitializeWeapon() override;
 	virtual void UpdateMovementSpeed() override;
-
-	//---------------------------------------------------------------
 	// 보스 AI 데이터에서 전투 거리 반환.
-	//
-	//---------------------------------------------------------------
 	// 공통 AI 인터페이스 호환용. 보스는 전투범위 임계값을 사용하지 않음.
 	virtual float GetCombatRangeData() override
 	{
@@ -195,57 +171,38 @@ protected:
 
 	virtual float GetAttackRangeData() override;
 	virtual float GetMinMaintainDistanceData() override;
-
-	//---------------------------------------------------------------
 	// 연출 실행 요청.
 	// 첫 입장 연출 연결점. 2페이즈 전환은 OnPhase2StageRequested에서만 관리.
-	//
-	//---------------------------------------------------------------
 	UFUNCTION(BlueprintNativeEvent, Category = "Boss|Presentation")
 	void OnPresentationStarted(EBossPresentation Presentation, int32 PresentationID);
 	virtual void OnPresentationStarted_Implementation(EBossPresentation Presentation, int32 PresentationID);
-
-	//---------------------------------------------------------------
 	// 완료 또는 취소 시 연출 자원 정리.
 	// 카메라, 입력, 시퀀스 등 연출에서 변경한 상태 복구.
-	//
-	//---------------------------------------------------------------
 	UFUNCTION(BlueprintNativeEvent, Category = "Boss|Presentation")
 	void OnPresentationStopped(EBossPresentation Presentation, int32 PresentationID, bool bCancelled);
 	virtual void OnPresentationStopped_Implementation(
 		EBossPresentation Presentation, int32 PresentationID, bool bCancelled);
-
-	//---------------------------------------------------------------
 	// 보스별 기믹과 타이머 정리.
 	// 필요한 보스 자식 클래스에서 재정의.
-	//
-	//---------------------------------------------------------------
 	virtual void ResetBossGimmicks();
 
-	//---------------------------------------------------------------
-	// 자식 보스가 전투 행동 선택을 직접 관리하면 true 반환.
-	// 기본 보스는 기존 페이즈 BT 사용.
-	//
-	//---------------------------------------------------------------
-	virtual bool StartBossCombatBehavior(AActor* Target);
-
 private:
-	void BeginPhase2Transition(int32 TransitionID);
+	void FinishPresentation(int32 PresentationID);
+	void BeginPhase2Transition();
 	void SetPhase2TransitionStage(EBossPhase2TransitionStage Stage);
 	bool IsPhase2TransitionStep(int32 TransitionID, EBossPhase2TransitionStage Stage) const;
-	void StopPhase2Transition(bool bCancelled);
+	void StopPhase2Transition(int32 TransitionID, bool bCancelled);
 	bool ValidateEncounter() const;
-	void HandleHpChanged(float CurrentHp, float MaxHp);
+	void TryStartPhase2Transition(float CurrentHp, float MaxHp);
 	void EnterCombatPhase(EBossPhase NewPhase);
 
 	void StartPresentation(EBossPresentation Presentation);
-	void StopPresentation();
+	void StopPresentation(bool bCancelled = true);
 
 	void BeginOpeningAttack();
 	void OnOpeningEnded(UAnimMontage* Montage, bool bInterrupted, int32 InEncounterID);
 
 	void StopCombat();
-	void StopOpening();
 	void StopEncounterActions();
 
 protected:
@@ -255,34 +212,26 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Boss|Phase")
 	EBossPhase BossPhase = EBossPhase::Waiting;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|UI")
+	FText BossDisplayName;
 private:
 	TWeakObjectPtr<AActor> EncounterTarget;
 	EBossPhase2TransitionStage Phase2TransitionStage = EBossPhase2TransitionStage::None;
-	int32 Phase2TransitionID = INDEX_NONE;
 	FTimerHandle Phase2StageTimer;
 	bool bPhase2StateSaved = false;
 	bool bPhase2SavedHidden = false;
 	bool bPhase2SavedCollision = true;
-	bool bPhase2EmergenceCompleted = false;
 	uint8 Phase2SavedMovementMode = 0;
 	uint8 Phase2SavedCustomMovementMode = 0;
-
-	//---------------------------------------------------------------
 	// 재도전 시 복구할 보스 시작 위치와 회전.
-	//
-	//---------------------------------------------------------------
 	FTransform InitialTransform = FTransform::Identity;
-
-	//---------------------------------------------------------------
 	// 이전 실행의 지연 콜백을 무시하기 위한 실행 번호.
-	//
-	//---------------------------------------------------------------
 	int32 PresentationSerial = 0;
 	int32 ActivePresentationID = INDEX_NONE;
 	int32 EncounterID = 0;
 
 	EBossPresentation ActivePresentation = EBossPresentation::None;
 
-	bool bEncounterStarted = false;
 	bool bLifecycleChanging = false;
+
 };

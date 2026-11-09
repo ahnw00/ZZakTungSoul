@@ -9,58 +9,16 @@
 #include <BehaviorTree/Tasks/BTTask_RunBehavior.h>
 #include <BehaviorTree/BlackboardComponent.h>
 #include <UObject/UnrealType.h>
-#include <Enemy/Boss/Clown/BossClown.h>
-#include <Enemy/Boss/Data/BossAIData.h>
-#include <Enemy/Boss/AI/BTTask/BTTask_ClownAttack.h>
-#include <Enemy/Boss/AI/BTDecorator/BTDecorator_ClownYabawiReady.h>
-#include <BehaviorTree/Composites/BTComposite_Selector.h>
-
-ABossAIController::ABossAIController()
-{
-}
 
 void ABossAIController::UpdateAIFocus(EEnemyState PreviousState, EEnemyState NewState)
 {
-	switch (NewState)
+	if (NewState == EEnemyState::Strafe)
 	{
-	case EEnemyState::Idle:
-		ClearFocus(EAIFocusPriority::Gameplay);
-		break;
-
-	case EEnemyState::Patrol:
-		ClearFocus(EAIFocusPriority::Gameplay);
-		break;
-
-	case EEnemyState::Chase:
-		ClearFocus(EAIFocusPriority::Gameplay);
-		break;
-
-	case EEnemyState::Strafe:
 		ToggleFocus();
-		break;
-
-	case EEnemyState::Attack:
+	}
+	else
+	{
 		ClearFocus(EAIFocusPriority::Gameplay);
-		break;
-
-	case EEnemyState::Search:
-		ClearFocus(EAIFocusPriority::Gameplay);
-		break;
-
-	case EEnemyState::Hit:
-		ClearFocus(EAIFocusPriority::Gameplay);
-		break;
-
-	case EEnemyState::Dead:
-		ClearFocus(EAIFocusPriority::Gameplay);
-		break;
-
-	case EEnemyState::FastChase:
-		ClearFocus(EAIFocusPriority::Gameplay);
-		break;
-
-	default:
-		break;
 	}
 }
 
@@ -98,26 +56,6 @@ UBehaviorTree* ABossAIController::PrepareBossBehaviorTree(UBehaviorTree* SourceT
 	UBehaviorTree* BossTree = DuplicateObject<UBehaviorTree>(SourceTree, this);
 	BossTree->SetFlags(RF_Transient);
 	BossBehaviorTrees.Add(SourceTree, BossTree);
-	const ABossClown* Clown = Cast<ABossClown>(GetPawn());
-	const UBossAIData* Data = Clown ? Clown->GetBossAIData() : nullptr;
-
-	if (Data && SourceTree == Data->Phase2BT.Get())
-	{
-		// 기존 2페이즈 트리는 유지하고 런타임 복제본 앞에 야바위 분기를 추가.
-		UBTComposite_Selector* Root = NewObject<UBTComposite_Selector>(BossTree);
-		UBTTask_ClownAttack* Yabawi = NewObject<UBTTask_ClownAttack>(BossTree);
-		Yabawi->SetAttackType(EBossClownAttack::Yabawi);
-		FBTCompositeChild Choice;
-		Choice.ChildTask = Yabawi;
-		Choice.Decorators.Add(NewObject<UBTDecorator_ClownYabawiReady>(BossTree));
-		Choice.DecoratorOps.Add(FBTDecoratorLogic(EBTDecoratorLogic::Test, 0));
-		Root->Children.Add(Choice);
-		FBTCompositeChild Existing;
-		Existing.ChildComposite = BossTree->RootNode;
-		Root->Children.Add(Existing);
-		BossTree->RootNode = Root;
-	}
-
 	PrepareBossComposite(BossTree->RootNode);
 
 	return BossTree;

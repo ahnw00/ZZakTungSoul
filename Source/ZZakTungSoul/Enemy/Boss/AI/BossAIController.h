@@ -9,7 +9,6 @@ class ZZAKTUNGSOUL_API ABossAIController : public AEnemyAIController
 {
 	GENERATED_BODY()
 public:
-	ABossAIController();
 	virtual bool RunBehaviorTree(UBehaviorTree* BTAsset) override;
 
 	virtual void UpdateAIFocus(EEnemyState PreviousState, EEnemyState NewState) override;

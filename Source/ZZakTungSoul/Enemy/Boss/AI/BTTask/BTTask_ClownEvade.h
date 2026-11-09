@@ -13,14 +13,9 @@ enum class EClownEvadeAction : uint8
 	Backstep,
 	Backjump,
 	SideEvade,
-	Feint UMETA(Hidden),
-	Orbit
+	Orbit = 4
 };
-
-//---------------------------------------------------------------
 // BT가 선택한 회피 / 주변 이동의 물리 이동과 몽타주만 실행.
-//
-//---------------------------------------------------------------
 UCLASS()
 class ZZAKTUNGSOUL_API UBTTask_ClownEvade : public UBTTaskNode
 {

@@ -5,6 +5,10 @@
 #include <Kismet/GameplayStatics.h>
 #include <Warrior/WarriorPlayerState.h>
 #include "Warrior/WarriorController.h"
+#include "Enemy/Boss/Encounter/BossRoomSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Enemy/Boss/Encounter/BossRoom.h"
+#include "EngineUtils.h"
 #include <Interactable/BonFire.h>
 #include <EngineUtils.h>
 
@@ -78,9 +82,17 @@ void AZTSGameMode::SaveGame()
 		return;
 	}
 
-	// PlayerState에서 저장할 데이터 가져오기
-	WarriorSaveGame->SetSaveData(WarriorPlayerState->GetSaveData());
+	// 플레이어 저장 데이터 복사
+	FWarriorSaveData SaveData = WarriorPlayerState->GetSaveData();
 
+	// 현재 보스방 이력도 저장 데이터에 포함
+	if (UBossRoomSubsystem* Progress = GetGameInstance()->GetSubsystem<UBossRoomSubsystem>())
+	{
+		SaveData.BossRoomProgress = Progress->GetProgressForSave();
+	}
+
+	// 완성된 데이터를 SaveGame 객체에 전달
+	WarriorSaveGame->SetSaveData(SaveData);
 	// 저장해주기
 	if (!UGameplayStatics::SaveGameToSlot(WarriorSaveGame, SlotName, 0))
 	{
@@ -107,6 +119,16 @@ void AZTSGameMode::LoadGame()
 		if(UWarriorPlayerSaveGame* WarriorLoadGame =
 			Cast<UWarriorPlayerSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, 0)))
 		{
+			if (UBossRoomSubsystem* Progress = GetGameInstance()->GetSubsystem<UBossRoomSubsystem>())
+			{
+				Progress->LoadProgressFromSave(WarriorLoadGame->GetSaveData().BossRoomProgress);
+
+				for (TActorIterator<ABossRoom> It(GetWorld()); It; ++It)
+				{
+					It->ApplySavedProgress();
+				}
+			}
+
 			// WarriorPlayerState 가져오기
 			if(AWarriorPlayerState* WarriorPlayerState = 
 				GetWorld()->GetFirstPlayerController()->GetPlayerState<AWarriorPlayerState>())

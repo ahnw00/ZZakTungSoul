@@ -1,12 +1,20 @@
 #include <Enemy/Boss/Clown/Components/ClownYabawiComponent.h>
 #include <Enemy/Boss/Clown/Gimmick/ClownYabawiBowl.h>
 #include <Enemy/Boss/Clown/BossClown.h>
-#include <Character/CharacterStatComponent.h>
-#include <Interface/CharacterStatInterface.h>
 #include <Interface/CombatDamageInterface.h>
 #include <Engine/World.h>
 #include <Components/PrimitiveComponent.h>
-#include <Components/TextRenderComponent.h>
+#include <Components/WidgetComponent.h>
+#include <Enemy/Boss/Clown/UI/ClownYabawiWidget.h>
+#include <Warrior/Warrior.h>
+#include <TimerManager.h>
+
+namespace
+{
+	constexpr float AnswerOpenTime = 0.6f;
+	constexpr float ExplosionDisplayTime = 0.65f;
+	constexpr float PanelHeight = 220.0f;
+}
 
 UClownYabawiComponent::UClownYabawiComponent()
 {
@@ -17,7 +25,7 @@ UClownYabawiComponent::UClownYabawiComponent()
 bool UClownYabawiComponent::CanStart() const
 {
 	const ABossClown* Boss = Cast<ABossClown>(GetOwner());
-	const FClownPhaseOnePattern* Pattern = Boss ? Boss->GetPhaseOnePattern(EBossClownAttack::Yabawi) : nullptr;
+	const FClownPhaseOnePattern* Pattern = Boss ? Boss->GetAttackPattern(EBossClownAttack::Yabawi) : nullptr;
 
 	return Boss && Boss->IsClownCombatPhase() && Stage == EClownYabawiStage::None && GetWorld() && Pattern &&
 		Pattern->bEnabled && Boss->GetClownAttackData(EBossClownAttack::Yabawi) && Pattern->BowlMesh &&
@@ -33,21 +41,24 @@ bool UClownYabawiComponent::StartRound(AActor* Player, const TArray<FVector>& Po
 		return false;
 	}
 
-	Settings = *Boss->GetPhaseOnePattern(EBossClownAttack::Yabawi);
+	Settings = *Boss->GetAttackPattern(EBossClownAttack::Yabawi);
 	Target = Player;
 	RoundID = ++RoundSerial;
 	CorrectBowl = FMath::RandRange(0, Positions.Num() - 1);
 	SwapsCompleted = 0;
 	SwapA = INDEX_NONE;
 	SwapB = INDEX_NONE;
-	bSuccess = false;
+	PendingBowl.Reset();
+
 	FActorSpawnParameters Params;
 	Params.Owner = Boss;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+	UClass* BowlType = Settings.BowlClass ? Settings.BowlClass.Get() : AClownYabawiBowl::StaticClass();
+	FVector Center = FVector::ZeroVector;
+
 	for (const FVector& Position : Positions)
 	{
-		UClass* BowlType = Settings.BowlClass ? Settings.BowlClass.Get() : AClownYabawiBowl::StaticClass();
 		AClownYabawiBowl* Bowl = GetWorld()->SpawnActor<AClownYabawiBowl>(BowlType, Position, Boss->GetActorRotation(), Params);
 
 		if (!Bowl)
@@ -59,31 +70,32 @@ bool UClownYabawiComponent::StartRound(AActor* Player, const TArray<FVector>& Po
 
 		Bowl->Initialize(this, RoundID, Settings);
 		Bowls.Add(Bowl);
-	}
-
-	Bowls[CorrectBowl]->ShowBall(true);
-
-	FVector Center = FVector::ZeroVector;
-
-	for (const FVector& Position : Positions)
-	{
 		Center += Position;
 	}
 
 	Center /= Positions.Num();
-	SelectionTimer = NewObject<UTextRenderComponent>(Boss);
-	SelectionTimer->ComponentTags.Add(TEXT("ClownYabawiTimer"));
-	SelectionTimer->SetupAttachment(Boss->GetRootComponent());
-	SelectionTimer->SetHorizontalAlignment(EHTA_Center);
-	SelectionTimer->SetWorldSize(32.0f);
-	SelectionTimer->SetTextRenderColor(FColor::Yellow);
-	SelectionTimer->SetVisibility(false);
-	SelectionTimer->RegisterComponent();
-	SelectionTimer->SetAbsolute(true, true, false);
-	SelectionTimer->SetWorldLocation(Center + FVector(0.0f, 0.0f, 220.0f));
+	Bowls[CorrectBowl]->ShowBall(true);
+
+	SelectionPanel = NewObject<UWidgetComponent>(Boss);
+	Boss->AddInstanceComponent(SelectionPanel);
+	SelectionPanel->SetupAttachment(Boss->GetRootComponent());
+	SelectionPanel->SetWidgetSpace(EWidgetSpace::Screen);
+	SelectionPanel->SetWidgetClass(UClownYabawiWidget::StaticClass());
+	SelectionPanel->SetDrawAtDesiredSize(true);
+	SelectionPanel->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	SelectionPanel->RegisterComponent();
+	SelectionPanel->SetAbsolute(true, true, false);
+	SelectionPanel->SetWorldLocation(Center + FVector(0.0f, 0.0f, PanelHeight));
+	SelectionPanel->InitWidget();
+
+	if (UUserWidget* Widget = SelectionPanel->GetUserWidgetObject())
+	{
+		Widget->TakeWidget();
+	}
+
 	SetStage(EClownYabawiStage::Reveal);
 	SetComponentTickEnabled(true);
-	UE_LOG(LogTemp, Log, TEXT("Clown yabawi %d: %d bowls, reveal"), RoundID, Bowls.Num());
 
 	return true;
 }
@@ -92,6 +104,7 @@ void UClownYabawiComponent::SetStage(EClownYabawiStage Next)
 {
 	Stage = Next;
 	StageTime = 0.0f;
+	LastPresentedSeconds = INDEX_NONE;
 
 	for (AClownYabawiBowl* Bowl : Bowls)
 	{
@@ -101,17 +114,12 @@ void UClownYabawiComponent::SetStage(EClownYabawiStage Next)
 		}
 	}
 
-	if (SelectionTimer)
-	{
-		SelectionTimer->SetVisibility(Next == EClownYabawiStage::Selection);
-	}
-
 	if (Next == EClownYabawiStage::Selection)
 	{
 		SelectionDeadline = GetWorld()->GetTimeSeconds() + FMath::Max(Settings.SelectionTime, 1.0f);
-		UpdateSelectionTimer();
-		UE_LOG(LogTemp, Log, TEXT("Clown yabawi %d: selection %.1f seconds"), RoundID, Settings.SelectionTime);
 	}
+
+	UpdatePresentation();
 }
 
 void UClownYabawiComponent::StartSwap()
@@ -138,15 +146,70 @@ void UClownYabawiComponent::StartSwap()
 	SwapTime = 0.0f;
 }
 
-void UClownYabawiComponent::UpdateSelectionTimer()
+void UClownYabawiComponent::UpdatePresentation()
 {
-	if (!SelectionTimer || !Target.IsValid())
+	UClownYabawiWidget* Widget = SelectionPanel ? Cast<UClownYabawiWidget>(SelectionPanel->GetUserWidgetObject()) : nullptr;
+
+	if (!Widget)
 	{
 		return;
 	}
 
-	SelectionTimer->SetText(FText::FromString(FString::Printf(TEXT("ATTACK A BOWL  %.1fs"), GetSelectionRemaining())));
-	SelectionTimer->SetWorldRotation((Target->GetActorLocation() - SelectionTimer->GetComponentLocation()).Rotation());
+	const FLinearColor Gold(0.94f, 0.79f, 0.48f);
+	FText Heading;
+	FText Description;
+	FLinearColor Color = Gold;
+
+	switch (Stage)
+	{
+	case EClownYabawiStage::Reveal:
+		Heading = NSLOCTEXT("ClownYabawi", "Remember", "공의 위치를 기억하세요");
+		Description = NSLOCTEXT("ClownYabawi", "Watch", "섞이는 그릇을 끝까지 지켜보세요");
+		break;
+	case EClownYabawiStage::Cover:
+	case EClownYabawiStage::Shuffle:
+		Heading = NSLOCTEXT("ClownYabawi", "Shuffling", "어느 그릇에 공이 있을까요?");
+		Description = NSLOCTEXT("ClownYabawi", "Wait", "그릇이 멈추면 공격해서 선택하세요");
+		break;
+	case EClownYabawiStage::Selection:
+	{
+		const int32 Seconds = FMath::CeilToInt(GetSelectionRemaining());
+
+		if (Seconds == LastPresentedSeconds)
+		{
+			return;
+		}
+
+		LastPresentedSeconds = Seconds;
+		Heading = NSLOCTEXT("ClownYabawi", "Choose", "공이 숨겨진 그릇을 공격하세요");
+		Description = FText::Format(
+			NSLOCTEXT("ClownYabawi", "Remaining", "남은 시간 {0}초 · 처음 맞힌 그릇이 선택됩니다"), FText::AsNumber(Seconds));
+		break;
+	}
+
+	case EClownYabawiStage::Resolving:
+		switch (RoundResult)
+		{
+		case ERoundResult::Correct:
+			Heading = NSLOCTEXT("ClownYabawi", "Correct", "정답입니다");
+			break;
+		case ERoundResult::Wrong:
+			Heading = NSLOCTEXT("ClownYabawi", "Wrong", "아쉽지만 틀렸습니다");
+			Color = FLinearColor(0.95f, 0.48f, 0.38f);
+			break;
+		case ERoundResult::Timeout:
+			Heading = NSLOCTEXT("ClownYabawi", "Timeout", "시간이 끝났습니다");
+			Color = FLinearColor(0.95f, 0.48f, 0.38f);
+			break;
+		}
+
+		Description = NSLOCTEXT("ClownYabawi", "Answer", "공이 숨겨져 있던 그릇을 확인하세요");
+		break;
+	default:
+		return;
+	}
+
+	Widget->SetPresentation(Heading, Description, Color);
 }
 
 float UClownYabawiComponent::GetSelectionRemaining() const
@@ -156,25 +219,58 @@ float UClownYabawiComponent::GetSelectionRemaining() const
 		: 0.0f;
 }
 
-FVector UClownYabawiComponent::GetPlayerLocation() const
+bool UClownYabawiComponent::SelectBowl(AActor* Player, AClownYabawiBowl* Bowl, int32 InRoundID, const FHitResult& Hit)
 {
-	return Target.IsValid() ? Target->GetActorLocation() : FVector::ZeroVector;
-}
-
-bool UClownYabawiComponent::SelectBowl(AActor* Player, AClownYabawiBowl* Bowl, int32 InRoundID)
-{
-	if (Stage != EClownYabawiStage::Selection || RoundID == INDEX_NONE || InRoundID != RoundID || !IsValid(Player) ||
-		Player != Target.Get() || !IsValid(Bowl) || !Bowls.Contains(Bowl) || GetSelectionRemaining() <= 0.0f)
+	if (Stage != EClownYabawiStage::Selection || RoundID == INDEX_NONE || InRoundID != RoundID)
 	{
 		return false;
 	}
 
-	Resolve(Bowls.IndexOfByKey(Bowl) == CorrectBowl);
+	if (!IsValid(Player) || Player != Target.Get() || !IsValid(Bowl) || !Bowls.Contains(Bowl) || GetSelectionRemaining() <= 0.0f)
+	{
+		return false;
+	}
+
+	// 한 프레임의 Sweep 결과를 모아 배열 순서가 아닌 최초 접촉 시간/거리로 선택한다.
+	if (PendingBowl.IsValid() && PendingFrame != GFrameCounter)
+	{
+		return false;
+	}
+
+	const float Distance = FVector::DistSquared(Hit.TraceStart, Bowl->GetActorLocation());
+	const float PreviousDistance = PendingBowl.IsValid() ? FVector::DistSquared(PendingHit.TraceStart, PendingBowl->GetActorLocation()) : TNumericLimits<float>::Max();
+
+	if (!PendingBowl.IsValid() || Hit.Time < PendingHit.Time || (FMath::IsNearlyEqual(Hit.Time, PendingHit.Time) && Distance < PreviousDistance))
+	{
+		PendingBowl = Bowl;
+		PendingHit = Hit;
+		PendingFrame = GFrameCounter;
+	}
+
+	if (!GetWorld()->GetTimerManager().IsTimerActive(SelectionCommitTimer))
+	{
+		SelectionCommitTimer = GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UClownYabawiComponent::CommitSelection);
+	}
 
 	return true;
 }
 
-void UClownYabawiComponent::Resolve(bool bCorrect)
+void UClownYabawiComponent::CommitSelection()
+{
+	AClownYabawiBowl* Bowl = PendingBowl.Get();
+	PendingBowl.Reset();
+
+	if (Stage != EClownYabawiStage::Selection || !IsValid(Bowl))
+	{
+		return;
+	}
+
+	const bool bCorrect = Bowls.IndexOfByKey(Bowl) == CorrectBowl;
+	Bowl->OnBowlStruck(PendingHit);
+	Resolve(bCorrect ? ERoundResult::Correct : ERoundResult::Wrong);
+}
+
+void UClownYabawiComponent::Resolve(ERoundResult Result)
 {
 	if (Stage != EClownYabawiStage::Selection)
 	{
@@ -182,23 +278,27 @@ void UClownYabawiComponent::Resolve(bool bCorrect)
 	}
 
 	// 피해로 사망/초기화 콜백이 발생하기 전에 선택과 중복 보상을 먼저 차단.
+	RoundResult = Result;
 	SetStage(EClownYabawiStage::Resolving);
-	bSuccess = bCorrect;
 	ABossClown* Boss = Cast<ABossClown>(GetOwner());
 	AActor* Player = Target.Get();
 
-	if (!Boss || !IsValid(Player))
+	AClownYabawiBowl* Answer = Bowls[CorrectBowl];
+
+	if (!Boss || !IsValid(Player) || !IsValid(Answer))
 	{
 		CancelRound();
 
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Clown yabawi %d: %s"), RoundID, bCorrect ? TEXT("correct") : TEXT("wrong or timeout"));
-
-	if (bCorrect)
+	if (SelectionPanel)
 	{
-		Bowls[CorrectBowl]->ShowBall(true);
+		SelectionPanel->SetWorldLocation(Answer->GetActorLocation() + FVector(0.0f, 0.0f, PanelHeight));
+	}
+
+	if (Result == ERoundResult::Correct)
+	{
 		Boss->EnterYabawiGroggy();
 
 		return;
@@ -210,10 +310,14 @@ void UClownYabawiComponent::Resolve(bool bCorrect)
 
 	for (AClownYabawiBowl* Bowl : Bowls)
 	{
-		Bowl->ShowExplosion(Settings.ExplosionRadius, 0.0f);
+		if (!IsValid(Bowl))
+		{
+			continue;
+		}
 
-		if (FVector::Dist(Player->GetActorLocation(), Bowl->GetActorLocation()) <=
-			FMath::Max(Settings.ExplosionRadius, 100.0f))
+		Bowl->UpdateExplosion(Settings.ExplosionRadius, 0.0f);
+
+		if (FVector::Dist(Player->GetActorLocation(), Bowl->GetActorLocation()) <= FMath::Max(Settings.ExplosionRadius, 100.0f))
 		{
 			bInRange = true;
 			ExplosionCenter = Bowl->GetActorLocation();
@@ -257,13 +361,11 @@ void UClownYabawiComponent::TickComponent(
 		return;
 	}
 
-	if (ICharacterStatInterface* PlayerStats = Cast<ICharacterStatInterface>(Target.Get()))
+	if (const AWarrior* Player = Cast<AWarrior>(Target.Get()))
 	{
-		if (PlayerStats->GetCharacterStatComponent() &&
-			PlayerStats->GetCharacterStatComponent()->GetCurrentHP() <= 0.0f)
+		if (Player->IsDead())
 		{
 			Boss->FinishClownAttack(EBossClownAttackResult::Aborted, true);
-
 			return;
 		}
 	}
@@ -325,38 +427,46 @@ void UClownYabawiComponent::TickComponent(
 
 	case EClownYabawiStage::Selection:
 	{
-		const float Remaining = GetSelectionRemaining();
-
-		if (Remaining <= 0.0f)
+		if (PendingBowl.IsValid())
 		{
-			Resolve(false);
-
+			CommitSelection();
 			return;
 		}
 
-		UpdateSelectionTimer();
+		if (GetSelectionRemaining() <= 0.0f)
+		{
+			Resolve(ERoundResult::Timeout);
+		}
+		else
+		{
+			UpdatePresentation();
+		}
+
 		break;
 	}
 
 	case EClownYabawiStage::Resolving:
-		for (AClownYabawiBowl* Bowl : Bowls)
+	{
+		const float OpenAlpha = FMath::Clamp(StageTime / AnswerOpenTime, 0.0f, 1.0f);
+		Bowls[CorrectBowl]->UpdateAnswerReveal(OpenAlpha, StageTime);
+
+		const bool bCorrect = RoundResult == ERoundResult::Correct;
+
+		if (!bCorrect)
 		{
-			if (bSuccess)
+			for (AClownYabawiBowl* Bowl : Bowls)
 			{
-				Bowl->SetCoverAlpha(1.0f - FMath::Clamp(StageTime / 0.6f, 0.0f, 1.0f));
-			}
-			else
-			{
-				Bowl->ShowExplosion(Settings.ExplosionRadius, StageTime / 0.8f);
+				Bowl->UpdateExplosion(Settings.ExplosionRadius, StageTime / ExplosionDisplayTime);
 			}
 		}
 
-		if (StageTime >= 1.0f)
+		if (StageTime >= FMath::Max(Settings.ResultDisplayTime, 1.0f))
 		{
-			Boss->CompleteClownYabawi(bSuccess);
+			Boss->CompleteClownYabawi(bCorrect);
 		}
 
 		break;
+	}
 	default:
 		break;
 	}
@@ -368,10 +478,17 @@ void UClownYabawiComponent::CancelRound(bool bResetCooldown)
 	Stage = EClownYabawiStage::None;
 	RoundID = INDEX_NONE;
 
-	if (SelectionTimer)
+	if (GetWorld())
 	{
-		SelectionTimer->DestroyComponent();
-		SelectionTimer = nullptr;
+		GetWorld()->GetTimerManager().ClearTimer(SelectionCommitTimer);
+	}
+
+	PendingBowl.Reset();
+
+	if (SelectionPanel)
+	{
+		SelectionPanel->DestroyComponent();
+		SelectionPanel = nullptr;
 	}
 
 	for (AClownYabawiBowl* Bowl : Bowls)

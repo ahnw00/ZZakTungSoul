@@ -11,20 +11,27 @@
 AClownYabawiBowl::AClownYabawiBowl()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+
 	BowlMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Bowl"));
 	BowlMesh->SetupAttachment(RootComponent);
 	BowlMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	BallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HiddenBall"));
 	BallMesh->SetupAttachment(RootComponent);
 	BallMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	Explosion = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Explosion"));
 	Explosion->SetupAttachment(RootComponent);
 	Explosion->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Explosion->SetCastShadow(false);
 	Explosion->SetVisibility(false);
+	Explosion->SetRelativeLocation(FVector(0.0f, 0.0f, 10.0f));
+
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Plane(TEXT("/Engine/BasicShapes/Plane.Plane"));
 	Explosion->SetStaticMesh(Plane.Object);
+
 	AttackHitBox = CreateDefaultSubobject<UBoxComponent>(TEXT("AttackHitBox"));
 	AttackHitBox->SetupAttachment(RootComponent);
 	AttackHitBox->SetCollisionObjectType(ECC_WorldDynamic);
@@ -37,19 +44,23 @@ void AClownYabawiBowl::Initialize(UClownYabawiComponent* Round, int32 InRoundID,
 {
 	YabawiRound = Round;
 	RoundID = InRoundID;
-	Diameter = FMath::Max(Settings.BowlDiameter, 100.0f);
+	const float Diameter = FMath::Max(Settings.BowlDiameter, 100.0f);
+
 	BowlMesh->SetStaticMesh(Settings.BowlMesh);
 	const FBoxSphereBounds Bounds = Settings.BowlMesh->GetBounds();
 	const float Scale = Diameter / FMath::Max(FMath::Max(Bounds.BoxExtent.X, Bounds.BoxExtent.Y) * 2.0f, 0.01f);
 	BowlMesh->SetRelativeScale3D(FVector(Scale));
 	MeshCenter = Bounds.Origin * Scale;
 	HalfHeight = Bounds.BoxExtent.Z * Scale;
+
 	BallMesh->SetStaticMesh(Settings.BallMesh);
 	const float BallSize = Diameter * 0.23f;
 	const FBoxSphereBounds BallBounds = Settings.BallMesh->GetBounds();
 	const float BallScale = BallSize / FMath::Max(BallBounds.BoxExtent.GetMax() * 2.0f, 0.01f);
 	BallMesh->SetRelativeScale3D(FVector(BallScale));
-	BallMesh->SetRelativeLocation(FVector(0.0f, 0.0f, BallSize * 0.5f) - BallBounds.Origin * BallScale);
+	BallRestLocation = FVector(0.0f, 0.0f, BallSize * 0.5f) - BallBounds.Origin * BallScale;
+	BallMesh->SetRelativeLocation(BallRestLocation);
+
 	const float HitHalfHeight = FMath::Max(Settings.BowlHitHeight * 0.5f, HalfHeight);
 	AttackHitBox->SetBoxExtent(FVector(Diameter * 0.5f, Diameter * 0.5f, HitHalfHeight));
 	AttackHitBox->SetRelativeLocation(FVector(0.0f, 0.0f, HitHalfHeight));
@@ -74,24 +85,14 @@ void AClownYabawiBowl::SetAttackSelectionEnabled(bool bEnabled)
 
 bool AClownYabawiBowl::ReceivePlayerAttack(AActor* Player, const FHitResult& Hit)
 {
-	if (Hit.GetActor() != this || Hit.GetComponent() != AttackHitBox.Get() || !YabawiRound.IsValid() ||
-		!YabawiRound->SelectBowl(Player, this, RoundID))
-	{
-		return false;
-	}
-
-	if (!IsActorBeingDestroyed())
-	{
-		OnBowlStruck(Hit);
-	}
-
-	return true;
+	UClownYabawiComponent* Round = YabawiRound.Get();
+	return Hit.GetActor() == this && Hit.GetComponent() == AttackHitBox.Get() &&
+		Round && Round->SelectBowl(Player, this, RoundID, Hit);
 }
 
 void AClownYabawiBowl::OnBowlStruck_Implementation(const FHitResult& Hit)
 {
 	SetAttackSelectionEnabled(false);
-	BowlMesh->SetVisibility(false);
 }
 
 void AClownYabawiBowl::SetCoverAlpha(float Alpha)
@@ -107,13 +108,23 @@ void AClownYabawiBowl::ShowBall(bool bVisible)
 	BallMesh->SetVisibility(bVisible);
 }
 
-void AClownYabawiBowl::ShowExplosion(float Radius, float Alpha)
+void AClownYabawiBowl::UpdateAnswerReveal(float OpenAlpha, float ElapsedTime)
 {
-	BowlMesh->SetVisibility(false);
-	ShowBall(false);
-	SetAttackSelectionEnabled(false);
-	Explosion->SetVisibility(true);
-	Explosion->SetRelativeLocation(FVector(0.0f, 0.0f, 10.0f));
-	const float Scale = Radius * 2.0f / 100.0f * FMath::Clamp(Alpha * 3.0f, 0.05f, 1.0f);
-	Explosion->SetRelativeScale3D(FVector(Scale, Scale, 1.0f));
+	const float LiftAlpha = FMath::SmoothStep(0.0f, 1.0f, OpenAlpha);
+	const float FloatHeight = (58.0f + 5.0f * FMath::Sin(ElapsedTime * 5.0f)) * LiftAlpha;
+
+	SetCoverAlpha(1.0f - LiftAlpha);
+	BallMesh->SetRelativeLocation(BallRestLocation + FVector(0.0f, 0.0f, FloatHeight));
+	ShowBall(OpenAlpha >= 0.4f);
+}
+
+void AClownYabawiBowl::UpdateExplosion(float Radius, float Alpha)
+{
+	Explosion->SetVisibility(Alpha < 1.0f);
+
+	if (Alpha < 1.0f)
+	{
+		const float Scale = Radius * 2.0f / 100.0f * FMath::Clamp(Alpha * 2.5f, 0.05f, 1.0f);
+		Explosion->SetRelativeScale3D(FVector(Scale, Scale, 1.0f));
+	}
 }

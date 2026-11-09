@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Interactable/Bonfire.h"
@@ -25,8 +25,8 @@
 #include <Interface/CharacterStatInterface.h>
 
 #include <Enemy/EnemyBase.h>
+#include "UI/Notify/NotificationSubsystem.h"
 #include <Enemy/Spawner/EnemySpawnSubsystem.h>
-
 
 
 
@@ -224,6 +224,15 @@ void ABonfire::Interact(AActor* detectedActor)
 		{
 			PS->RegisterLitBonfire(BonfireID);
 			PS->SetLastBonfireID(BonfireID);
+		}
+
+		if (UNotificationSubsystem* NotificationSystem =
+			ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
+				GetWorld()->GetFirstLocalPlayerFromController()))
+		{
+			NotificationSystem->ShowNotification(
+				ENotificationType::BornFireLit
+			);
 		}
 
 		// [자동 저장]

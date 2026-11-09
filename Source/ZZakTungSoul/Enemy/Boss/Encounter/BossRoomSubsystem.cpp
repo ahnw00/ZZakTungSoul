@@ -36,7 +36,15 @@ void UBossRoomSubsystem::MarkCleared(FName RoomID)
 	Progress.bCleared = true;
 }
 
-void UBossRoomSubsystem::ResetRoom(FName RoomID)
+const TMap<FName, FBossRoomProgress>&
+UBossRoomSubsystem::GetProgressForSave() const
 {
-	RoomProgress.Remove(RoomID);
+	return RoomProgress;
+}
+
+void UBossRoomSubsystem::LoadProgressFromSave(
+	const TMap<FName, FBossRoomProgress>& SavedProgress)
+{
+	// 기존 실행 중 이력을 저장된 이력으로 교체
+	RoomProgress = SavedProgress;
 }

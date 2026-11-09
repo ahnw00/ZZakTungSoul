@@ -29,7 +29,8 @@ enum class EActionState : uint8
 	Hit,
 	Stun,
 	PickUp,
-	Drink
+	Drink,
+	Dead
 };
 
 UENUM(BlueprintType)

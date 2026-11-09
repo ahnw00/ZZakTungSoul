@@ -20,10 +20,20 @@
 #include <Kismet/KismetMathLibrary.h>
 #include <Kismet/GameplayStatics.h>
 #include <Engine/SkeletalMesh.h>
+#include "Engine/World.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "UObject/ConstructorHelpers.h"
 
 AEnemyBase::AEnemyBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> BloodHitRef(TEXT("/Game/Blueprints/Niagara/NS_BloodHit.NS_BloodHit"));
+	if (BloodHitRef.Succeeded())
+	{
+		BloodHitEffect = BloodHitRef.Object;
+	}
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshRef(
 		TEXT("/Game/Assets/InfinityBladeWarriors/Character/CompleteCharacters/sk_CharM_Base.sk_CharM_Base")
@@ -147,8 +157,14 @@ void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& 
 		return;
 	}
 
+	const float HPBeforeDamage = EnemyStatComponet->GetCurrentHp();
 	EnemyStatComponet->ApplyDamage(DamageInfo);
 
+	// 무적, 방어, 스탠스 피해만 받은 경우에는 피를 생성하지 않는다.
+	if (EnemyStatComponet->GetCurrentHp() < HPBeforeDamage)
+	{
+		SpawnBloodHitEffect(Hit);
+	}
 	if (ANormalEnemyAIController* AIController = Cast<ANormalEnemyAIController>(GetController()))
 	{
 		APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
@@ -177,6 +193,48 @@ void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& 
 	SetEnemyActionState(EEnemyActionState::Hit);
 
 	HitStart();
+}
+
+void AEnemyBase::SpawnBloodHitEffect(const FHitResult& Hit)
+{
+	// 앞잡 등의 위치 정보 없는 피해에는 임의의 위치에 생성하지 않는다.
+	if (!BloodHitEffect || !GetWorld() || Hit.GetActor() != this || !Hit.GetComponent())
+	{
+		return;
+	}
+
+	FHitResult SurfaceHit = Hit;
+	FVector OutwardDirection = Hit.ImpactNormal.GetSafeNormal();
+	if (OutwardDirection.IsNearlyZero())
+	{
+		OutwardDirection = (Hit.TraceStart - Hit.TraceEnd).GetSafeNormal();
+	}
+	if (OutwardDirection.IsNearlyZero())
+	{
+		OutwardDirection = GetActorForwardVector();
+	}
+
+	// 캡슐에 맞았을 때는 메시의 Physics Asset에서 실제 표면을 다시 찾는다.
+	if (USkeletalMeshComponent* CharacterMesh = GetMesh(); CharacterMesh && Hit.GetComponent() != CharacterMesh)
+	{
+		const FVector ImpactPoint = Hit.bStartPenetrating ? Hit.Location : Hit.ImpactPoint;
+		const float TraceDistance = FMath::Max(GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f, 150.f);
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(BloodHitSurface), false);
+		FHitResult MeshHit;
+		if (CharacterMesh->LineTraceComponent(MeshHit, ImpactPoint + OutwardDirection * TraceDistance, ImpactPoint - OutwardDirection * TraceDistance, Params))
+		{
+			SurfaceHit = MeshHit;
+		}
+	}
+
+	FVector SpawnDirection = SurfaceHit.ImpactNormal.GetSafeNormal();
+	if (SpawnDirection.IsNearlyZero())
+	{
+		SpawnDirection = OutwardDirection;
+	}
+	const FVector SpawnPosition = (SurfaceHit.bStartPenetrating ? SurfaceHit.Location : SurfaceHit.ImpactPoint) + SpawnDirection * 2.f;
+	// Niagara의 로컬 X축을 피격 표면 바깥 방향으로 향하게 한다.
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, BloodHitEffect.Get(), SpawnPosition, SpawnDirection.Rotation(), FVector(BloodHitScale), true, true);
 }
 
 void AEnemyBase::UpdateMovementSpeed()

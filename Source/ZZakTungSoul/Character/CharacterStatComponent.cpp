@@ -271,8 +271,15 @@ void UCharacterStatComponent::UpdateCharacterStat(const FWarriorAttributeData& A
 	// 이벤트 구독(Bind)하고 있는 UI에게 방송.
 void UCharacterStatComponent::SetCurrentHP(float NewHP)
 {
+	const float PreviousHP = CurrentHP;
 	CurrentHP = FMath::Clamp(NewHP, 0.f, MaxHP);
+	const bool bReachedZero = MaxHP > 0.f && PreviousHP > 0.f && CurrentHP <= 0.f;
 	OnHPChanged.Broadcast(CurrentHP, MaxHP);
+
+	if (bReachedZero && CurrentHP <= 0.f)
+	{
+		OnHPZero.Broadcast();
+	}
 }
 void UCharacterStatComponent::SetCurrentFP(float NewFP)
 {

@@ -34,6 +34,7 @@ struct FStatPreview
 // [델리게이트 선언]
 // 스탯이 바뀔 때(현재값, 최대값) 2개의 float 데이터를 방송하는 델리게이트 타입 정의.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatChangedDelegate, float, CurrentValue, float, MaxValue);
+DECLARE_MULTICAST_DELEGATE(FOnCharacterHPZeroDelegate);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ZZAKTUNGSOUL_API UCharacterStatComponent : public UActorComponent
@@ -74,6 +75,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Stat|Events")
 	FOnStatChangedDelegate OnStanceChanged;
+
+	FOnCharacterHPZeroDelegate OnHPZero;
 
 public:
 	// ==============================================================================================

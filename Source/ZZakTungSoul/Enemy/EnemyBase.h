@@ -15,6 +15,7 @@ class UEnemyAIData;
 class UEnemyAnimationData;
 class UCharacterStatComponent;
 class APatrolPath;
+class UNiagaraSystem;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnEnemyDied, AEnemyBase*);
 
@@ -37,6 +38,14 @@ protected:
 
 	// 데미지 처리 판정 -> 상위 클래스에서 인터페이스 사용함
 	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit) override;
+
+	void SpawnBloodHitEffect(const FHitResult& Hit);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Effects")
+	TObjectPtr<UNiagaraSystem> BloodHitEffect;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Effects", meta = (ClampMin = "0.01"))
+	float BloodHitScale = 1.f;
 
 	// 상태에 따라 이동속도 변경 함수
 	virtual void UpdateMovementSpeed();

@@ -21,26 +21,3 @@ UBossClownAnimationData::UBossClownAnimationData()
 	Yabawi.ExplosionDamage.AttackDamage = 80.0f;
 	Yabawi.ExplosionDamage.bUnblockable = true;
 }
-
-void UBossClownAnimationData::PostLoad()
-{
-	Super::PostLoad();
-
-	if (!PhaseOnePatterns.ContainsByPredicate(
-			[](const FClownPhaseOnePattern& Pattern)
-			{
-				return Pattern.AttackType == EBossClownAttack::Yabawi;
-			}))
-	{
-		const FClownPhaseOnePattern* Defaults = GetDefault<UBossClownAnimationData>()->PhaseOnePatterns.FindByPredicate(
-			[](const FClownPhaseOnePattern& Pattern)
-			{
-				return Pattern.AttackType == EBossClownAttack::Yabawi;
-			});
-
-		if (Defaults)
-		{
-			PhaseOnePatterns.Add(*Defaults);
-		}
-	}
-}

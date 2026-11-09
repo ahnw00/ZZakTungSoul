@@ -10,7 +10,10 @@
 #include "Interface/CharacterStatInterface.h"
 #include <Interface/ItemInterface.h>
 #include <Interface/SaveLoadInterface.h>
+#include "TimerManager.h"
 #include "Warrior.generated.h"
+
+class UAnimMontage;
 
 
 // [전방 선언].
@@ -42,6 +45,11 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	bool IsDead() const
+	{
+		return ActionState == EActionState::Dead;
+	}
 
 private:
 	UFUNCTION()
@@ -126,6 +134,25 @@ protected:
 	//class UDataTable* CharacterDataTable; // 블루프린트에서 데이터 테이블을 직접 참조
 	//struct FCharacterStatData* CharacterStats; // 데이터 테이블에서 단일 행을 참조해 캐릭터 스탯으로 사용
 	void UpdateCharacterStats();
+	virtual void SetDead() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	TObjectPtr<UAnimMontage> DeathMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0.01"))
+	float DeathNotificationDelay = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0.01"))
+	float RespawnDelay = 3.f;
+
+	void FinishDeathMontage();
+	void ShowDeathNotification();
+	void RespawnAtLastBonfire();
+
+	FTimerHandle DeathNotificationTimer;
+	FTimerHandle RespawnTimer;
+	bool bDeathMontageFinished = false;
 
 public:
 
@@ -181,7 +208,7 @@ public:
 	void SetWeaponState(EWeaponState NewState);
 
 	// AnimMontage 관련
-	FORCEINLINE void EndAction() { ActionState = EActionState::None; }
+	FORCEINLINE void EndAction() { SetActionState(EActionState::None); }
 
 	FORCEINLINE int32 GetCombo() const { return AttackCombo; }
 	FORCEINLINE void ResetCombo() { AttackCombo = 0; }

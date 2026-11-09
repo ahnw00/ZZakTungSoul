@@ -27,7 +27,8 @@ public:
 	virtual void OnBowlStruck_Implementation(const FHitResult& Hit);
 	void SetCoverAlpha(float Alpha);
 	void ShowBall(bool bVisible);
-	void ShowExplosion(float Radius, float Alpha);
+	void UpdateAnswerReveal(float OpenAlpha, float ElapsedTime);
+	void UpdateExplosion(float Radius, float Alpha);
 
 private:
 	UPROPERTY(VisibleAnywhere)
@@ -46,5 +47,5 @@ private:
 	int32 RoundID = INDEX_NONE;
 	FVector MeshCenter = FVector::ZeroVector;
 	float HalfHeight = 40.0f;
-	float Diameter = 180.0f;
+	FVector BallRestLocation = FVector::ZeroVector;
 };

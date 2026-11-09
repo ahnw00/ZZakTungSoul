@@ -172,8 +172,6 @@ bool UBTTask_ClownEvade::FindSafeGoal(UBehaviorTreeComponent& OwnerComp, ABossCl
 
 	if (FVector::Dist2D(OutGoal, Desired) > 100.0f || FMath::Abs(OutGoal.Z - Clown->GetActorLocation().Z) > 60.0f)
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("Clown evade: landing projection rejected. XY %.1f, Z %.1f"),
-			FVector::Dist2D(OutGoal, Desired), OutGoal.Z - Clown->GetActorLocation().Z);
 
 		return false;
 	}
@@ -193,7 +191,6 @@ bool UBTTask_ClownEvade::FindSafeGoal(UBehaviorTreeComponent& OwnerComp, ABossCl
 		UNavigationSystemV1::NavigationRaycast(
 			Clown, StartFoot, NavGoal.Location, HitLocation, nullptr, OwnerComp.GetAIOwner()))
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("Clown evade: navigation path blocked."));
 
 		return false;
 	}
@@ -213,7 +210,6 @@ bool UBTTask_ClownEvade::FindSafeGoal(UBehaviorTreeComponent& OwnerComp, ABossCl
 	if (Clown->GetWorld()->SweepSingleByChannel(Hit, Clown->GetActorLocation() + FVector(0.0f, 0.0f, 5.0f),
 			OutGoal + FVector(0.0f, 0.0f, 5.0f), FQuat::Identity, ECC_Pawn, Shape, Params))
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("Clown evade: capsule path blocked by %s."), *GetNameSafe(Hit.GetActor()));
 
 		return false;
 	}
@@ -246,10 +242,6 @@ bool UBTTask_ClownEvade::BuildJumpVelocity(ABossClown* Clown, AActor* Target, FV
 
 		if (Clown->GetWorld()->SweepSingleByChannel(Hit, Previous, Next, FQuat::Identity, ECC_Pawn, Shape, Params))
 		{
-			UE_LOG(LogTemp, Verbose,
-				TEXT("Clown jump: arc segment %d blocked by %s. Start Z %.1f, End Z %.1f, Half %.1f"), Index,
-				*GetNameSafe(Hit.GetActor()), Previous.Z, Next.Z,
-				Clown->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 
 			return false;
 		}
@@ -266,7 +258,7 @@ bool UBTTask_ClownEvade::BeginTactical(UBehaviorTreeComponent& OwnerComp, ABossC
 	UCharacterMovementComponent* Move = Clown->GetCharacterMovement();
 	UAnimInstance* Anim = Clown->GetMesh()->GetAnimInstance();
 
-	if (!Data || !Anim || !Move->IsMovingOnGround() || Action == EClownEvadeAction::Feint)
+	if (!Data || !Anim || !Move->IsMovingOnGround())
 	{
 		return false;
 	}
@@ -314,7 +306,7 @@ bool UBTTask_ClownEvade::BeginTactical(UBehaviorTreeComponent& OwnerComp, ABossC
 		return false;
 	}
 
-	const float Rate = Montage && Action != EClownEvadeAction::Feint ? Montage->GetPlayLength() / Duration : 1.0f;
+	const float Rate = Montage ? Montage->GetPlayLength() / Duration : 1.0f;
 
 	if (Montage && Anim->Montage_Play(Montage, FMath::Max(Rate, 0.1f)) <= 0.0f)
 	{

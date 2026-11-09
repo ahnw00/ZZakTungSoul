@@ -1,6 +1,9 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Warrior/Warrior.h"
+#include "Warrior/WarriorController.h"
+#include "Animation/AnimMontage.h"
+#include "TimerManager.h"
 
 // Camera
 #include "GameFrameWork/SpringArmComponent.h"
@@ -36,6 +39,14 @@
 #include <Interface/CombatDamageInterface.h>
 #include <Enemy/Components/AttackTraceComponent.h>
 #include <Enemy/Boss/Clown/Gimmick/ClownYabawiBowl.h>
+
+#include <UI/Notify/NotificationSubsystem.h>
+#include <Enemy/Boss/Encounter/BossRoom.h>
+#include <Engine/LocalPlayer.h>
+#include <EngineUtils.h>
+#include <GameFramework/PlayerController.h>
+
+#include "GameFramework/GameModeBase.h"
 
 AWarrior::AWarrior()
 {
@@ -161,6 +172,11 @@ void AWarrior::BeginPlay()
 	Super::BeginPlay();
 
 	UpdateCharacterStats();
+
+	if (CharacterStatComponent)
+	{
+		CharacterStatComponent->OnHPZero.AddUObject(this, &AWarrior::SetDead);
+	}
 
 	// Delegate 연결
 	if (AttackTraceComponent)
@@ -360,37 +376,24 @@ void AWarrior::UpdateLook(float DeltaTime)
 
 void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	// if (Montage == AnimInstance->GetBlockMontage())
-	//	return;
+    if (IsDead())
+    {
+        if (Montage == DeathMontage.Get())
+            FinishDeathMontage();
+        return;
+    }
 
-	// if (bIsAttacking)
-	//{
-	//	AttackCombo = 0;
-	//	bIsAttacking = false;
-	//	bComboQueued = false;
-	//	bCanComboInput = false;
-	// }
+    if (ActionState == EActionState::Drink && Equipment && LeftHandWeapon)
+    {
+        const FGuid ItemID = Equipment->GetEquippedItem(EEquipmentSlot::LeftHand);
+        if (ItemID.IsValid())
+            EquipWeapon(ItemID, EEquipmentSlot::LeftHand);
+        else
+            LeftHandWeapon->SetSkeletalMesh(nullptr);
+    }
 
-	if (ActionState == EActionState::Drink)
-	{
-		FGuid ItemID = Equipment->GetEquippedItem(EEquipmentSlot::LeftHand);
-		if (ItemID != FGuid())
-		{
-			EquipWeapon(ItemID, EEquipmentSlot::LeftHand);
-		}
-		else
-		{
-			LeftHandWeapon->SetSkeletalMesh(nullptr);
-		}
-	}
-
-	if(ActionState != EActionState::Attack)
-		SetActionState(EActionState::None);
-
-	// if (ActionState == EActionState::Attack)
-	//{
-	//	SetMoveState(EMoveState::Idle);
-	// }
+    if (ActionState != EActionState::Attack)
+        SetActionState(EActionState::None);
 }
 
 void AWarrior::UpdateCharacterStats()
@@ -425,6 +428,50 @@ void AWarrior::UpdateCharacterStats()
 	}
 
 	CharacterStatComponent->UpdateCharacterStat(SaveData->Attributes);
+}
+
+void AWarrior::SetDead()
+{
+    if (IsDead())
+        return;
+
+    SetActionState(EActionState::Dead);
+    bDeathMontageFinished = false;
+    GetWorldTimerManager().ClearTimer(DeathNotificationTimer);
+    GetWorldTimerManager().ClearTimer(RespawnTimer);
+
+    bIsGuard = false;
+    bIsInvincibility = false;
+    bIsSprint = false;
+    bIsAttacking = false;
+    bCanComboInput = false;
+    bComboQueued = false;
+    AttackCombo = 0;
+    bLockOn = false;
+    LockOnTarget = nullptr;
+
+    if (AttackTraceComponent)
+        AttackTraceComponent->EndTrace();
+
+    // 시퀀스의 UI와 입력 복구를 먼저 끝낸 뒤 사망 화면으로 전환.
+    for (TActorIterator<ABossRoom> It(GetWorld()); It; ++It)
+        It->FailAttempt();
+
+    GetCharacterMovement()->StopMovementImmediately();
+    Super::SetDead();
+
+    if (AWarriorController* PC = Cast<AWarriorController>(GetController()))
+        PC->BeginDeathPresentation();
+
+    if (AnimInstance)
+    {
+        AnimInstance->Montage_Stop(0.1f);
+        if (DeathMontage && AnimInstance->Montage_Play(DeathMontage) > 0.f)
+            return;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("[Death] 사망 몽타주가 없거나 재생에 실패했습니다."));
+    FinishDeathMontage();
 }
 
 void AWarrior::SprintStart()
@@ -505,20 +552,20 @@ void AWarrior::Attack()
 	}
 	case EActionState::Block:
 		BlockEnd();
-		[[fallthrough]];
+		break;
 	case EActionState::Roll:
 		[[fallthrough]];
 	case EActionState::BackStep:
-		[[fallthrough]];
+		return;
 	case EActionState::Attack:
 	{
-		if (bCanComboInput)
+		if (bCanComboInput && !bComboQueued)
 		{
 			bComboQueued = true;
 			// UE_LOG(LogTemp, Warning, TEXT("Attack()== ComboQueued : %d"), bComboQueued);
-			return;
 		}
-		break;
+
+		return;
 	}
 	case EActionState::Hit:
 		return;
@@ -843,6 +890,19 @@ void AWarrior::SetMoveState(EMoveState NewState)
 
 void AWarrior::SetActionState(EActionState NewState)
 {
+	// 사망 상태는 일반 행동이나 종료 노티파이로 해제하지 않음
+	if (ActionState == EActionState::Dead)
+	{
+		return;
+	}
+
+	// 어떤 행동 중이든 사망으로 전환 가능
+	if (NewState == EActionState::Dead)
+	{
+		ActionState = NewState;
+		return;
+	}
+
 	if (NewState != EActionState::None && ActionState != EActionState::None)
 		return;
 
@@ -904,7 +964,7 @@ const FWarriorSaveData* AWarrior::GetSaveData() const
 
 void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 {
-	if (nullptr == CharacterStatComponent)
+	if (IsDead() || !CharacterStatComponent)
 	{
 		return;
 	}
@@ -1375,4 +1435,133 @@ void AWarrior::LoadWarriorData(const FWarriorSaveData& SaveData)
 	{
 		EquipWeapon(Pair.Value, Pair.Key);
 	}
+}
+
+
+void AWarrior::FinishDeathMontage()
+{
+    if (!IsDead() || bDeathMontageFinished)
+        return;
+
+    bDeathMontageFinished = true;
+    GetWorldTimerManager().SetTimer(DeathNotificationTimer, this, &AWarrior::ShowDeathNotification, FMath::Max(DeathNotificationDelay, 0.01f), false);
+}
+
+void AWarrior::ShowDeathNotification()
+{
+    if (!IsDead())
+        return;
+
+    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    {
+        if (ULocalPlayer* LocalPlayer = PC->GetLocalPlayer())
+        {
+            if (UNotificationSubsystem* Notifications = LocalPlayer->GetSubsystem<UNotificationSubsystem>())
+                Notifications->ShowNotification(ENotificationType::Death);
+        }
+    }
+
+    GetWorldTimerManager().SetTimer(RespawnTimer, this, &AWarrior::RespawnAtLastBonfire, FMath::Max(RespawnDelay, 0.01f), false);
+}
+
+void AWarrior::RespawnAtLastBonfire()
+{
+    if (!IsDead() || !IsValid(CharacterStatComponent))
+        return;
+
+    AWarriorController* PC = Cast<AWarriorController>(GetController());
+    AWarriorPlayerState* PS = GetPlayerState<AWarriorPlayerState>();
+    if (!PC || !PS)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[Respawn] Controller 또는 PlayerState가 없습니다."));
+        return;
+    }
+
+	const FName LastBonfireID = PS->GetLastBonfireID();
+
+	// 마지막 화톳불로 우선 이동
+	bool bMoved = !LastBonfireID.IsNone()
+		&& PC->TeleportToBonfire(LastBonfireID);
+
+	// 기록이 없거나 이동에 실패하면 PlayerStart 사용
+	if (!bMoved)
+	{
+		AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
+		AActor* Start = GameMode
+			? GameMode->FindPlayerStart(PC)
+			: nullptr;
+
+		if (IsValid(Start))
+		{
+			const FRotator StartRotation = Start->GetActorRotation();
+
+			bMoved = TeleportTo(
+				Start->GetActorLocation(),
+				StartRotation
+			);
+
+			if (bMoved)
+			{
+				PC->SetControlRotation(StartRotation);
+			}
+		}
+	}
+
+	if (!bMoved)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[Respawn] 화톳불 및 PlayerStart 복귀 실패"));
+		return;
+	}
+
+    if (AnimInstance)
+        AnimInstance->Montage_Stop(0.f);
+
+    // 사망 상태를 해제하기 전에 체력부터 복구.
+    CharacterStatComponent->SetCurrentHP(CharacterStatComponent->GetMaxHP());
+    CharacterStatComponent->SetCurrentFP(CharacterStatComponent->GetMaxFP());
+    CharacterStatComponent->SetCurrentStamina(CharacterStatComponent->GetMaxStamina());
+    CharacterStatComponent->SetCurrentStance(CharacterStatComponent->GetMaxStance());
+
+    bIsGuard = false;
+    bIsInvincibility = false;
+    bIsSprint = false;
+    bIsAttacking = false;
+    bCanComboInput = false;
+    bComboQueued = false;
+    AttackCombo = 0;
+    bLockOn = false;
+    LockOnTarget = nullptr;
+
+    if (Equipment && LeftHandWeapon)
+    {
+        const FGuid ItemID = Equipment->GetEquippedItem(EEquipmentSlot::LeftHand);
+        if (ItemID.IsValid())
+            EquipWeapon(ItemID, EEquipmentSlot::LeftHand);
+        else
+            LeftHandWeapon->SetSkeletalMesh(nullptr);
+    }
+
+    // SetActionState(None)은 Dead 상태에서 거부되므로 여기에서 직접 해제.
+    ActionState = EActionState::None;
+    MoveState = EMoveState::Idle;
+    bDeathMontageFinished = false;
+    GetCharacterMovement()->StopMovementImmediately();
+    GetCharacterMovement()->MaxWalkSpeed = CharacterStatComponent->GetMaxWalkSpeed();
+    GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+
+    if (ULocalPlayer* LocalPlayer = PC->GetLocalPlayer())
+    {
+        if (UNotificationSubsystem* Notifications = LocalPlayer->GetSubsystem<UNotificationSubsystem>())
+            Notifications->HideNotification(ENotificationType::Death);
+    }
+
+    PC->EndDeathPresentation();
+}
+
+void AWarrior::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    GetWorldTimerManager().ClearTimer(DeathNotificationTimer);
+    GetWorldTimerManager().ClearTimer(RespawnTimer);
+    Super::EndPlay(EndPlayReason);
 }

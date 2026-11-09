@@ -70,6 +70,9 @@ protected:
 	// 피격 함수
 	virtual void HitStart();
 
+	// 사망 시 Soul 지급
+	void RewardSoul();
+
 public:
 	// Getter / Setter
 	// 현재 적 상태 반환

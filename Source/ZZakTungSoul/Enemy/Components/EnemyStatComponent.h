@@ -43,6 +43,9 @@ public:
 	float GetCurrentHp() const { return CurrentHp; }
 	float GetMaxHp() const { return MaxHp; }
 
+	// 소울량 Getter
+	FORCEINLINE float GetSoul() const { return Soul; }
+
 	// Movement Speed
 	FORCEINLINE float GetWalkSpeed() const { return WalkSpeed; }
 	FORCEINLINE float GetChaseSpeed() const { return ChaseSpeed; }
@@ -109,6 +112,9 @@ private:
 	// 저항
 	UPROPERTY(VisibleAnywhere, Category = "Stat")
 	float Resistance = 10.0f;
+
+	UPROPERTY(VisibleAnywhere, Category = "Stat")
+	float Soul = 500.0f;
 
 	// 기본 이동속도
 	UPROPERTY(VisibleAnywhere, Category = "Stat")

@@ -26,6 +26,9 @@ public:
 	float Resistance = 10.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float Soul = 500.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float WalkSpeed = 200.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

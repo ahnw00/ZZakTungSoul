@@ -105,6 +105,8 @@ void UEnemyStatComponent::InitializeEnemyStat()
 	Defense = Row->Defense;
 	Resistance = Row->Resistance;
 
+	Soul = Row->Soul;
+
 	WalkSpeed = Row->WalkSpeed;
 	ChaseSpeed = Row->ChaseSpeed;
 	StrafeSpeed = Row->StrafeSpeed;

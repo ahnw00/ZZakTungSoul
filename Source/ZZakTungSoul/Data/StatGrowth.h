@@ -19,11 +19,11 @@ public:
 	FName Target;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int32 MinLevel;
+	int32 MinLevel = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int32 MaxLevel;
+	int32 MaxLevel = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int32 Value;
+	int32 Value = 0;
 };

@@ -11,9 +11,12 @@
 #include <Enemy/Animation/EnemyBaseAnimInstance.h>
 #include <Character/CharacterStatComponent.h>
 #include <Interface/CombatDamageInterface.h>
+#include <Interface/SoulStateInterface.h>
 #include <Data/DamageInfo.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
+#include <GameFramework/PlayerController.h>
+#include <GameFramework/PlayerState.h>
 #include <Components/SkeletalMeshComponent.h>
 #include <Components/BoxComponent.h>
 #include <Components/CapsuleComponent.h>
@@ -525,6 +528,9 @@ void AEnemyBase::SetDead()
 	// Spawner에 사망 상태 발행
 	OnEnemyDied.Broadcast(this);
 
+	// 소울 주기
+	RewardSoul();
+
 	// FatalAttack 중이면 건너뛰기
 	if (false == bReceiveFatalAttack)
 	{
@@ -541,6 +547,38 @@ void AEnemyBase::DeadStart()
 void AEnemyBase::HitStart()
 {
 
+}
+
+void AEnemyBase::RewardSoul()
+{
+	if (false == IsValid(EnemyStatComponet))
+	{
+		return;
+	}
+
+	const int32 SoulAmount = FMath::RoundToInt(EnemyStatComponet->GetSoul());
+	if (SoulAmount <= 0)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	if (false == IsValid(PlayerController))
+	{
+		return;
+	}
+
+	APlayerState* EnemyPlayerState = PlayerController->PlayerState;
+	if (false == IsValid(EnemyPlayerState))
+	{
+		return;
+	}
+
+	// 인터페이스로 Soul 주기
+	if (ISoulStateInterface* EnemySoulReward = Cast<ISoulStateInterface>(EnemyPlayerState))
+	{
+		EnemySoulReward->TakeSoul(SoulAmount);
+	}
 }
 
 void AEnemyBase::SetEnemyMoveState(EEnemyMoveState NewMoveState)

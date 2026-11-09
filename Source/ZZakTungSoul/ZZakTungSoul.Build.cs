@@ -32,7 +32,9 @@ public class ZZakTungSoul : ModuleRules
 		{
 			"Slate",
 			"SlateCore",
-			"Niagara"
+			"Niagara",
+			"ChaosCaching",
+			"GeometryCollectionEngine"
 		}
 		);
 

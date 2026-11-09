@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -17,7 +17,6 @@ public:
 
 	void MarkEntered(FName RoomID);
 	void MarkCleared(FName RoomID);
-	void ResetRoom(FName RoomID);
 
 	// 저장할 보스방 이력 가져오기
 	const TMap<FName, FBossRoomProgress>& GetProgressForSave() const;
@@ -26,7 +25,6 @@ public:
 	void LoadProgressFromSave(
 		const TMap<FName, FBossRoomProgress>& SavedProgress
 	);
-
 
 private:
 	UPROPERTY()

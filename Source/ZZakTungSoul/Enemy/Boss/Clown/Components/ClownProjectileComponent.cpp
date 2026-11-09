@@ -3,6 +3,7 @@
 #include <Enemy/Components/AttackTraceComponent.h>
 #include <Components/StaticMeshComponent.h>
 #include <Components/BoxComponent.h>
+#include <Components/CapsuleComponent.h>
 #include <Interface/CombatDamageInterface.h>
 #include <Engine/StaticMesh.h>
 #include <Engine/Texture2D.h>
@@ -113,6 +114,19 @@ void UClownProjectileComponent::Initialize(const FDamageInfo& InDamage, float In
 	bCardHazard = false;
 	bCubeMarch = false;
 	bCardActive = false;
+	bCubeTracing = false;
+	bCubeGrounded = false;
+
+	if (CubeCollision)
+	{
+		CubeCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (CardCollision)
+	{
+		CardCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
 	SetComponentTickEnabled(false);
 	SetTracing(false);
 	HitActors.Reset();
@@ -143,14 +157,13 @@ void UClownProjectileComponent::SetTracing(bool bEnabled)
 	}
 }
 
-void UClownProjectileComponent::ArmCard(const FVector& GroundLocation, float WarningTime, float Height, float Width,
+void UClownProjectileComponent::ArmCard(const FVector& GroundLocation, float StandTime, float Height, float Width,
 	float FallTime, UTexture2D* Face, bool bSafe)
 {
 	AActor* Owner = GetOwner();
 	UStaticMeshComponent* Mesh = VisualMesh.Get();
 
-	if (!Owner || !Mesh || !Mesh->GetStaticMesh() || AttackTraces.IsEmpty() || !WarningMesh || !WarningMaterial ||
-		!Face)
+	if (!Owner || !Mesh || !Mesh->GetStaticMesh() || AttackTraces.IsEmpty() || !Face)
 	{
 		if (Owner)
 		{
@@ -164,6 +177,7 @@ void UClownProjectileComponent::ArmCard(const FVector& GroundLocation, float War
 	const FBoxSphereBounds Bounds = Mesh->GetStaticMesh()->GetBounds();
 	const FVector Size = Bounds.BoxExtent * 2.0f;
 	CardTravel = FMath::Max(Height, 100.0f);
+	CardWidth = Width;
 
 	const FVector Scale(
 		10.0f / FMath::Max(Size.X, 1.0f), Width / FMath::Max(Size.Y, 1.0f), CardTravel / FMath::Max(Size.Z, 1.0f));
@@ -179,46 +193,51 @@ void UClownProjectileComponent::ArmCard(const FVector& GroundLocation, float War
 
 	CardOrigin = GroundLocation + FVector(0.0f, 0.0f, 6.0f);
 	CardYaw = Owner->GetActorRotation().Yaw;
-	CardWarningTime = FMath::Max(WarningTime, 1.5f);
+	CardStandTime = FMath::Max(StandTime, 1.5f);
 	CardFallTime = FMath::Max(FallTime, 0.3f);
 	CardElapsed = 0.0f;
 	bCardHazard = true;
 	bSafeCard = bSafe;
 	bLaunched = true;
-	Mesh->SetCollisionObjectType(ECC_WorldDynamic);
-	Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
-	Mesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-	Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Mesh->SetCanEverAffectNavigation(false);
 	Mesh->SetVisibility(true, true);
 	Owner->SetActorLocation(CardOrigin - FVector(0.0f, 0.0f, CardTravel));
 
-	// 넘어지는 전체 길이 / 폭을 표시. 하트 카드는 안전한 녹색 통로.
-	WarningMarker = NewObject<UStaticMeshComponent>(Owner);
-	Owner->AddInstanceComponent(WarningMarker);
-	WarningMarker->SetStaticMesh(WarningMesh);
-	WarningMarker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WarningMarker->SetCastShadow(false);
-	WarningMarker->RegisterComponent();
-	WarningMarker->SetWorldLocation(GroundLocation +
-		Owner->GetActorForwardVector() * (bSafe ? 40.0f : CardTravel * 0.5f) + FVector(0.0f, 0.0f, 3.0f));
-	WarningMarker->SetWorldRotation(FRotator(0.0f, CardYaw, 0.0f));
-	WarningMarker->SetWorldScale3D(
-		FVector(bSafe ? 1.0f : (CardTravel + 210.0f) / 100.0f, bSafe ? 1.2f : (Width + 210.0f) / 100.0f, 1.0f));
-	UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(WarningMaterial, this);
-	Material->SetVectorParameterValue(
-		TEXT("Color"), bSafe ? FLinearColor(0.08f, 1.8f, 0.8f) : FLinearColor(2.0f, 0.28f, 0.04f));
-	Material->SetScalarParameterValue(TEXT("Safe"), bSafe ? 1.0f : 0.0f);
-	WarningMarker->SetMaterial(0, Material);
-	Owner->SetLifeSpan(CardRiseTime + CardWarningTime + CardFallTime + LifeTime + 0.3f);
+	if (!CardCollision)
+	{
+		CardCollision = NewObject<UBoxComponent>(Owner, TEXT("CardCollision"));
+		Owner->AddInstanceComponent(CardCollision);
+		CardCollision->SetupAttachment(Owner->GetRootComponent());
+		CardCollision->SetCollisionObjectType(ECC_WorldDynamic);
+		CardCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+		CardCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+		CardCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		CardCollision->SetGenerateOverlapEvents(false);
+		CardCollision->SetCanEverAffectNavigation(false);
+		CardCollision->CanCharacterStepUpOn = ECB_No;
+		CardCollision->RegisterComponent();
+
+		if (ABossClown* Boss = Cast<ABossClown>(Owner->GetOwner()))
+		{
+			Boss->GetCapsuleComponent()->IgnoreActorWhenMoving(Owner, true);
+		}
+	}
+
+	CardCollision->SetBoxExtent(FVector(5.0f, Width * 0.5f, CardTravel * 0.5f));
+	CardCollision->SetRelativeLocation(FVector(0.0f, 0.0f, CardTravel * 0.5f));
+	CardCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+	Owner->SetLifeSpan(CardRiseTime + CardStandTime + CardFallTime + LifeTime + 0.3f);
 	SetComponentTickEnabled(true);
 }
 
 void UClownProjectileComponent::TickCard(float DeltaTime)
 {
 	AActor* Owner = GetOwner();
+	const float PreviousElapsed = CardElapsed;
 	CardElapsed += DeltaTime;
-	const float FallStart = CardRiseTime + CardWarningTime;
+	const float FallStart = CardRiseTime + CardStandTime;
 
 	if (CardElapsed < CardRiseTime)
 	{
@@ -230,11 +249,17 @@ void UClownProjectileComponent::TickCard(float DeltaTime)
 
 	Owner->SetActorLocation(CardOrigin);
 
+	if (PreviousElapsed < CardRiseTime)
+	{
+		CardCollision->SetAbsolute(true, true, false);
+		CardCollision->SetWorldLocationAndRotation(CardOrigin + FVector(0.0f, 0.0f, CardTravel * 0.5f), FRotator(0.0f, CardYaw, 0.0f));
+	}
+
 	if (CardElapsed < FallStart)
 	{
 		// 위치와 방향은 이미 고정. 마지막 순간에는 몸을 조금 기울여 낙하 예고.
 		const float Lean = FMath::Clamp((CardElapsed - FallStart + 0.3f) / 0.3f, 0.0f, 1.0f);
-		Owner->SetActorRotation(FRotator(-4.0f * Lean, CardYaw, 0.0f));
+		Owner->SetActorRotation(FRotator((bSafeCard ? 4.0f : -4.0f) * Lean, CardYaw, 0.0f));
 
 		return;
 	}
@@ -245,24 +270,27 @@ void UClownProjectileComponent::TickCard(float DeltaTime)
 	{
 		bCardActive = true;
 
-		if (VisualMesh.IsValid())
+		if (bSafeCard)
 		{
-			VisualMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			CardCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		}
-
-		// 하트는 0 데미지 전달도 하지 않음. 피격 / 경직 / 판정 자체 없음.
-		if (!bSafeCard)
+		else
 		{
 			SetTracing(true);
 		}
 	}
 
-	Owner->SetActorRotation(FRotator(-FMath::Lerp(4.0f, 90.0f, Alpha * Alpha), CardYaw, 0.0f));
+	Owner->SetActorRotation(FRotator((bSafeCard ? 1.0f : -1.0f) * FMath::Lerp(4.0f, 90.0f, Alpha * Alpha), CardYaw, 0.0f));
 
 	if (Alpha >= 1.0f)
 	{
-		SetTracing(false);
-		WarningMarker->SetVisibility(false);
+		// 첫 착지 프레임의 끝부분도 PostPhysics 트레이스에 포함한다.
+		if (PreviousElapsed >= FallStart + CardFallTime)
+		{
+			SetTracing(false);
+			CardCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+
 		const float Sink = FMath::Clamp((CardElapsed - FallStart - CardFallTime - LifeTime) / 0.3f, 0.0f, 1.0f);
 		Owner->SetActorLocation(CardOrigin - FVector(0.0f, 0.0f, 30.0f * Sink));
 
@@ -316,8 +344,7 @@ void UClownProjectileComponent::TickComponent(
 	AActor* Owner = GetOwner();
 	ABossClown* Boss = Owner ? Cast<ABossClown>(Owner->GetOwner()) : nullptr;
 
-	if (!Owner || !IsValid(Boss) || Boss->IsDead() ||
-		(Boss->GetBossPhase() != EBossPhase::Phase1 && Boss->GetBossPhase() != EBossPhase::Phase2))
+	if (!Owner || !IsValid(Boss) || !Boss->CanKeepClownProjectiles())
 	{
 		if (Owner)
 		{
@@ -357,7 +384,7 @@ void UClownProjectileComponent::HandleTraceHit(const FHitResult& Hit)
 	AActor* Owner = GetOwner();
 	AActor* HitActor = Hit.GetActor();
 
-	if (!bLaunched || (bCardHazard && (!bCardActive || bSafeCard)) || !Owner || !IsValid(HitActor) ||
+	if (!bLaunched || (bCubeMarch && !bCubeTracing) || (bCardHazard && (!bCardActive || bSafeCard)) || !Owner || !IsValid(HitActor) ||
 		HitActor == Owner->GetOwner() || HitActor->FindComponentByClass<UClownProjectileComponent>())
 	{
 		return;
@@ -368,13 +395,21 @@ void UClownProjectileComponent::HandleTraceHit(const FHitResult& Hit)
 		return;
 	}
 
+	if (bCardHazard)
+	{
+		const FVector Local = FRotator(0.0f, -CardYaw, 0.0f).RotateVector(HitActor->GetActorLocation() - CardOrigin);
+
+		if (Local.X < 0.0f || Local.X > CardTravel || FMath::Abs(Local.Y) > CardWidth * 0.5f)
+		{
+			return;
+		}
+	}
+
 	// 기존 Enemy와 동일하게 트레이스 결과를 받아 피해 인터페이스로 전달.
 	if (ICombatDamageInterface* Target = Cast<ICombatDamageInterface>(HitActor))
 	{
 		HitActors.Add(HitActor);
 		Target->ReceiveDamage(Damage, Hit);
-		UE_LOG(LogTemp, Log, TEXT("Clown projectile trace hit: %s, Damage %.1f"), *GetNameSafe(HitActor),
-			Damage.AttackDamage);
 
 		if (!bCardHazard && !bCubeMarch)
 		{
@@ -390,6 +425,13 @@ void UClownProjectileComponent::HandleTraceHit(const FHitResult& Hit)
 void UClownProjectileComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	SetTracing(false);
+	AActor* Owner = GetOwner();
+	ABossClown* Boss = Owner ? Cast<ABossClown>(Owner->GetOwner()) : nullptr;
+
+	if (IsValid(Boss) && (CubeCollision || CardCollision))
+	{
+		Boss->GetCapsuleComponent()->IgnoreActorWhenMoving(Owner, false);
+	}
 
 	for (const TWeakObjectPtr<UAttackTraceComponent>& Trace : AttackTraces)
 	{
@@ -424,17 +466,19 @@ void UClownProjectileComponent::ArmCubeMarch(UStaticMesh* Piece, const FVector& 
 	Mesh->SetRelativeLocation(FVector::ZeroVector);
 	Mesh->SetRelativeRotation(FRotator::ZeroRotator);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	// 조각 메시의 단순 충돌 유무와 관계없이 94cm 큐브를 막는 이동 루트.
 	if (!CubeCollision)
 	{
 		USceneComponent* PreviousRoot = Owner->GetRootComponent();
+
 		CubeCollision = NewObject<UBoxComponent>(Owner, TEXT("CubeCollision"));
 		Owner->AddInstanceComponent(CubeCollision);
 		CubeCollision->SetBoxExtent(FVector(47.0f));
 		CubeCollision->SetCollisionObjectType(ECC_WorldDynamic);
 		CubeCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
 		CubeCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-		CubeCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		CubeCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		CubeCollision->SetGenerateOverlapEvents(false);
 		CubeCollision->SetCanEverAffectNavigation(false);
 		CubeCollision->RegisterComponent();
@@ -449,6 +493,22 @@ void UClownProjectileComponent::ArmCubeMarch(UStaticMesh* Piece, const FVector& 
 		if (Owner->GetOwner())
 		{
 			CubeCollision->IgnoreActorWhenMoving(Owner->GetOwner(), true);
+
+			if (ABossClown* Boss = Cast<ABossClown>(Owner->GetOwner()))
+			{
+				Boss->GetCapsuleComponent()->IgnoreActorWhenMoving(Owner, true);
+			}
+		}
+	}
+
+	TArray<UPrimitiveComponent*> Primitives;
+	Owner->GetComponents<UPrimitiveComponent>(Primitives);
+
+	for (UPrimitiveComponent* Primitive : Primitives)
+	{
+		if (Primitive != CubeCollision)
+		{
+			Primitive->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		}
 	}
 
@@ -465,27 +525,26 @@ void UClownProjectileComponent::ArmCubeMarch(UStaticMesh* Piece, const FVector& 
 
 	if (bShowPath && WarningMesh && WarningMaterial)
 	{
-		WarningMarker = NewObject<UStaticMeshComponent>(Owner);
-		Owner->AddInstanceComponent(WarningMarker);
-		WarningMarker->SetStaticMesh(WarningMesh);
-		WarningMarker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		WarningMarker->SetCastShadow(false);
-		WarningMarker->RegisterComponent();
-		WarningMarker->SetWorldLocation((Start + End) * 0.5f - FVector(0.0f, 0.0f, 49.0f));
-		WarningMarker->SetWorldRotation((End - Start).Rotation());
-		WarningMarker->SetWorldScale3D(FVector((FVector::Dist2D(Start, End) + 400.0f) / 100.0f, 1.15f, 1.0f));
+		CubePathMarker = NewObject<UStaticMeshComponent>(Owner);
+		Owner->AddInstanceComponent(CubePathMarker);
+		CubePathMarker->SetStaticMesh(WarningMesh);
+		CubePathMarker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		CubePathMarker->SetCastShadow(false);
+		CubePathMarker->RegisterComponent();
+		CubePathMarker->SetWorldLocation((Start + End) * 0.5f - FVector(0.0f, 0.0f, 49.0f));
+		CubePathMarker->SetWorldRotation((End - Start).Rotation());
+		CubePathMarker->SetWorldScale3D(FVector((FVector::Dist2D(Start, End) + 400.0f) / 100.0f, 1.15f, 1.0f));
 		UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(WarningMaterial, this);
 		Material->SetVectorParameterValue(TEXT("Color"), FLinearColor(0.7f, 0.15f, 2.5f));
 		Material->SetScalarParameterValue(TEXT("Safe"), 0.0f);
-		WarningMarker->SetMaterial(0, Material);
-		WarningMarker->SetVisibility(false);
+		CubePathMarker->SetMaterial(0, Material);
+		CubePathMarker->SetVisibility(false);
 	}
 }
 
-void UClownProjectileComponent::SetCubeAim(AActor* Target, AActor* Arena, const FVector& Center)
+void UClownProjectileComponent::SetCubeAim(AActor* Target, const FVector& Center)
 {
 	CubeAimTarget = Target;
-	CubeAimArena = Arena;
 	CubeStartOffset = CubeStart - Center;
 	CubeEndOffset = CubeEnd - Center;
 	bCubeAimLocked = false;
@@ -495,47 +554,37 @@ void UClownProjectileComponent::TickCubeMarch(float DeltaTime)
 {
 	CubeElapsed += DeltaTime;
 	AActor* Owner = GetOwner();
+
 	// 각 차례의 집결이 시작될 때 다시 조준하고, 예고가 뜬 뒤에는 경로를 고정해 회피를 보장.
 	if (!bCubeAimLocked && CubeElapsed >= CubeMarchTime - 1.8f)
 	{
 		bCubeAimLocked = true;
 
-		if (CubeAimTarget.IsValid())
+		if (const AActor* Target = CubeAimTarget.Get())
 		{
-			const FVector Center = CubeAimTarget->GetActorLocation();
-			const float FloorZ = CubeStart.Z;
+			const FVector Center = Target->GetActorLocation();
 			CubeStart = Center + CubeStartOffset;
 			CubeEnd = Center + CubeEndOffset;
-			const UBoxComponent* Arena = CubeAimArena.IsValid() ? CubeAimArena->FindComponentByClass<UBoxComponent>() : nullptr;
+		}
 
-			if (Arena)
-			{
-				const FVector Extent = Arena->GetUnscaledBoxExtent();
+		const ABossClown* Boss = Cast<ABossClown>(Owner->GetOwner());
+		if (!Boss || !Boss->FitClownCubePath(CubeStart, CubeEnd))
+		{
+			Owner->Destroy();
+			return;
+		}
 
-				for (FVector* Point : {&CubeStart, &CubeEnd})
-				{
-					FVector Local = Arena->GetComponentTransform().InverseTransformPosition(*Point);
-					Local.X = FMath::Clamp(Local.X, -FMath::Max(Extent.X - 52.0f, 0.0f), FMath::Max(Extent.X - 52.0f, 0.0f));
-					Local.Y = FMath::Clamp(Local.Y, -FMath::Max(Extent.Y - 52.0f, 0.0f), FMath::Max(Extent.Y - 52.0f, 0.0f));
-					*Point = Arena->GetComponentTransform().TransformPosition(Local);
-				}
-			}
-
-			CubeStart.Z = FloorZ;
-			CubeEnd.Z = FloorZ;
-
-			if (WarningMarker)
-			{
-				WarningMarker->SetWorldLocation((CubeStart + CubeEnd) * 0.5f - FVector(0.0f, 0.0f, 49.0f));
-				WarningMarker->SetWorldRotation((CubeEnd - CubeStart).Rotation());
-				WarningMarker->SetWorldScale3D(
-					FVector((FVector::Dist2D(CubeStart, CubeEnd) + 400.0f) / 100.0f, 1.15f, 1.0f));
-			}
+		if (CubePathMarker)
+		{
+			CubePathMarker->SetWorldLocation((CubeStart + CubeEnd) * 0.5f - FVector(0.0f, 0.0f, 49.0f));
+			CubePathMarker->SetWorldRotation((CubeEnd - CubeStart).Rotation());
+			CubePathMarker->SetWorldScale3D(FVector(FVector::Dist2D(CubeStart, CubeEnd) / 100.0f, 1.15f, 1.0f));
 		}
 	}
 
 	const float MoveEnd = CubeMarchTime + 1.2f;
 	const bool bMoving = CubeElapsed >= CubeMarchTime && CubeElapsed < MoveEnd;
+
 	// 판정은 고정된 경로를 실제로 이동하는 동안에만 사용.
 	if (bMoving != bCubeTracing)
 	{
@@ -543,9 +592,9 @@ void UClownProjectileComponent::TickCubeMarch(float DeltaTime)
 		SetTracing(bMoving);
 	}
 
-	if (WarningMarker)
+	if (CubePathMarker)
 	{
-		WarningMarker->SetVisibility(CubeElapsed >= CubeMarchTime - 1.0f && CubeElapsed < MoveEnd);
+		CubePathMarker->SetVisibility(CubeElapsed >= CubeMarchTime - 1.0f && CubeElapsed < MoveEnd);
 	}
 
 	FVector Position = CubeAssembly;
@@ -576,8 +625,23 @@ void UClownProjectileComponent::TickCubeMarch(float DeltaTime)
 		Position = FMath::Lerp( CubeAssembly, CubeStart, FMath::SmoothStep(0.0f, 1.0f, (CubeElapsed - CubeMarchTime + 1.8f) / 0.8f));
 	}
 
+	// 집결/공중 배치/회수에는 충돌하지 않는다. 바닥의 대기 및 행진 구간만 플레이어를 막는다.
+	const bool bOnGround = CubeElapsed >= CubeMarchTime - 1.0f && CubeElapsed < 8.6f;
+
+	if (!bOnGround && CubeCollision)
+	{
+		CubeCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
 	FHitResult BlockingHit;
-	Owner->SetActorLocation(Position, true, &BlockingHit);
+	Owner->SetActorLocation(Position, bOnGround && bCubeGrounded, &BlockingHit);
+
+	if (CubeCollision)
+	{
+		CubeCollision->SetCollisionEnabled(bOnGround ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+	}
+
+	bCubeGrounded = bOnGround;
 
 	if (bMoving && BlockingHit.bBlockingHit)
 	{

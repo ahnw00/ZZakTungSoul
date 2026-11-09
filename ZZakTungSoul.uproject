@@ -38,6 +38,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "ChaosCaching",
+			"Enabled": true
+		},
+		{
 			"Name": "MetaHuman",
 			"Enabled": true,
 			"SupportedTargetPlatforms": [

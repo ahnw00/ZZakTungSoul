@@ -13,10 +13,7 @@ public:
 	UBossAnimationData();
 
 public:
-	//---------------------------------------------------------------
 	// 인트로 종료 후 실행할 첫 공격.
-	//
-	//---------------------------------------------------------------
 	UPROPERTY(EditAnywhere, Category = "Montage|Boss|Opening")
 	FEnemyAttackData OpeningAttack;
 };

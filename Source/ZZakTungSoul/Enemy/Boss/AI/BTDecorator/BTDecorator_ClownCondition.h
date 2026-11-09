@@ -4,11 +4,7 @@
 #include <BehaviorTree/BTDecorator.h>
 #include <Enemy/Boss/Clown/Data/BossClownAnimationData.h>
 #include "BTDecorator_ClownCondition.generated.h"
-
-//---------------------------------------------------------------
 // BT 분기의 실행 조건. 우선순위 / 쿨다운 / 다음 행동은 BT에서 관리.
-//
-//---------------------------------------------------------------
 UCLASS()
 class ZZAKTUNGSOUL_API UBTDecorator_ClownCondition : public UBTDecorator
 {

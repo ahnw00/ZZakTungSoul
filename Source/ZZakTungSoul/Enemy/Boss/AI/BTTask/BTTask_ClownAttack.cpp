@@ -16,6 +16,7 @@ EBTNodeResult::Type UBTTask_ClownAttack::ExecuteTask(UBehaviorTreeComponent& Own
 {
 	AAIController* AIController = OwnerComp.GetAIOwner();
 	ABossClown* Clown = AIController ? Cast<ABossClown>(AIController->GetPawn()) : nullptr;
+
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	AActor* Target = BlackboardComp ? Cast<AActor>(BlackboardComp->GetValueAsObject(TargetActorKey)) : nullptr;
 
@@ -26,7 +27,7 @@ EBTNodeResult::Type UBTTask_ClownAttack::ExecuteTask(UBehaviorTreeComponent& Own
 
 	int32 StartedID = INDEX_NONE;
 
-	if (!Clown->StartClownAttack(AttackType, Target, StartedID, Style, RecoveryScale))
+	if (!Clown->StartClownAttack(AttackType, Target, StartedID, RecoveryScale))
 	{
 		return EBTNodeResult::Failed;
 	}

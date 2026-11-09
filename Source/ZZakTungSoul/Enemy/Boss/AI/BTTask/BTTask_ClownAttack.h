@@ -6,11 +6,7 @@
 #include "BTTask_ClownAttack.generated.h"
 
 class ABossClown;
-
-//---------------------------------------------------------------
 // BT에서 지정한 광대 공격 실행 / 완료 대기 / 중단만 담당.
-//
-//---------------------------------------------------------------
 UCLASS()
 class ZZAKTUNGSOUL_API UBTTask_ClownAttack : public UBTTaskNode
 {
@@ -18,10 +14,6 @@ class ZZAKTUNGSOUL_API UBTTask_ClownAttack : public UBTTaskNode
 
 public:
 	UBTTask_ClownAttack();
-	void SetAttackType(EBossClownAttack Type)
-	{
-		AttackType = Type;
-	}
 
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
@@ -32,9 +24,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Attack")
 	EBossClownAttack AttackType = EBossClownAttack::HammerSweep;
-
-	UPROPERTY(EditAnywhere, Category = "Clown|Attack")
-	EClownAttackStyle Style = EClownAttackStyle::Normal;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Attack", meta = (ClampMin = "0.1", ClampMax = "2"))
 	float RecoveryScale = 1.0f;

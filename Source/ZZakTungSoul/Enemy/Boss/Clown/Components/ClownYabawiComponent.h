@@ -2,11 +2,12 @@
 
 #include <CoreMinimal.h>
 #include <Components/ActorComponent.h>
+#include <TimerManager.h>
 #include <Enemy/Boss/Clown/Data/BossClownAnimationData.h>
 #include "ClownYabawiComponent.generated.h"
 
 class AClownYabawiBowl;
-class UTextRenderComponent;
+class UWidgetComponent;
 
 UENUM(BlueprintType)
 enum class EClownYabawiStage : uint8
@@ -33,7 +34,7 @@ public:
 		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	bool SelectBowl(AActor* Player, AClownYabawiBowl* Bowl, int32 InRoundID);
+	bool SelectBowl(AActor* Player, AClownYabawiBowl* Bowl, int32 InRoundID, const FHitResult& Hit);
 
 	UFUNCTION(BlueprintPure, Category = "Clown|Yabawi")
 	EClownYabawiStage GetStage() const
@@ -50,19 +51,25 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Clown|Yabawi")
 	float GetSelectionRemaining() const;
 
-	FVector GetPlayerLocation() const;
-
 private:
+	enum class ERoundResult : uint8
+	{
+		Correct,
+		Wrong,
+		Timeout
+	};
+
 	void SetStage(EClownYabawiStage Next);
 	void StartSwap();
-	void Resolve(bool bCorrect);
-	void UpdateSelectionTimer();
+	void Resolve(ERoundResult Result);
+	void UpdatePresentation();
+	void CommitSelection();
 
 	UPROPERTY(Transient)
 	FClownPhaseOnePattern Settings;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTextRenderComponent> SelectionTimer;
+	TObjectPtr<UWidgetComponent> SelectionPanel;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<AClownYabawiBowl>> Bowls;
@@ -74,14 +81,23 @@ private:
 	int32 RoundSerial = 0;
 	int32 RoundID = INDEX_NONE;
 	int32 CorrectBowl = INDEX_NONE;
+
 	int32 SwapA = INDEX_NONE;
 	int32 SwapB = INDEX_NONE;
 	int32 SwapsCompleted = 0;
 	FVector SwapStartA = FVector::ZeroVector;
 	FVector SwapStartB = FVector::ZeroVector;
+
 	float StageTime = 0.0f;
 	float SwapTime = 0.0f;
 	double SelectionDeadline = 0.0;
 	double ReadyTime = 0.0;
-	bool bSuccess = false;
+
+	ERoundResult RoundResult = ERoundResult::Wrong;
+	int32 LastPresentedSeconds = INDEX_NONE;
+
+	TWeakObjectPtr<AClownYabawiBowl> PendingBowl;
+	FHitResult PendingHit;
+	uint64 PendingFrame = 0;
+	FTimerHandle SelectionCommitTimer;
 };

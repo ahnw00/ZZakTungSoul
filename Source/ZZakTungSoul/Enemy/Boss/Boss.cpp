@@ -19,10 +19,7 @@
 
 ABoss::ABoss()
 {
-	//---------------------------------------------------------------
 	// 보스 공통 AIController 설정.
-	//
-	//---------------------------------------------------------------
 	AIControllerClass = ABossAIController::StaticClass();
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
@@ -32,15 +29,12 @@ void ABoss::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//---------------------------------------------------------------
 	// 재도전 시 복구할 시작 위치 저장.
-	//
-	//---------------------------------------------------------------
 	InitialTransform = GetActorTransform();
 
 	if (EnemyStatComponet)
 	{
-		EnemyStatComponet->OnEnemyHpChanged.AddUObject(this, &ABoss::HandleHpChanged);
+		EnemyStatComponet->OnEnemyHpChanged.AddUObject(this, &ABoss::TryStartPhase2Transition);
 	}
 
 	BossPhase = EBossPhase::Waiting;
@@ -49,12 +43,8 @@ void ABoss::BeginPlay()
 
 void ABoss::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	//---------------------------------------------------------------
 	// 콜백을 중단하기 전에 현재 전투 무효화.
-	//
-	//---------------------------------------------------------------
 	bLifecycleChanging = true;
-	bEncounterStarted = false;
 	++EncounterID;
 
 	if (EnemyStatComponet)
@@ -152,10 +142,7 @@ float ABoss::GetMinMaintainDistanceData()
 	return BossAIData ? BossAIData->MinMaintainDistance : 0.0f;
 }
 
-//---------------------------------------------------------------
 // 전투 시작에 필요한 AI, 페이즈, 애니메이션 데이터 확인.
-//
-//---------------------------------------------------------------
 bool ABoss::ValidateEncounter() const
 {
 	const AEnemyAIController* AI = Cast<AEnemyAIController>(GetController());
@@ -168,10 +155,7 @@ bool ABoss::ValidateEncounter() const
 		return false;
 	}
 
-	//---------------------------------------------------------------
 	// 두 페이즈가 동일한 Blackboard를 사용하는지 확인.
-	//
-	//---------------------------------------------------------------
 	if (!BossAIData->Phase1BT->BlackboardAsset ||
 		BossAIData->Phase1BT->BlackboardAsset != BossAIData->Phase2BT->BlackboardAsset)
 	{
@@ -199,38 +183,31 @@ bool ABoss::ValidateEncounter() const
 	return true;
 }
 
-//---------------------------------------------------------------
 // 대기 상태에서 타깃을 전달받아 보스전 시작.
-//
-//---------------------------------------------------------------
 bool ABoss::StartEncounter(AActor* Target)
 {
-	if (!HasActorBegunPlay() || bLifecycleChanging || bEncounterStarted || BossPhase != EBossPhase::Waiting ||
+	if (!HasActorBegunPlay() || bLifecycleChanging || BossPhase != EBossPhase::Waiting ||
 		IsDead() || !IsValid(Target) || Target == this || !ValidateEncounter())
 	{
 		return false;
 	}
 
 	EncounterTarget = Target;
-	bEncounterStarted = true;
+	BossPhase = EBossPhase::Intro;
 	++EncounterID;
 
 	StopCombat();
 	SetEnemyState(EEnemyState::Idle);
 
-	BossPhase = EBossPhase::Intro;
 	StartPresentation(EBossPresentation::Intro);
 
 	return true;
 }
 
-//---------------------------------------------------------------
 // 연출 실행 번호를 발급하고 시작 요청.
-//
-//---------------------------------------------------------------
 void ABoss::StartPresentation(EBossPresentation Presentation)
 {
-	if (!bEncounterStarted || bLifecycleChanging || IsDead() || Presentation == EBossPresentation::None ||
+	if (bLifecycleChanging || IsDead() || Presentation == EBossPresentation::None ||
 		ActivePresentationID != INDEX_NONE)
 	{
 		return;
@@ -241,7 +218,7 @@ void ABoss::StartPresentation(EBossPresentation Presentation)
 
 	if (Presentation == EBossPresentation::Phase2Transition)
 	{
-		BeginPhase2Transition(ActivePresentationID);
+		BeginPhase2Transition();
 
 		return;
 	}
@@ -249,48 +226,29 @@ void ABoss::StartPresentation(EBossPresentation Presentation)
 	OnPresentationStarted(Presentation, ActivePresentationID);
 }
 
-//---------------------------------------------------------------
 // 정상 종료와 스킵은 같은 완료 경로 사용.
-//
-//---------------------------------------------------------------
 void ABoss::CompletePresentation(int32 PresentationID)
 {
-	if (!bEncounterStarted || bLifecycleChanging || IsDead() || ActivePresentationID == INDEX_NONE ||
-		ActivePresentationID != PresentationID)
+	// 2페이즈는 등장 완료 신호를 받아야만 전투에 진입한다.
+	if (ActivePresentation == EBossPresentation::Intro)
 	{
-		return;
+		FinishPresentation(PresentationID);
 	}
+}
 
-	// 기존 공용 완료 함수를 직접 호출해도 수색/등장 단계를 건너뛸 수 없음.
-	if (ActivePresentation == EBossPresentation::Phase2Transition && !bPhase2EmergenceCompleted)
+void ABoss::FinishPresentation(int32 PresentationID)
+{
+	if (bLifecycleChanging || IsDead() || ActivePresentationID == INDEX_NONE || ActivePresentationID != PresentationID)
 	{
 		return;
 	}
 
 	const EBossPresentation CompletedPresentation = ActivePresentation;
-
-	//---------------------------------------------------------------
-	// 정리 이벤트보다 먼저 무효화하여 중복 완료 방지.
-	//
-	//---------------------------------------------------------------
-	ActivePresentation = EBossPresentation::None;
-	ActivePresentationID = INDEX_NONE;
-
 	bLifecycleChanging = true;
-
-	if (CompletedPresentation == EBossPresentation::Phase2Transition)
-	{
-		StopPhase2Transition(false);
-	}
-
-	OnPresentationStopped(CompletedPresentation, PresentationID, false);
+	StopPresentation(false);
 	bLifecycleChanging = false;
 
-	//---------------------------------------------------------------
-	// 정리 이벤트에서 보스가 제거되었다면 진행 중단.
-	//
-	//---------------------------------------------------------------
-	if (IsActorBeingDestroyed() || !bEncounterStarted || IsDead())
+	if (IsActorBeingDestroyed() || BossPhase == EBossPhase::Waiting || IsDead())
 	{
 		return;
 	}
@@ -300,20 +258,15 @@ void ABoss::CompletePresentation(int32 PresentationID)
 	case EBossPresentation::Intro:
 		BeginOpeningAttack();
 		break;
-
 	case EBossPresentation::Phase2Transition:
 		EnterCombatPhase(EBossPhase::Phase2);
 		break;
-
 	default:
 		break;
 	}
 }
 
-//---------------------------------------------------------------
 // 연출 취소는 전투 초기화로 연결.
-//
-//---------------------------------------------------------------
 void ABoss::CancelPresentation(int32 PresentationID)
 {
 	if (bLifecycleChanging || ActivePresentationID == INDEX_NONE || ActivePresentationID != PresentationID)
@@ -324,11 +277,8 @@ void ABoss::CancelPresentation(int32 PresentationID)
 	ResetEncounter();
 }
 
-//---------------------------------------------------------------
 // 활성 연출을 무효화한 뒤 외부 연출 자원 정리.
-//
-//---------------------------------------------------------------
-void ABoss::StopPresentation()
+void ABoss::StopPresentation(bool bCancelled)
 {
 	if (ActivePresentationID == INDEX_NONE)
 	{
@@ -338,27 +288,21 @@ void ABoss::StopPresentation()
 	const EBossPresentation StoppedPresentation = ActivePresentation;
 	const int32 StoppedID = ActivePresentationID;
 
-	//---------------------------------------------------------------
 	// 중단 처리 중 도착하는 완료 알림을 무시하도록 먼저 무효화.
-	//
-	//---------------------------------------------------------------
 	ActivePresentation = EBossPresentation::None;
 	ActivePresentationID = INDEX_NONE;
 
 	if (StoppedPresentation == EBossPresentation::Phase2Transition)
 	{
-		StopPhase2Transition(true);
+		StopPhase2Transition(StoppedID, bCancelled);
 	}
 
-	OnPresentationStopped(StoppedPresentation, StoppedID, true);
+	OnPresentationStopped(StoppedPresentation, StoppedID, bCancelled);
 }
 
 void ABoss::OnPresentationStarted_Implementation(EBossPresentation Presentation, int32 PresentationID)
 {
-	//---------------------------------------------------------------
 	// 연출을 연결하지 않았다면 즉시 다음 단계 진행.
-	//
-	//---------------------------------------------------------------
 	CompletePresentation(PresentationID);
 }
 
@@ -366,13 +310,10 @@ void ABoss::OnPresentationStopped_Implementation(EBossPresentation Presentation,
 {
 }
 
-//---------------------------------------------------------------
 // 인트로 완료 후 타깃 방향으로 정렬하고 첫 공격 실행.
-//
-//---------------------------------------------------------------
 void ABoss::BeginOpeningAttack()
 {
-	if (!bEncounterStarted || bLifecycleChanging || BossPhase != EBossPhase::Intro)
+	if (bLifecycleChanging || BossPhase != EBossPhase::Intro)
 	{
 		return;
 	}
@@ -408,22 +349,16 @@ void ABoss::BeginOpeningAttack()
 		return;
 	}
 
-	//---------------------------------------------------------------
 	// 현재 전투 번호를 종료 콜백에 전달.
-	//
-	//---------------------------------------------------------------
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &ABoss::OnOpeningEnded, EncounterID);
 	Anim->Montage_SetEndDelegate(EndDelegate, OpeningMontage);
 }
 
-//---------------------------------------------------------------
 // 현재 전투의 첫 공격 종료일 때만 1페이즈 시작.
-//
-//---------------------------------------------------------------
 void ABoss::OnOpeningEnded(UAnimMontage* Montage, bool bInterrupted, int32 InEncounterID)
 {
-	if (!bEncounterStarted || bLifecycleChanging || InEncounterID != EncounterID ||
+	if (bLifecycleChanging || InEncounterID != EncounterID ||
 		BossPhase != EBossPhase::OpeningAttack)
 	{
 		return;
@@ -434,13 +369,10 @@ void ABoss::OnOpeningEnded(UAnimMontage* Montage, bool bInterrupted, int32 InEnc
 	EnterCombatPhase(EBossPhase::Phase1);
 }
 
-//---------------------------------------------------------------
 // 선택한 페이즈의 Blackboard와 BT 실행.
-//
-//---------------------------------------------------------------
 void ABoss::EnterCombatPhase(EBossPhase NewPhase)
 {
-	if (!bEncounterStarted || bLifecycleChanging || IsDead() || !BossAIData)
+	if (bLifecycleChanging || BossPhase == EBossPhase::Waiting || IsDead() || !BossAIData)
 	{
 		return;
 	}
@@ -479,10 +411,11 @@ void ABoss::EnterCombatPhase(EBossPhase NewPhase)
 	}
 
 	BossPhase = NewPhase;
+
 	// 첫 공격 실패 등 어느 경로로 1페이즈에 들어와도 현재 체력을 확인.
 	if (NewPhase == EBossPhase::Phase1 && EnemyStatComponet)
 	{
-		HandleHpChanged(EnemyStatComponet->GetCurrentHp(), EnemyStatComponet->GetMaxHp());
+		TryStartPhase2Transition(EnemyStatComponet->GetCurrentHp(), EnemyStatComponet->GetMaxHp());
 
 		if (BossPhase != EBossPhase::Phase1)
 		{
@@ -496,11 +429,6 @@ void ABoss::EnterCombatPhase(EBossPhase NewPhase)
 
 	SetEnemyState(EEnemyState::Chase);
 
-	if (StartBossCombatBehavior(EncounterTarget.Get()))
-	{
-		return;
-	}
-
 	if (!AI->RunBehaviorTree(Tree))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Boss: phase tree failed to run."));
@@ -508,19 +436,9 @@ void ABoss::EnterCombatPhase(EBossPhase NewPhase)
 
 		return;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("Boss: %s"), *Tree->GetName());
 }
 
-//---------------------------------------------------------------
 // BT, 이동, 공격 판정 정리.
-//
-//---------------------------------------------------------------
-bool ABoss::StartBossCombatBehavior(AActor* Target)
-{
-	return false;
-}
-
 void ABoss::StopCombat()
 {
 	if (AEnemyAIController* AI = Cast<AEnemyAIController>(GetController()))
@@ -542,60 +460,31 @@ void ABoss::StopCombat()
 	GetCharacterMovement()->StopMovementImmediately();
 }
 
-//---------------------------------------------------------------
-// 첫 공격의 종료 콜백을 해제한 뒤 몽타주 중단.
-//
-//---------------------------------------------------------------
-void ABoss::StopOpening()
-{
-	if (AttackTraceComponent)
-	{
-		AttackTraceComponent->EndTrace();
-	}
-
-	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
-	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData();
-
-	if (!Anim || !OpeningAttack || !OpeningAttack->Montage)
-	{
-		return;
-	}
-
-	UAnimMontage* OpeningMontage = OpeningAttack->Montage.Get();
-
-	FOnMontageEnded EmptyDelegate;
-	Anim->Montage_SetEndDelegate(EmptyDelegate, OpeningMontage);
-	Anim->Montage_Stop(0.0f, OpeningMontage);
-}
-
-//---------------------------------------------------------------
 // 실행 중인 전투 행동 전체 중단.
-//
-//---------------------------------------------------------------
 void ABoss::StopEncounterActions()
 {
 	StopCombat();
-	StopOpening();
 
 	if (UAnimInstance* Anim = GetMesh()->GetAnimInstance())
 	{
+		// 첫 공격 종료 콜백을 해제한 뒤 몽타주 중단.
+		const FEnemyAttackData* OpeningAttack = GetOpeningAttackData();
+		if (OpeningAttack && OpeningAttack->Montage)
+		{
+			FOnMontageEnded EmptyDelegate;
+			Anim->Montage_SetEndDelegate(EmptyDelegate, OpeningAttack->Montage.Get());
+		}
 		Anim->StopAllMontages(0.0f);
 	}
 
-	//---------------------------------------------------------------
 	// 몽타주 중단 시 실행되는 Notify 이후에도 판정 정리.
-	//
-	//---------------------------------------------------------------
 	if (AttackTraceComponent)
 	{
 		AttackTraceComponent->EndTrace();
 	}
 }
 
-//---------------------------------------------------------------
 // 실패한 전투를 시작 전 상태로 복구.
-//
-//---------------------------------------------------------------
 void ABoss::ResetEncounter()
 {
 	if (!HasActorBegunPlay() || IsActorBeingDestroyed() || bLifecycleChanging || BossPhase == EBossPhase::Dead ||
@@ -606,11 +495,7 @@ void ABoss::ResetEncounter()
 
 	bLifecycleChanging = true;
 
-	//---------------------------------------------------------------
 	// 중단 콜백보다 먼저 현재 전투 무효화.
-	//
-	//---------------------------------------------------------------
-	bEncounterStarted = false;
 	++EncounterID;
 
 	BossPhase = EBossPhase::Waiting;
@@ -621,10 +506,7 @@ void ABoss::ResetEncounter()
 
 	EncounterTarget.Reset();
 
-	//---------------------------------------------------------------
 	// Blackboard에 남은 전투 대상 제거.
-	//
-	//---------------------------------------------------------------
 	if (AEnemyAIController* AI = Cast<AEnemyAIController>(GetController()))
 	{
 		if (UBlackboardComponent* BB = AI->GetBlackboardComponent())
@@ -634,10 +516,7 @@ void ABoss::ResetEncounter()
 		}
 	}
 
-	//---------------------------------------------------------------
 	// 체력, 누적 자세 수치, 전투 플래그 복구.
-	//
-	//---------------------------------------------------------------
 	EnemyStatComponet->SetCurrentHp(EnemyStatComponet->GetMaxHp());
 	EnemyStatComponet->SetCurrentStance(0.0f);
 	EnemyStatComponet->SetPoiseFlag(false);
@@ -650,83 +529,67 @@ void ABoss::ResetEncounter()
 	SetStrafeMode(false);
 	SetEnemyState(EEnemyState::Idle);
 
-	//---------------------------------------------------------------
 	// 초기 위치와 회전 복구.
-	//
-	//---------------------------------------------------------------
 	GetCharacterMovement()->StopMovementImmediately();
 	SetActorTransform(InitialTransform, false, nullptr, ETeleportType::TeleportPhysics);
 
 	bLifecycleChanging = false;
 }
 
-//---------------------------------------------------------------
 // 보스별 생성한 기믹과 타이머는 자식 클래스에서 정리.
-//
-//---------------------------------------------------------------
 void ABoss::ResetBossGimmicks()
 {
 }
 
-//---------------------------------------------------------------
-// 사망 우선 처리 후 페이즈 전환 조건 확인.
-//
-//---------------------------------------------------------------
-void ABoss::HandleHpChanged(float CurrentHp, float MaxHp)
+void ABoss::SetDead()
 {
-	if (bLifecycleChanging || !bEncounterStarted || BossPhase == EBossPhase::Dead)
+	if (BossPhase == EBossPhase::Dead)
 	{
 		return;
 	}
 
-	if (CurrentHp <= 0.0f)
+	BossPhase = EBossPhase::Dead;
+	++EncounterID;
+	bLifecycleChanging = true;
+
+	StopPresentation();
+	StopEncounterActions();
+	ResetBossGimmicks();
+	SetActorEnableCollision(false);
+	Super::SetDead();
+
+	bLifecycleChanging = false;
+}
+
+// HP 0은 EnemyBase에 연결된 사망 이벤트에서 처리한다.
+void ABoss::TryStartPhase2Transition(float CurrentHp, float MaxHp)
+{
+	if (bLifecycleChanging || BossPhase != EBossPhase::Phase1 || !BossAIData || CurrentHp <= 0.0f || MaxHp <= 0.0f)
 	{
-		BossPhase = EBossPhase::Dead;
-		bEncounterStarted = false;
-		++EncounterID;
-
-		SetEnemyState(EEnemyState::Dead);
-
-		bLifecycleChanging = true;
-
-		StopPresentation();
-		StopEncounterActions();
-		ResetBossGimmicks();
-
-		bLifecycleChanging = false;
-
 		return;
 	}
 
-	//---------------------------------------------------------------
-	// 1페이즈 공격을 중단하고 전환 연출 시작.
-	//
-	//---------------------------------------------------------------
-	if (BossPhase == EBossPhase::Phase1 && BossAIData && MaxHp > 0.0f &&
-		CurrentHp / MaxHp <= FMath::Clamp(BossAIData->Phase2HpRatio, 0.01f, 0.99f))
+	const float Phase2Ratio = FMath::Clamp(BossAIData->Phase2HpRatio, 0.01f, 0.99f);
+
+	if (CurrentHp / MaxHp > Phase2Ratio)
 	{
-		BossPhase = EBossPhase::PhaseTransition;
-
-		bLifecycleChanging = true;
-
-		StopEncounterActions();
-		ResetBossGimmicks();
-		SetEnemyState(EEnemyState::Idle);
-
-		bLifecycleChanging = false;
-
-		StartPresentation(EBossPresentation::Phase2Transition);
+		return;
 	}
+
+	BossPhase = EBossPhase::PhaseTransition;
+	bLifecycleChanging = true;
+	StopEncounterActions();
+	ResetBossGimmicks();
+	SetEnemyState(EEnemyState::Idle);
+	bLifecycleChanging = false;
+	StartPresentation(EBossPresentation::Phase2Transition);
 }
 
 void ABoss::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 {
-	//---------------------------------------------------------------
 	// 대기, 연출, 초기화, 사망 상태에서는 피해 차단.
-	//
-	//---------------------------------------------------------------
-	if (!bEncounterStarted || bLifecycleChanging || IsDead() || BossPhase == EBossPhase::Waiting ||
-		BossPhase == EBossPhase::Intro || BossPhase == EBossPhase::PhaseTransition)
+	if (bLifecycleChanging || (BossPhase != EBossPhase::OpeningAttack &&
+		BossPhase != EBossPhase::Phase1 && BossPhase != EBossPhase::Phase2))
 	{
 		return;
 	}
@@ -736,12 +599,9 @@ void ABoss::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 
 void ABoss::HandleAttackTraceHit(const FHitResult& Hit)
 {
-	//---------------------------------------------------------------
 	// 공통 보스에서는 첫 공격 피해만 처리.
 	// 일반 전투 공격은 보스 자식 클래스에서 처리.
-	//
-	//---------------------------------------------------------------
-	if (!bEncounterStarted || bLifecycleChanging || IsDead() || BossPhase != EBossPhase::OpeningAttack)
+	if (bLifecycleChanging || IsDead() || BossPhase != EBossPhase::OpeningAttack)
 	{
 		return;
 	}
@@ -763,20 +623,16 @@ void ABoss::InitializeWeapon()
 {
 	Super::InitializeWeapon();
 
-	//---------------------------------------------------------------
 	// 맨손 공격은 본체 메시의 TraceStart와 TraceEnd 소켓 사용.
-	//
-	//---------------------------------------------------------------
 	if (!WeaponMesh && AttackTraceComponent)
 	{
 		AttackTraceComponent->SetTraceMesh(GetMesh());
 	}
 }
 
-void ABoss::BeginPhase2Transition(int32 TransitionID)
+void ABoss::BeginPhase2Transition()
 {
-	Phase2TransitionID = TransitionID;
-	bPhase2EmergenceCompleted = false;
+	const int32 TransitionID = ActivePresentationID;
 	bPhase2SavedHidden = IsHidden();
 	bPhase2SavedCollision = GetActorEnableCollision();
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
@@ -784,21 +640,25 @@ void ABoss::BeginPhase2Transition(int32 TransitionID)
 	Phase2SavedCustomMovementMode = Movement->CustomMovementMode;
 	bPhase2StateSaved = true;
 	Movement->DisableMovement();
-	SetPhase2TransitionStage(EBossPhase2TransitionStage::Disappearing);
+	if (ActivePresentationID == TransitionID)
+	{
+		SetPhase2TransitionStage(EBossPhase2TransitionStage::Disappearing);
+	}
 }
 
 bool ABoss::IsPhase2TransitionStep(int32 TransitionID, EBossPhase2TransitionStage Stage) const
 {
-	return TransitionID != INDEX_NONE && !bLifecycleChanging && bEncounterStarted && !IsDead() &&
+	return TransitionID != INDEX_NONE && !bLifecycleChanging && !IsDead() &&
 		BossPhase == EBossPhase::PhaseTransition && ActivePresentation == EBossPresentation::Phase2Transition &&
-		ActivePresentationID == TransitionID && Phase2TransitionID == TransitionID && Phase2TransitionStage == Stage;
+		ActivePresentationID == TransitionID && Phase2TransitionStage == Stage;
 }
 
 void ABoss::SetPhase2TransitionStage(EBossPhase2TransitionStage Stage)
 {
 	GetWorldTimerManager().ClearTimer(Phase2StageTimer);
 	Phase2TransitionStage = Stage;
-	const int32 TransitionID = Phase2TransitionID;
+	const int32 TransitionID = ActivePresentationID;
+
 	// 수색은 플레이어의 발견 트리거를 기다리고 시간으로 완료하지 않음.
 	if (bUsePhase2PlaceholderTimings && Stage != EBossPhase2TransitionStage::Searching)
 	{
@@ -806,16 +666,13 @@ void ABoss::SetPhase2TransitionStage(EBossPhase2TransitionStage Stage)
 		FTimerDelegate NextStage = FTimerDelegate::CreateWeakLambda(this,
 			[this, TransitionID, Stage]()
 			{
-				switch (Stage)
+				if (Stage == EBossPhase2TransitionStage::Disappearing)
 				{
-				case EBossPhase2TransitionStage::Disappearing:
 					CompletePhase2Disappear(TransitionID);
-					break;
-				case EBossPhase2TransitionStage::Emerging:
+				}
+				else if (Stage == EBossPhase2TransitionStage::Emerging)
+				{
 					CompletePhase2Emergence(TransitionID);
-					break;
-				default:
-					break;
 				}
 			});
 
@@ -823,7 +680,6 @@ void ABoss::SetPhase2TransitionStage(EBossPhase2TransitionStage Stage)
 		GetWorldTimerManager().SetTimer(Phase2StageTimer, NextStage, FMath::Max(Delay, 0.01f), false);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Boss phase2 transition %d: stage %d"), TransitionID, static_cast<int32>(Stage));
 	OnPhase2StageRequested.Broadcast(this, Stage, TransitionID);
 }
 
@@ -871,19 +727,15 @@ bool ABoss::CompletePhase2Emergence(int32 TransitionID)
 		return false;
 	}
 
-	bPhase2EmergenceCompleted = true;
-	CompletePresentation(TransitionID);
+	FinishPresentation(TransitionID);
 
 	return BossPhase == EBossPhase::Phase2;
 }
 
-void ABoss::StopPhase2Transition(bool bCancelled)
+void ABoss::StopPhase2Transition(int32 TransitionID, bool bCancelled)
 {
 	GetWorldTimerManager().ClearTimer(Phase2StageTimer);
-	const int32 StoppedID = Phase2TransitionID;
-	Phase2TransitionID = INDEX_NONE;
 	Phase2TransitionStage = EBossPhase2TransitionStage::None;
-	bPhase2EmergenceCompleted = false;
 
 	if (bPhase2StateSaved)
 	{
@@ -902,8 +754,5 @@ void ABoss::StopPhase2Transition(bool bCancelled)
 		}
 	}
 
-	if (StoppedID != INDEX_NONE)
-	{
-		OnPhase2TransitionStopped.Broadcast(this, StoppedID, bCancelled);
-	}
+	OnPhase2TransitionStopped.Broadcast(this, TransitionID, bCancelled);
 }

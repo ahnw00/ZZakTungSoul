@@ -12,24 +12,13 @@ class ZZAKTUNGSOUL_API UBossAIData : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	//---------------------------------------------------------------
 	// 페이즈 1에서 실행할 BT.
-	//
-	//---------------------------------------------------------------
 	UPROPERTY(EditAnywhere, Category = "Boss|Phase")
 	TObjectPtr<UBehaviorTree> Phase1BT;
-
-	//---------------------------------------------------------------
 	// 페이즈 2에서 실행할 BT.
-	//
-	//---------------------------------------------------------------
 	UPROPERTY(EditAnywhere, Category = "Boss|Phase")
 	TObjectPtr<UBehaviorTree> Phase2BT;
-
-	//---------------------------------------------------------------
 	// 페이즈 2로 전환할 HP 비율.
-	//
-	//---------------------------------------------------------------
 	UPROPERTY(EditAnywhere, Category = "Boss|Phase", meta = (ClampMin = "0.01", ClampMax = "0.99"))
 	float Phase2HpRatio = 0.5f;
 

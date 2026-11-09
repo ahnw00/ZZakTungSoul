@@ -24,17 +24,10 @@ protected:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 protected:
-	//---------------------------------------------------------------
 	// 애니메이션을 사용하는 보스.
-	//
-	//---------------------------------------------------------------
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Character", Meta = (AllowPrivateAccess = true))
 	TObjectPtr<ABoss> Owner;
-
-	//---------------------------------------------------------------
 	// 보스의 현재 이동 정보.
-	//
-	//---------------------------------------------------------------
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Character", Meta = (AllowPrivateAccess = true))
 	FVector Velocity = FVector::ZeroVector;
 
@@ -43,11 +36,7 @@ protected:
 
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Character", Meta = (AllowPrivateAccess = true))
 	float Speed = 0.0f;
-
-	//---------------------------------------------------------------
 	// 보스의 현재 전투 페이즈.
-	//
-	//---------------------------------------------------------------
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Character", Meta = (AllowPrivateAccess = true))
 	EBossPhase BossPhase = EBossPhase::Intro;
 

@@ -28,15 +28,7 @@ enum class EBossClownAttack : uint8
 	Yabawi,
 };
 
-UENUM(BlueprintType)
-enum class EClownAttackStyle : uint8
-{
-	Normal,
-	Immediate,
-	DelayedPursuit UMETA(Hidden)
-};
-
-USTRUCT(BlueprintType)
+USTRUCT(BlueprintType, meta = (DisplayName = "Clown Attack Pattern"))
 struct FClownPhaseOnePattern
 {
 	GENERATED_BODY()
@@ -53,6 +45,18 @@ struct FClownPhaseOnePattern
 	UPROPERTY(EditAnywhere, Category = "Boss Phase Usage", meta = (DisplayName = "Allow In Phase 2"))
 	bool bAllowInPhase2 = true;
 
+	// 패턴 자체의 거리 제한. BT 분기의 거리 조건과 함께 CombatRules에서만 판정한다.
+	UPROPERTY(EditAnywhere, Category = "Selection", meta = (ClampMin = "0"))
+	float MinimumRange = 0.0f;
+	UPROPERTY(EditAnywhere, Category = "Selection", meta = (ClampMin = "0"))
+	float MaximumRange = 100000.0f;
+	UPROPERTY(EditAnywhere, Category = "Selection")
+	bool bRanged = false;
+	UPROPERTY(EditAnywhere, Category = "Selection", meta = (ClampMin = "0", ClampMax = "1"))
+	float FrequencyScale = 1.0f;
+	UPROPERTY(EditAnywhere, Category = "Selection", meta = (ClampMin = "0"))
+	float ReuseDelay = 0.0f;
+
 	UPROPERTY(EditAnywhere)
 	FEnemyAttackData Attack;
 
@@ -62,10 +66,6 @@ struct FClownPhaseOnePattern
 
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
 	float RecoveryTime = 1.0f;
-
-	// 타격 전 준비 자세 유지 시간. 판정 Notify는 정지한 동안 실행하지 않음.
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "2"))
-	float AnticipationTime = 0.55f;
 
 	// 몽타주 시작 후 이 시간이 지나면 타깃 추적 회전 종료.
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
@@ -127,6 +127,9 @@ struct FClownPhaseOnePattern
 		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "1"))
 	float SelectionTime = 5.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Yabawi", meta = (ClampMin = "1"))
+	float ResultDisplayTime = 3.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
 		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides, ClampMin = "0"))
 	float Cooldown = 20.0f;
@@ -151,20 +154,10 @@ class ZZAKTUNGSOUL_API UBossClownAnimationData : public UDataAsset
 
 public:
 	UBossClownAnimationData();
-	virtual void PostLoad() override;
-
-	//---------------------------------------------------------------
 	// 첫 공격과 광대 전용 공격 데이터.
-	//
-	//---------------------------------------------------------------
 	UPROPERTY(EditAnywhere, Category = "Montage|Clown|Opening")
 	FEnemyAttackData OpeningAttack;
-
-	//---------------------------------------------------------------
 	// 행동 분기 / 거리 / 확률 / 쿨다운은 BT에서 설정.
-	//
-	//---------------------------------------------------------------
-
 	UPROPERTY(EditAnywhere, Category = "Clown|Behavior")
 	bool bEnableTacticalActions = true;
 
@@ -201,9 +194,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Clown|Behavior")
 	TObjectPtr<UAnimMontage> EvadeRightMontage;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Balls", meta = (ClampMin = "1", ClampMax = "16"))
-	int32 BallCount = 5;
-
 	UPROPERTY(EditAnywhere, Category = "Clown|Attacks",
 		meta = (DisplayName = "Attack Patterns", TitleProperty = "AttackType"))
 	TArray<FClownPhaseOnePattern> PhaseOnePatterns;
@@ -231,11 +221,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "0"))
 	float AttackTurnSpeed = 150.0f;
-
-	//---------------------------------------------------------------
 	// 빠른 추격 달리기와 지휘 박수 패턴 설정.
-	//
-	//---------------------------------------------------------------
 	UPROPERTY(EditAnywhere, Category = "Clown|Movement")
 	TObjectPtr<UAnimMontage> FastChaseMontage;
 

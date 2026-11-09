@@ -1,4 +1,4 @@
-﻿#include <Enemy/Boss/Encounter/BossRoomSubsystem.h>
+#include <Enemy/Boss/Encounter/BossRoomSubsystem.h>
 
 bool UBossRoomSubsystem::HasEntered(FName RoomID) const
 {
@@ -34,11 +34,6 @@ void UBossRoomSubsystem::MarkCleared(FName RoomID)
 	FBossRoomProgress& Progress = RoomProgress.FindOrAdd(RoomID);
 	Progress.bEntered = true;
 	Progress.bCleared = true;
-}
-
-void UBossRoomSubsystem::ResetRoom(FName RoomID)
-{
-	RoomProgress.Remove(RoomID);
 }
 
 const TMap<FName, FBossRoomProgress>&

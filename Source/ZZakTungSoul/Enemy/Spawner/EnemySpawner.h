@@ -20,6 +20,11 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+public:
+	FORCEINLINE int32 GetSpawnEnemyCount() const { return SpawnedEnemies.Num(); }
+
 public:	
 	// 설정된 Enemy 스폰하기전 Data 순회
 	void SpawnEnemies();
@@ -29,6 +34,9 @@ public:
 
 	// 생성된 Enemy 가져오기
 	AEnemyBase* GetSpawnEnemy(int32 Index) const;
+
+	// Reset Enemies
+	void ResetEnemies();
 
 protected:
 	// Enemy 사망 알림

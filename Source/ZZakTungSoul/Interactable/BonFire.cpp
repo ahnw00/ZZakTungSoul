@@ -3,8 +3,14 @@
 
 #include "Interactable/Bonfire.h"
 #include <Engine/OverlapResult.h>
+#include <NiagaraComponent.h>
 
 #include <GamePlay/ZTSGameMode.h>
+#include <Gimmick/RestorePropSubsystem.h>
+
+#include <Components/AudioComponent.h>
+#include <Kismet/GameplayStatics.h>
+#include <Sound/SoundBase.h>
 
 #include <Components/StaticMeshComponent.h>
 #include <Components/SphereComponent.h>
@@ -20,6 +26,7 @@
 
 #include <Enemy/EnemyBase.h>
 #include "UI/Notify/NotificationSubsystem.h"
+#include <Enemy/Spawner/EnemySpawnSubsystem.h>
 
 
 
@@ -28,9 +35,12 @@ ABonfire::ABonfire()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	
+	// 루트 컴포넌트.
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	RootComponent = SceneRoot;
 	// 외형 메시 컴포넌트 지정.
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
-	RootComponent = MeshComponent;
+	MeshComponent->SetupAttachment(RootComponent);
 	// 상호작용 감지용 구체 콜리전.
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
 	InteractionSphere->SetupAttachment(RootComponent);
@@ -44,6 +54,16 @@ ABonfire::ABonfire()
 	TeleportPoint->SetupAttachment(RootComponent);
 	TeleportPoint->SetRelativeLocation(FVector(120.f, 0.f, 0.f));
 	TeleportPoint->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
+
+	// 불 이펙트. Lit 상태에서 활성화.
+	FireEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FireEffect"));
+	FireEffect->SetupAttachment(RootComponent);
+	FireEffect->SetAutoActivate(false);
+
+	// Lit 상태 불타는 소리 지속음.
+	FireLoopAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("FireLoopAudio"));
+	FireLoopAudio->SetupAttachment(RootComponent);
+	FireLoopAudio->SetAutoActivate(false);
 
 }
 FTransform ABonfire::GetTeleportTransform() const
@@ -125,7 +145,17 @@ void ABonfire::SyncLitState(const AWarriorPlayerState* PS)
 	{
 		BonfireState = EBonfireState::Lit;
 
-		// TODO: 활성화 효과 등은 여기서 활성화 예정.
+		// 저장 데이터 점화한 화톳불은 불 이펙트 활성화.
+		if (FireEffect)
+		{
+			FireEffect->Activate(true);
+		}
+
+		// 불 타는 지속음.
+		if (FireLoopAudio)
+		{
+			FireLoopAudio->Play();
+		}
 	}
 }
 
@@ -171,6 +201,23 @@ void ABonfire::Interact(AActor* detectedActor)
 	if (BonfireState == EBonfireState::Unlit)
 	{
 		BonfireState = EBonfireState::Lit;
+
+		if (FireEffect)
+		{
+			FireEffect->Activate(true);
+		}
+
+		// 한 번만 재생하는 불 붙이는 소리.
+		if (IgniteSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, IgniteSound, GetActorLocation());
+		}
+
+		// 불 타는 지속음.
+		if (FireLoopAudio)
+		{
+			FireLoopAudio->Play();
+		}
 
 		// PlayerState에 활성화한 화톳불로 등록 및 마지막 화톳불 갱신.
 		if (AWarriorPlayerState* PS = Interactor->GetPlayerState<AWarriorPlayerState>())
@@ -235,5 +282,17 @@ void ABonfire::Interact(AActor* detectedActor)
 
 		// 휴식 델리게이트 방송.
 		OnBonfireRest.Broadcast();
+
+		// 적 초기화
+		if (UEnemySpawnSubsystem* SpawnSubsystem = GetWorld()->GetSubsystem<UEnemySpawnSubsystem>())
+		{
+			SpawnSubsystem->ResetAllEnemies();
+		}
+
+		// 부서진 프롭 복원.
+		if (URestorePropSubsystem* RestoreProp = GetWorld()->GetSubsystem<URestorePropSubsystem>())
+		{
+			RestoreProp->RestoreProps();
+		}
 	}
 }

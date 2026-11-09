@@ -45,6 +45,8 @@ public:
 protected:
 	virtual void DeadStart() override;
 
+	virtual void HitStart() override;
+
 protected:
 	// PatrolPath 참조
 	UPROPERTY(EditInstanceOnly, Category = "Enemy|Patrol")

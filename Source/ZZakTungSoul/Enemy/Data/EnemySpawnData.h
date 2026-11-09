@@ -14,7 +14,7 @@ struct FEnemySpawnData
 
 	// 스폰 위치
 	UPROPERTY(EditAnywhere, Category = "Spawn")
-	FTransform SpawnTransform = FTransform::Identity;
+	TObjectPtr<class ATargetPoint> SpawnPoint = nullptr;
 
 	// 생성된 Enemy에게 전달할 순찰 경로
 	UPROPERTY(EditAnywhere, Category = "Spawn")

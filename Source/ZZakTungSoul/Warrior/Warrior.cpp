@@ -133,8 +133,8 @@ AWarrior::AWarrior()
 	{
 		//Lantern->SetSkeletalMesh(LanternMeshRef.Object);
 		LanternMesh = LanternMeshRef.Object;
-		Lantern->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
-		Lantern->SetRelativeLocation(FVector(-40.f, 8.f, 10.f));
+		//Lantern->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
+		//Lantern->SetRelativeLocation(FVector(-40.f, 8.f, 10.f));
 	}
 	Lantern->SetupAttachment(GetMesh(), TEXT("pelvis_Socket"));
 
@@ -923,26 +923,58 @@ void AWarrior::SetLeftHandPotionMesh()
 	LeftHandWeapon->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
 }
 
-void AWarrior::EquipArmor(const UItemDataAsset* ItemData)
+void AWarrior::EquipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot)
 {
 	if (!ArmorMID || !ItemData) return;
+
+	ResetArmorMaterial(Slot);
 
 	FString ParameterName = TEXT("Equip_") + ItemData->ItemName.ToString();
 	FName ParameterFName(*ParameterName);
 
-	float Value = 0.f;
 	ArmorMID->SetScalarParameterValue(ParameterFName, 1.f);
 }
 
-void AWarrior::UnequipArmor(const UItemDataAsset* ItemData)
+void AWarrior::UnequipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot)
 {
 	if (!ArmorMID || !ItemData) return;
+
+	ResetArmorMaterial(Slot);
 
 	FString ParameterName = TEXT("Equip_") + ItemData->ItemName.ToString();
 	FName ParameterFName(*ParameterName);
 
-	float Value = 0.f;
 	ArmorMID->SetScalarParameterValue(ParameterFName, 0.f);
+}
+
+void AWarrior::ResetArmorMaterial(EEquipmentSlot Slot)
+{
+	if (!ArmorMID) return;
+
+	FString SlotName;
+	switch (Slot)
+	{
+	case EEquipmentSlot::Head:
+		SlotName = TEXT("Head");
+		break;
+	case EEquipmentSlot::Chest:
+		SlotName = TEXT("Chest");
+		break;
+	case EEquipmentSlot::Arms:
+		SlotName = TEXT("Arms");
+		break;
+	case EEquipmentSlot::Legs:
+		SlotName = TEXT("Legs");
+		break;
+	default:
+		break;
+	}
+
+	FString CoupangName = TEXT("Equip_") + SlotName + TEXT("_Coupang");
+	FString PostOfficeName = TEXT("Equip_") + SlotName + TEXT("_PostOffice");
+
+	ArmorMID->SetScalarParameterValue(*CoupangName, 0.f);
+	ArmorMID->SetScalarParameterValue(*PostOfficeName, 0.f);
 }
 
 //void AWarrior::Interact()
@@ -1111,22 +1143,22 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		break;
 	case EEquipmentSlot::Head:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::Chest:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::Arms:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::Legs:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::UpperBelt:
@@ -1174,22 +1206,22 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 		break;
 	case EEquipmentSlot::Head:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::Chest:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::Arms:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::Legs:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::UpperBelt:

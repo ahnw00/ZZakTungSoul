@@ -40,6 +40,14 @@ UItemListWidget::UItemListWidget(const FObjectInitializer& ObjectInitializer)
     {
         FilterButtonClass = FilterButtonClassRef.Class;
     }
+
+    static ConstructorHelpers::FObjectFinder<UTexture2D> EmptyImageRef(
+        TEXT("/Game/Assets/UI_Images/EquipButton.EquipButton")
+    );
+    if (EmptyImageRef.Succeeded())
+    {
+        ItemEmptyImage = EmptyImageRef.Object;
+    }
 }
 
 void UItemListWidget::InitializeItemList(EItemListFilter InInitialFilter)
@@ -120,7 +128,10 @@ void UItemListWidget::CreateFilterButtons()
             continue;
         }
         FilterButton->OnFilterSelected.AddUObject(this, &UItemListWidget::ListItemsByFilter);
+        FilterButton->OnFilterSelected.AddUObject(this, &UItemListWidget::SetSlotText);
         FilterButton->OnFilterClicked.BindUObject(this, &UItemListWidget::ResetInfo);
+        //FilterButton->OnFilterClicked.AddUObject(this, &UItemListWidget::)
+
         FilterButton->SetFilterType(Filter);
         FilterButton->SetFilterText(Enum->GetDisplayNameTextByValue(static_cast<int64>(Filter)));
 
@@ -146,6 +157,11 @@ void UItemListWidget::AddItemButton(const FGuid& InstanceID, int32 Index)
 
     // 델리게이트에 ShowInfo 바인드해주기
     ItemButton->OnItemSelected.BindUObject(this, &UItemListWidget::ShowInfo);
+
+    const UItemDataAsset* ItemData = Inventory->FindItemDataByInstanceID(InstanceID);
+    if (!ItemData)
+        return;
+    ItemButton->SetItemImage(ItemData->Icon);
 
     if (ListMode != EItemListMode::Inventory)
     {
@@ -195,7 +211,10 @@ void UItemListWidget::ResetInfo()
         }
         else if (UImage* Icon = Cast<UImage>(Child))
         {
-            Icon->SetBrush(FSlateBrush());
+            if (!ItemEmptyImage)
+                continue;
+
+            Icon->SetBrushFromTexture(ItemEmptyImage);
         }
     }
 }
@@ -434,4 +453,49 @@ void UItemListWidget::EquipItem(const FGuid& InstanceID)
 
     WC->EquipItem(InstanceID, CurrentEquipSlot);
     UE_LOG(LogTemp, Log, TEXT("Equip Item"));
+}
+
+void UItemListWidget::SetSlotText(EItemListFilter InFilter)
+{
+    switch (InFilter)
+    {
+    case EItemListFilter::All:
+        SlotText->SetText(FText::FromString(TEXT("전체")));
+        break;
+    case EItemListFilter::Consumable:
+        SlotText->SetText(FText::FromString(TEXT("소모템")));
+        break;
+    case EItemListFilter::Weapon:
+        SlotText->SetText(FText::FromString(TEXT("무기")));
+        break;
+    case EItemListFilter::Armor:
+        SlotText->SetText(FText::FromString(TEXT("방어구")));
+        break;
+    case EItemListFilter::RightHand:
+        SlotText->SetText(FText::FromString(TEXT("현재 슬롯 : 오른손")));
+        break;
+    case EItemListFilter::LeftHand:
+        SlotText->SetText(FText::FromString(TEXT("현재 슬롯 : 왼손")));
+        break;
+    case EItemListFilter::Head:
+        SlotText->SetText(FText::FromString(TEXT("현재 슬롯 : 머리")));
+        break;
+    case EItemListFilter::Chest:
+        SlotText->SetText(FText::FromString(TEXT("현재 슬롯 : 가슴")));
+        break;
+    case EItemListFilter::Arms:
+        SlotText->SetText(FText::FromString(TEXT("현재 슬롯 : 팔")));
+        break;
+    case EItemListFilter::Legs:
+        SlotText->SetText(FText::FromString(TEXT("현재 슬롯 : 다리")));
+        break;
+    case EItemListFilter::UpperBelt:
+        SlotText->SetText(FText::FromString(TEXT("현재 슬롯 : 윗 벨트")));
+        break;
+    case EItemListFilter::LowerBelt:
+        SlotText->SetText(FText::FromString(TEXT("현재 슬롯 : 아랫 벨트")));
+        break;
+    default:
+        break;
+    }
 }

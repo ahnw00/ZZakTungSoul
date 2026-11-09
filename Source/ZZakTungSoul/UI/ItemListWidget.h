@@ -98,10 +98,15 @@ private:
 public:
 	FORCEINLINE void SetEquipSlot(EEquipmentSlot InSlot) { CurrentEquipSlot = InSlot; }
 
+	void SetSlotText(EItemListFilter InFilter);
+
 
 private:
 	UPROPERTY()
 	TObjectPtr<class UInventoryComponent> Inventory;
+
+	UPROPERTY()
+	TObjectPtr<UTexture2D> ItemEmptyImage;
 
 	// 필터 버튼 관련
 
@@ -118,6 +123,9 @@ private:
 
 	UPROPERTY()
 	TSubclassOf<class UFilterButtonWidget> FilterButtonClass;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UTextBlock> SlotText;
 
 	// 아이템 버튼 관련
 	UPROPERTY(meta = (BindWidget))

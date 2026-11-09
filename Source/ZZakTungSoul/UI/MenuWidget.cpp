@@ -36,6 +36,8 @@ void UMenuWidget::NativeOnInitialized()
     {
         Button->SetParentWidget(this);
     }
+
+    //ChangeButtonsImage();
 }
 
 void UMenuWidget::OpenMenu(EMenuType MenuType)
@@ -55,6 +57,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         WBP_ItemListWidget->SetListMode(EItemListMode::Inventory);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::All);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::None);
+        WBP_ItemListWidget->SetSlotText(EItemListFilter::All);
         WBP_ItemListWidget->ResetInfo();
         break;
 
@@ -68,6 +71,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::RightHand);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::RightHand);
+        WBP_ItemListWidget->SetSlotText(EItemListFilter::RightHand);
         WBP_ItemListWidget->ResetInfo();
         break;
 
@@ -75,6 +79,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::LeftHand);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::LeftHand);
+        WBP_ItemListWidget->SetSlotText(EItemListFilter::LeftHand);
         WBP_ItemListWidget->ResetInfo();
         break;
 
@@ -82,6 +87,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::Head);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::Head);
+        WBP_ItemListWidget->SetSlotText(EItemListFilter::Head);
         WBP_ItemListWidget->ResetInfo();
         break;
 
@@ -89,6 +95,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::Chest);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::Chest);
+        WBP_ItemListWidget->SetSlotText(EItemListFilter::Chest);
         WBP_ItemListWidget->ResetInfo();
         break;
 
@@ -96,6 +103,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::Arms);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::Arms);
+        WBP_ItemListWidget->SetSlotText(EItemListFilter::Arms);
         WBP_ItemListWidget->ResetInfo();
         break;
 
@@ -103,6 +111,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         WBP_ItemListWidget->SetListMode(EItemListMode::EquipmentSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::Legs);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::Legs);
+        WBP_ItemListWidget->SetSlotText(EItemListFilter::Legs);
         WBP_ItemListWidget->ResetInfo();
         break;
 
@@ -110,6 +119,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         WBP_ItemListWidget->SetListMode(EItemListMode::BeltSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::UpperBelt);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::UpperBelt);
+        WBP_ItemListWidget->SetSlotText(EItemListFilter::UpperBelt);
         WBP_ItemListWidget->ResetInfo();
         break;
 
@@ -117,6 +127,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         WBP_ItemListWidget->SetListMode(EItemListMode::BeltSlot);
         WBP_ItemListWidget->InitializeItemList(EItemListFilter::LowerBelt);
         WBP_ItemListWidget->SetEquipSlot(EEquipmentSlot::LowerBelt);
+        WBP_ItemListWidget->SetSlotText(EItemListFilter::LowerBelt);
         WBP_ItemListWidget->ResetInfo();
         break;
 
@@ -168,53 +179,57 @@ void UMenuWidget::ChangeButtonsImage()
         return;
     }
 
+    if (!Equipment)
+    {
+        return;
+    }
+
     for (const auto Button : Buttons)
     {
         EMenuType ButtonType = Button->MenuType;
         FGuid InstanceID;
 
-        if (!Equipment)
-        {
-            return;
-        }
-
         switch (ButtonType)
         {
+        case EMenuType::Inventory:
+            continue;
+        case EMenuType::Stat:
+            continue;
+        case EMenuType::Settings:
+            continue;
         case EMenuType::RightHand:
             InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::RightHand);
-            SetButtonImage(RightWeaponButton, GetTexture(InstanceID));
             break;
         case EMenuType::LeftHand:
             InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::LeftHand);
-            SetButtonImage(LeftWeaponButton, GetTexture(InstanceID));
             break;
         case EMenuType::Head:
             InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::Head);
-            SetButtonImage(HeadButton, GetTexture(InstanceID));
             break;
         case EMenuType::Chest:
             InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::Chest);
-            SetButtonImage(ChestButton, GetTexture(InstanceID));
             break;
         case EMenuType::Arms:
             InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::Arms);
-            SetButtonImage(ArmsButton, GetTexture(InstanceID));
             break;
         case EMenuType::Legs:
             InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::Legs);
-            SetButtonImage(LegsButton, GetTexture(InstanceID));
             break;
         case EMenuType::UpperBelt:
             InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::UpperBelt);
-            SetButtonImage(UpperBeltButton, GetTexture(InstanceID));
             break;
         case EMenuType::LowerBelt:
             InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::LowerBelt);
-            SetButtonImage(LowerBeltButton, GetTexture(InstanceID));
             break;
         default:
             break;
         }
+
+        UTexture2D* InTexture = GetTexture(InstanceID);
+        if (!InTexture)
+            continue;
+
+        SetButtonImage(Buttons[static_cast<int32>(ButtonType) - 1], InTexture);
     }
 }
 
@@ -255,5 +270,5 @@ void UMenuWidget::SetButtonImage(UMenuButtonWidget* Button, UTexture2D* InTextur
         return;
     }
 
-    Button->SetButtonImage(InTexture);
+    Button->SetItemImage(InTexture);
 }

@@ -38,6 +38,8 @@ public:
 
 	void ResetButtonImage();
 
+	void SetItemImage(TSoftObjectPtr<UTexture2D> InTexture);
+
 public:
 	FOnItemSelected OnItemSelected;
 	FOnItemClicked OnItemClicked;
@@ -45,6 +47,9 @@ public:
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UButton> ItemButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UImage> ItemImage;
 
 private:
 	UPROPERTY()

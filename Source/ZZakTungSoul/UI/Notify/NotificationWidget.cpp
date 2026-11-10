@@ -3,6 +3,8 @@
 #include "Curves/CurveFloat.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/TextBlock.h"
+#include <Sound/SoundBase.h>
+#include "Kismet/GameplayStatics.h"
 
 void UNotificationWidget::ShowNotification()
 {
@@ -18,6 +20,11 @@ void UNotificationWidget::ShowNotification()
 			EUMGSequencePlayMode::Forward,
 			1.f
 		);
+
+		if (ShowSound)
+		{
+			UGameplayStatics::PlaySound2D(this, ShowSound);
+		}
 	}
 	else
 	{

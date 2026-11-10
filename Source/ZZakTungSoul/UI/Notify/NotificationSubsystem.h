@@ -5,6 +5,7 @@
 #include "Subsystems/SubsystemCollection.h"
 #include "UI/Notify/NotificationTypes.h"
 #include "NotificationSubsystem.generated.h"
+
 class UNotificationWidget;
 
 UCLASS(BlueprintType)
@@ -30,6 +31,19 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UI|Notification")
 	void ShowRegionNotification(const FText& RegionName);
+
+protected:
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	//TObjectPtr<USoundBase> BonrFireLitSound;
+
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	//TObjectPtr<USoundBase> DeathSound;
+
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	//TObjectPtr<USoundBase> BossClearSound;
+
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	//TObjectPtr<USoundBase> RegionSound;
 
 private:
 	UPROPERTY()

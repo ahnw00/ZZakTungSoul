@@ -13,7 +13,15 @@
 AItemObject::AItemObject()
 {
 	Trigger = CreateDefaultSubobject<UBoxComponent>(TEXT("Trigger"));
-	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
+
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> ItemMeshRef(
+		TEXT("/Game/Assets/Planet4/planet4.planet4")
+	);
+	if (ItemMeshRef.Succeeded())
+	{
+		Mesh->SetSkeletalMesh(ItemMeshRef.Object);
+	}
 
 	RootComponent = Trigger;
 	Mesh->SetupAttachment(Trigger);

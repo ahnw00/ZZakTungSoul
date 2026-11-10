@@ -19,6 +19,11 @@ class ZZAKTUNGSOUL_API ULanternDataAsset
 public:
 	ULanternDataAsset();
 
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override
+	{
+		return FPrimaryAssetId("LanternData", GetFName());
+	}
+
 	// Inherited via IItemFunctionInterface
 	void ItemFunction(AWarrior* User) const override;
 };

@@ -914,6 +914,22 @@ bool AWarriorController::CheckItemInSlot(const FGuid& InID, EEquipmentSlot InSlo
 	return Warrior->CheckItemInSlot(InID, InSlot);
 }
 
+void AWarriorController::TurnOnInteractUI()
+{
+	if (!PlayerHUDWidget)
+		return;
+
+	PlayerHUDWidget->TurnOnInteractUI();
+}
+
+void AWarriorController::TurnOffInteractUI()
+{
+	if (!PlayerHUDWidget)
+		return;
+
+	PlayerHUDWidget->TurnOffInteractUI();
+}
+
 void AWarriorController::ToggleMenuWindow()
 {
 	if (!CloseBonfireMenu())

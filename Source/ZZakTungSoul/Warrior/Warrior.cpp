@@ -10,6 +10,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFrameWork/CharacterMovementComponent.h"
 
+
 #include "Components/ArrowComponent.h"
 #include <Components/CapsuleComponent.h>
 #include <Components/PointLightComponent.h>
@@ -241,7 +242,11 @@ void AWarrior::Tick(float DeltaTime)
 	// 락온 상태
 	if (bLockOn)
 	{
-		UpdateLockOnCamera(DeltaTime);
+		// [처형 카메라]. 락온 카메라가 컨트롤 회전 덮어쓰는 걸 방지.
+		if (false == bFatalCameraActive)
+		{
+			UpdateLockOnCamera(DeltaTime);
+		}
 
 		if (ActionState != EActionState::Roll)
 			UpdateLook(DeltaTime);
@@ -617,7 +622,6 @@ bool AWarrior::FatalAttack()
 	// 적의 Transform 가져오기
 	AActor* Enemy = Cast<AActor>(CurrentFatalAttackable);
 	
-	const FTransform EnemyTransform = Enemy->GetActorTransform();
 
 	float Dot = FVector::DotProduct(Enemy->GetActorForwardVector(), GetActorForwardVector());
 
@@ -631,6 +635,8 @@ bool AWarrior::FatalAttack()
 	{
 		SetActionState(EActionState::FrontFatalAttack);
 		RelativeLocation = FVector(80.f, 10.f, 0.f);
+		// 카메라 관련.
+		TargetRotation = (Enemy->GetActorLocation() - Enemy->GetActorTransform().TransformPosition(RelativeLocation)).Rotation();
 		CurrentFatalAttackable->ReceiveFatalAttack(DamageInfo, true);
 	}
 	// 뒤잡
@@ -643,6 +649,7 @@ bool AWarrior::FatalAttack()
 	}
 
 	// 적의 로컬 좌표를 월드 좌표로 변환
+	const FTransform EnemyTransform = Enemy->GetActorTransform();
 	const FVector TargetLocation = EnemyTransform.TransformPosition(RelativeLocation);
 
 	// 플레이어 위치 보정
@@ -651,6 +658,14 @@ bool AWarrior::FatalAttack()
 
 	// 플레이어 페이탈 어택 애니메이션 재생
 	AnimInstance->PlayActionMontage();
+
+	// [처형 카메라]
+	if (FatalCameraClass)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		GetWorld()->SpawnActor<AActor>(FatalCameraClass, GetActorTransform(), SpawnParams);
+	}
 
 	return true;
 }

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Warrior/WarriorPlayerState.h"
@@ -29,6 +29,8 @@ void AWarriorPlayerState::LoadSaveDataFrom(const FWarriorSaveData& NewSaveData)
 	{
 		LoadOwner->LoadWarriorData(SaveData);
 	}
+
+	OnSoulChanged.Broadcast(SaveData.Souls);
 }
 
 // 스탯 업그레이드.
@@ -61,6 +63,8 @@ bool AWarriorPlayerState::UpgradeStat(const FName& StatName, int32 RequiredSouls
 			StatComp->UpdateCharacterStat(SaveData.Attributes);
 		}
 	}
+
+	OnSoulChanged.Broadcast(SaveData.Souls);
 
 	return true;
 }
@@ -126,6 +130,8 @@ bool AWarriorPlayerState::ApplyLevelUp(const FWarriorAttributeData& PendingPoint
 	// 캐릭터 컴포넌트에 반영.
 	StatComp->UpdateCharacterStat(SaveData.Attributes);
 	
+	OnSoulChanged.Broadcast(SaveData.Souls);
+
 	return true;
 }
 
@@ -138,6 +144,7 @@ void AWarriorPlayerState::AddSouls(int32 Amount)
 
 	SaveData.Souls += Amount;
 	UE_LOG(LogTemp, Log, TEXT("[PlayerState] 소울 획득: +%d (현재 소울: %d)"), Amount, SaveData.Souls);
+	OnSoulChanged.Broadcast(SaveData.Souls);
 }
 
 // 화톳불 활성화 확인.

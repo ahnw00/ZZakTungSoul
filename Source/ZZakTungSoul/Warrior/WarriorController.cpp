@@ -392,7 +392,8 @@ void AWarriorController::Look(const FInputActionValue& InputValue)
 {
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		if (Warrior->IsLockOn())
+		// 락온 또는 처형 카메라 연출 중 시점 입력 무시.
+		if (Warrior->IsLockOn() || Warrior->IsFatalCameraActive())
 			return;
 	}
 

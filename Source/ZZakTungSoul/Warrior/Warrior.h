@@ -294,6 +294,9 @@ private:
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AActor>> DetectedActors;
 
+	UPROPERTY()
+	TObjectPtr<class USoundCue> HitSound;
+
 public:
 	//virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	float TakeDamaged(float Damage, float PoiseDamage, float StanceDamage, bool bUnblockable, bool bIgnoreInvincibility);

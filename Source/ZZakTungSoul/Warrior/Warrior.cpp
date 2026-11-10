@@ -34,6 +34,13 @@
 #include "Engine/OverlapResult.h"
 #include <Interface/FatalAttackableInterface.h>
 
+#include <Enemy/Spawner/EnemySpawnSubsystem.h>
+#include <Gimmick/RestorePropSubsystem.h>
+
+#include <Sound/SoundCue.h>
+#include <UObject/ConstructorHelpers.h>
+#include <Kismet/GameplayStatics.h>
+
 // Damage
 #include <Data/DamageInfo.h>
 #include <Interface/CombatDamageInterface.h>
@@ -165,6 +172,12 @@ AWarrior::AWarrior()
 	// Player가 소유하지 않으면 AI가 소유해
 	AIControllerClass = AWarriorAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> HitSoundRef(TEXT("/Game/Blueprints/Sound/Hit/SC_PlayerHit.SC_PlayerHit"));
+	if (HitSoundRef.Succeeded())
+	{
+		HitSound = HitSoundRef.Object;
+	}
 }
 
 void AWarrior::BeginPlay()
@@ -993,6 +1006,12 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 	float Poise = CharacterStatComponent->GetPoise();
 	float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
 
+	// 피격 사운드 재생
+	//if (HitSound)
+	//{
+	//	UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	//}
+
 	if (Poise < DamageInfo.PoiseDamage)
 	{
 		// 스텐스 낮추기.
@@ -1512,6 +1531,18 @@ void AWarrior::RespawnAtLastBonfire()
 		UE_LOG(LogTemp, Error,
 			TEXT("[Respawn] 화톳불 및 PlayerStart 복귀 실패"));
 		return;
+	}
+
+	// 적 초기화
+	if (UEnemySpawnSubsystem* SpawnSubsystem = GetWorld()->GetSubsystem<UEnemySpawnSubsystem>())
+	{
+		SpawnSubsystem->ResetAllEnemies();
+	}
+
+	// 부서진 프롭 복원.
+	if (URestorePropSubsystem* RestoreProp = GetWorld()->GetSubsystem<URestorePropSubsystem>())
+	{
+		RestoreProp->RestoreProps();
 	}
 
     if (AnimInstance)

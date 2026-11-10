@@ -27,6 +27,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "UObject/ConstructorHelpers.h"
+#include <Sound/SoundCue.h>
 
 AEnemyBase::AEnemyBase()
 {
@@ -60,6 +61,12 @@ AEnemyBase::AEnemyBase()
 		{
 			//UE_LOG(LogTemp, Log, TEXT("AnimInstance Not Set"));
 		}
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> HitSoundRef(TEXT("/Game/Blueprints/Sound/Hit/SC_EnemyHit.SC_EnemyHit"));
+	if (HitSoundRef.Succeeded())
+	{
+		HitSound = HitSoundRef.Object;
 	}
 
 	FatalAttackBox = CreateDefaultSubobject<UBoxComponent>(TEXT("FatalAttackBox"));
@@ -238,6 +245,12 @@ void AEnemyBase::SpawnBloodHitEffect(const FHitResult& Hit)
 	const FVector SpawnPosition = (SurfaceHit.bStartPenetrating ? SurfaceHit.Location : SurfaceHit.ImpactPoint) + SpawnDirection * 2.f;
 	// Niagara의 로컬 X축을 피격 표면 바깥 방향으로 향하게 한다.
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, BloodHitEffect.Get(), SpawnPosition, SpawnDirection.Rotation(), FVector(BloodHitScale), true, true);
+
+	// 피격 사운드 재생
+	//if (HitSound)
+	//{
+	//	UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	//}
 }
 
 void AEnemyBase::UpdateMovementSpeed()
@@ -484,7 +497,7 @@ void AEnemyBase::InitializeWeapon()
 	NewMeshComp->SetupAttachment(CharacterSKMesh, WeaponAttachSocketName);
 
 	// Transform 설정 Socket의 설정된 값 사용
-	NewMeshComp->SetRelativeTransform(FTransform::Identity);
+	NewMeshComp->SetRelativeTransform(WeaponTransform);
 
 	// Component 등록 -> 런타임 설정
 	NewMeshComp->RegisterComponent();

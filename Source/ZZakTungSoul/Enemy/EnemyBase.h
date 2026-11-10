@@ -16,6 +16,7 @@ class UEnemyAnimationData;
 class UCharacterStatComponent;
 class APatrolPath;
 class UNiagaraSystem;
+class USoundCue;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnEnemyDied, AEnemyBase*);
 
@@ -149,6 +150,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<class UEnemyBaseAnimInstance> AnimInstance;
 
+	UPROPERTY()
+	TObjectPtr<USoundCue> HitSound;
+
 public:
 	FOnEnemyDied OnEnemyDied;
 
@@ -178,6 +182,10 @@ protected:
 	// 무기 Static Mesh
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Weapon")
 	TObjectPtr<class USkeletalMesh> WeaponMesh;
+
+	// 무기 Transform
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Weapon")
+	FTransform WeaponTransform = FTransform::Identity;
 
 	// 무기 Mesh Component
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Weapon")

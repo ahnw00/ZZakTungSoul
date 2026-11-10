@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Enemy/NormalEnemy/NormalEnemyBase.h"
+#include <Enemy/Data/EnemyAttackData.h>
 #include "AmbushEnemy.generated.h"
 
 /**
@@ -26,6 +27,9 @@ class ZZAKTUNGSOUL_API AAmbushEnemy : public ANormalEnemyBase
 public:
 	AAmbushEnemy();
 
+protected:
+	virtual void PostInitializeComponents() override;
+
 public:
 	// Behavior Tree 자동 실행 끄기
 	virtual bool ShouldAutoStartAI() const override { return false; }
@@ -40,6 +44,19 @@ public:
 	virtual void ResetEnemy(const FTransform& SpawnTransform) override;
 
 protected:
+	UFUNCTION()
+	void OnAmbushMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	// 기습 종료 후 AI 시작 함수
+	void StartAmbushAI();
+
+protected:
+	TWeakObjectPtr<AActor> AmbushTarget;
+
+protected:
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Ambush")
 	EAmbushState CurrentAmbushState = EAmbushState::Waiting;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Ambush")
+	FEnemyAttackData AmbushAttackData;
 };

@@ -3,10 +3,26 @@
 
 #include "Enemy/NormalEnemy/AmbushEnemy.h"
 #include <Enemy/EnemyAIController.h>
+#include <Enemy/AIController/NormalEnemyAIController.h>
+
+#include <Animation/AnimInstance.h>
+#include <Animation/AnimMontage.h>
+#include <Components/SkeletalMeshComponent.h>
 
 AAmbushEnemy::AAmbushEnemy()
 {
 	CurrentAmbushState = EAmbushState::Waiting;
+}
+
+void AAmbushEnemy::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	UAnimInstance* AmbushAnimInstance = GetMesh()->GetAnimInstance();
+	if (IsValid(AmbushAnimInstance))
+	{
+		AmbushAnimInstance->OnMontageEnded.AddDynamic(this, &AAmbushEnemy::OnAmbushMontageEnded);
+	}
 }
 
 bool AAmbushEnemy::ActiveAmbush(AActor* TargetActor)
@@ -29,14 +45,29 @@ bool AAmbushEnemy::ActiveAmbush(AActor* TargetActor)
 		return false;
 	}
 
-	CurrentAmbushState = EAmbushState::Trigger;
-	if (false == AIController->StartAIFirstAction(TargetActor))
+	if (false == IsValid(AmbushAttackData.Montage) || false == AmbushAttackData.DamageInfo.IsValidIndex(0))
 	{
-		CurrentAmbushState = EAmbushState::Waiting;
 		return false;
 	}
 
-	CurrentAmbushState = EAmbushState::Active;
+	UAnimInstance* AmbushAnimInstance = GetMesh()->GetAnimInstance();
+	if (false == IsValid(AmbushAnimInstance))
+	{
+		return false;
+	}
+
+	CurrentAmbushState = EAmbushState::Trigger;
+	AmbushTarget = TargetActor;
+
+	SetCurrentDamageInfo(AmbushAttackData.DamageInfo[0]);
+
+	// 기습 실행
+	if (AmbushAnimInstance->Montage_Play(AmbushAttackData.Montage) <= 0.0f)
+	{
+		AmbushTarget.Reset();
+		CurrentAmbushState = EAmbushState::Waiting;
+		return false;
+	}
 
 	return true;
 }
@@ -51,4 +82,61 @@ void AAmbushEnemy::ResetEnemy(const FTransform& SpawnTransform)
 	}
 
 	CurrentAmbushState = EAmbushState::Waiting;
+}
+
+void AAmbushEnemy::OnAmbushMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != AmbushAttackData.Montage || CurrentAmbushState != EAmbushState::Trigger)
+	{
+		return;
+	}
+
+	if (IsDeadState())
+	{
+		AmbushTarget.Reset();
+		return;
+	}
+
+	StartAmbushAI();
+}
+
+void AAmbushEnemy::StartAmbushAI()
+{
+	if (CurrentAmbushState != EAmbushState::Trigger || IsDeadState())
+	{
+		return;
+	}
+
+	AActor* TargetActor = AmbushTarget.Get();
+	if (false == IsValid(TargetActor))
+	{
+		AmbushTarget.Reset();
+		CurrentAmbushState = EAmbushState::Waiting;
+		return;
+	}
+
+	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+	if (false == IsValid(AIController))
+	{
+		AmbushTarget.Reset();
+		CurrentAmbushState = EAmbushState::Waiting;
+		return;
+	}
+
+	if (false == AIController->StartAIFirstAction(TargetActor))
+	{
+		AmbushTarget.Reset();
+		CurrentAmbushState = EAmbushState::Waiting;
+		return;
+	}
+
+	CurrentAmbushState = EAmbushState::Active;
+
+	// 타겟 BT에 넘겨주기
+	if (ANormalEnemyAIController* NormalAIController = Cast<ANormalEnemyAIController>(AIController))
+	{
+		NormalAIController->RecognizeTarget(TargetActor);
+	}
+
+	AmbushTarget.Reset();
 }

@@ -335,11 +335,21 @@ bool AEnemyAIController::StartAIFirstAction(AActor* TargetActor)
 		return false;
 	}
 
+	ActiveInitialize(true);
+
 	BlackboardComp->SetValueAsObject(BBKEY_TARGETACTOR, TargetActor);
 	BlackboardComp->SetValueAsBool(BBKEY_HASLINEOFSIGHT, false);
 	BlackboardComp->SetValueAsVector(BBKEY_LASTKNOWNLOCATION, TargetActor->GetActorLocation());
 
 	bAIActive = true;
+
+	// BT 최초 실행
+	if (false == RunBehaviorTree(BehaviorTreeAsset))
+	{
+		bAIActive = false;
+		ActiveInitialize(false);
+		return false;
+	}
 
 	UpdateAIFocusState();
 

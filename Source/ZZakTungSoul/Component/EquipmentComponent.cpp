@@ -30,6 +30,9 @@ void UEquipmentComponent::EquipItem(FGuid InstanceID, EEquipmentSlot Slot)
         {
             return;
         }
+
+        // 장착하려는 슬롯에 다른 아이템이 있으면 먼저 해제해줘
+        OnUnequipItem.Broadcast(Slot);
     }
 
     // 다른 슬롯에 장착되어있는 아이템을 장착하려고 하면
@@ -40,6 +43,7 @@ void UEquipmentComponent::EquipItem(FGuid InstanceID, EEquipmentSlot Slot)
         OnUnequipItem.Broadcast(OverlappedSlot);
     }
 
+
     EquippedItems.Add(Slot, InstanceID);
 
     OnEquipItem.Broadcast();
@@ -49,6 +53,7 @@ void UEquipmentComponent::EquipItem(FGuid InstanceID, EEquipmentSlot Slot)
 void UEquipmentComponent::UnequipItem(EEquipmentSlot Slot)
 {
 	EquippedItems.Remove(Slot);
+    //OnUnequipItem.Broadcast(Slot);
     OnEquipItemImageChanged.Broadcast();
 }
 
@@ -58,7 +63,6 @@ EEquipmentSlot UEquipmentComponent::FindOverlappedItem(FGuid TargetID, EEquipmen
     {
         if (Pair.Key != InSlot && Pair.Value == TargetID)
         {
-            Pair.Value.Invalidate();
             return Pair.Key;
         }
     }

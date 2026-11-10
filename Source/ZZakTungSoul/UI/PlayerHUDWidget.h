@@ -9,6 +9,8 @@
 // [전방 선언].
 class UCharacterStatComponent;
 class UProgressBar;
+class UTextBlock;
+class AWarriorPlayerState;
 
 /**
  * 
@@ -22,6 +24,8 @@ public:
 	// [컴포넌트 주입 함수]
 	UFUNCTION(BlueprintCallable, Category = "UI|Stat")
 	void BindStatComponent(UCharacterStatComponent* InStatComp);
+	UFUNCTION(BlueprintCallable, Category = "UI|Souls")
+	void BindPlayerState(AWarriorPlayerState* InPlayerState);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -38,6 +42,8 @@ protected:
 	void UpdateFP(float CurrentFP, float MaxFP);
 	UFUNCTION()
 	void UpdateStamina(float CurrentStamina, float MaxStamina);
+	UFUNCTION()
+	void UpdateSouls(int32 CurrentSouls);
 
 public:
 	//Getter
@@ -56,6 +62,10 @@ protected:
 	TObjectPtr<UProgressBar> ProgressBar_FP;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UProgressBar> ProgressBar_Stamina;
+	UPROPERTY()
+	TWeakObjectPtr<AWarriorPlayerState> CurrentPlayerState;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_Souls;
 
 	// [BindWidget Belt]
 	UPROPERTY(meta = (BindWidget))

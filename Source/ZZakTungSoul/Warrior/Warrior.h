@@ -16,8 +16,8 @@
 
 
 // [전방 선언].
-class UAnimMontage;
 class UCharacterStatComponent;
+class UAnimMontage;
 class UNiagaraSystem;
 /**
  * 
@@ -69,7 +69,7 @@ private:
 		int32 OtherBodyIndex);
 
 private:
-	UPROPERTY(VisibleAnywhere, Category = "Camera")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* SpringArm;
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	class UCameraComponent* Camera;
@@ -168,6 +168,9 @@ public:
 	void FinishAttack();
 	bool FatalAttack();
 	bool DebugForceClownFatalAttack(class ABossClown& Boss, bool bFront);
+	
+	FORCEINLINE bool IsFatalCameraActive() const { return bFatalCameraActive; }
+
 	void SetComboWindow(bool bOpen);
 	void OnComboTransition();
 	void ChargeAttack();
@@ -192,6 +195,7 @@ public:
 
 	// 상호작용
 	void Interact();
+	void PlayActionMontage();
 
 	// Getter/Setter
 	
@@ -222,6 +226,12 @@ private:
 	bool ExecuteFatalAttack(AActor& Enemy, class IFatalAttackableInterface& Target, bool bFront, bool bForced = false);
 	class IFatalAttackableInterface* CurrentFatalAttackable = nullptr;
 
+	// [처형 카메라].
+	TWeakObjectPtr<AActor> FatalCameraTarget;
+	bool bFatalCameraActive = false;
+	UPROPERTY(EditDefaultsOnly, Category = "FatalCinematic")
+	TSubclassOf<AActor> FatalCameraClass;
+	
 public:
 	// [캐릭터 스탯].
 	virtual UCharacterStatComponent* GetCharacterStatComponent() const override { return CharacterStatComponent; }
@@ -268,11 +278,15 @@ public:
 
 	void UnequipItem(EEquipmentSlot Slot);
 
-	void EquipArmor(const UItemDataAsset* ItemData);
+	void EquipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot);
 
-	void UnequipArmor(const UItemDataAsset* ItemData);
+	void UnequipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot);
+
+	void ResetArmorMaterial(EEquipmentSlot Slot);
 
 	bool CheckItemInSlot(const FGuid& InID, EEquipmentSlot Slot);
+
+	bool CheckInSlot(EEquipmentSlot Slot);
 
 	// Inherited via IItemInterface
 	void ObtainItem(class UItemDataAsset* detectedItem) override;
@@ -306,6 +320,9 @@ private:
 	// 상호작용할 대상 저장 변수
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AActor>> DetectedActors;
+
+	UPROPERTY()
+	TObjectPtr<class USoundCue> HitSound;
 
 public:
 	//virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;

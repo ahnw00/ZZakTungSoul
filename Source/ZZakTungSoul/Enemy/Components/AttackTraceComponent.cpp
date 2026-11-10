@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Enemy/Components/AttackTraceComponent.h"
+#include <GeometryCollection/GeometryCollectionComponent.h>
 
 #include <Components/MeshComponent.h>
 #include <Engine/World.h>
@@ -291,6 +292,22 @@ void UAttackTraceComponent::TraceHitResult(const FHitResult& Hit)
 
 	// 피격 목록에 추가
 	HitActors.Add(CheckHitActor);
+
+	// Prop 감지
+	if (UGeometryCollectionComponent* GeometryComp = Cast<UGeometryCollectionComponent>(Hit.GetComponent()))
+	{
+		if (Hit.Item >= 0)
+		{
+			GeometryComp->ApplyExternalStrain(
+				Hit.Item,
+				Hit.ImpactPoint,
+				50.0f,
+				0,
+				1.0f,
+				5000
+			);
+		}
+	}
 
 	// 실제 데미지는 외부에서 처리
 	OnTraceHit.Broadcast(Hit);

@@ -10,6 +10,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFrameWork/CharacterMovementComponent.h"
 
+
 #include "Components/ArrowComponent.h"
 #include <Components/CapsuleComponent.h>
 #include <Components/PointLightComponent.h>
@@ -33,6 +34,13 @@
 #include "Enemy/WarriorAIController.h"
 #include "Engine/OverlapResult.h"
 #include <Interface/FatalAttackableInterface.h>
+
+#include <Enemy/Spawner/EnemySpawnSubsystem.h>
+#include <Gimmick/RestorePropSubsystem.h>
+
+#include <Sound/SoundCue.h>
+#include <UObject/ConstructorHelpers.h>
+#include <Kismet/GameplayStatics.h>
 
 // Damage
 #include <Data/DamageInfo.h>
@@ -136,8 +144,8 @@ AWarrior::AWarrior()
 	{
 		//Lantern->SetSkeletalMesh(LanternMeshRef.Object);
 		LanternMesh = LanternMeshRef.Object;
-		Lantern->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
-		Lantern->SetRelativeLocation(FVector(-40.f, 8.f, 10.f));
+		//Lantern->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
+		//Lantern->SetRelativeLocation(FVector(-40.f, 8.f, 10.f));
 	}
 	Lantern->SetupAttachment(GetMesh(), TEXT("pelvis_Socket"));
 
@@ -172,6 +180,12 @@ AWarrior::AWarrior()
 	// Player가 소유하지 않으면 AI가 소유해
 	AIControllerClass = AWarriorAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> HitSoundRef(TEXT("/Game/Blueprints/Sound/Hit/SC_PlayerHit.SC_PlayerHit"));
+	if (HitSoundRef.Succeeded())
+	{
+		HitSound = HitSoundRef.Object;
+	}
 }
 
 void AWarrior::BeginPlay()
@@ -280,7 +294,11 @@ void AWarrior::Tick(float DeltaTime)
 	// 락온 상태
 	if (bLockOn)
 	{
-		UpdateLockOnCamera(DeltaTime);
+		// [처형 카메라]. 락온 카메라가 컨트롤 회전 덮어쓰는 걸 방지.
+		if (false == bFatalCameraActive)
+		{
+			UpdateLockOnCamera(DeltaTime);
+		}
 
 		if (ActionState != EActionState::Roll)
 		{
@@ -432,6 +450,19 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
         else
             LeftHandWeapon->SetSkeletalMesh(nullptr);
     }
+
+	if (ActionState == EActionState::FrontFatalAttack ||
+		ActionState == EActionState::BackFatalAttack)
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Weapon->SetVisibility(true);
+		LeftHandWeapon->SetVisibility(true);
+	}
+
+	if (ActionState == EActionState::LightOn)
+	{
+		LanternLight->ToggleVisibility();
+	}
 
     if (ActionState != EActionState::Attack)
         SetActionState(EActionState::None);
@@ -651,17 +682,71 @@ void AWarrior::FinishAttack()
 
 bool AWarrior::FatalAttack()
 {
-	IFatalAttackableInterface* Target = CurrentFatalAttackable;
-	AActor* Enemy = Cast<AActor>(Target);
-	if (!IsValid(Enemy) || !Target->CanBeFatalAttacked(this))
-	{
+	if (!CurrentFatalAttackable)
 		return false;
+
+	if (!CurrentFatalAttackable->CanBeFatalAttacked(this))
+		return false;
+
+	FDamageInfo DamageInfo;
+	DamageInfo.AttackDamage = CharacterStatComponent->GetAttackPower() * 2.0f;
+
+	// Todo: Front, Back 나누기
+	// 적의 Transform 가져오기
+	AActor* Enemy = Cast<AActor>(CurrentFatalAttackable);
+	
+
+	float Dot = FVector::DotProduct(Enemy->GetActorForwardVector(), GetActorForwardVector());
+
+	// 적을 바라보는 방향으로 회전
+	FRotator TargetRotation = (Enemy->GetActorLocation() - GetActorLocation()).Rotation();
+	
+	// 적 기준 상대적인 위치
+	// 앞잡
+	FVector RelativeLocation;
+	if (Dot < -0.7f)
+	{
+		SetActionState(EActionState::FrontFatalAttack);
+		RelativeLocation = FVector(80.f, 10.f, 0.f);
+		// 카메라 관련.
+		TargetRotation = (Enemy->GetActorLocation() - Enemy->GetActorTransform().TransformPosition(RelativeLocation)).Rotation();
+		CurrentFatalAttackable->ReceiveFatalAttack(DamageInfo, true);
+	}
+	// 뒤잡
+	else if (Dot > 0.9f)
+	{
+		SetActionState(EActionState::BackFatalAttack);
+		RelativeLocation = FVector(-120.f, 0.f, 0.f);
+		TargetRotation.Yaw -= 10.f;
+		CurrentFatalAttackable->ReceiveFatalAttack(DamageInfo, false);
 	}
 
-	const float Dot = FVector::DotProduct(Enemy->GetActorForwardVector(), GetActorForwardVector());
-	const bool bFront = Dot < -0.8f;
-	return (bFront || Dot > 0.9f) && ExecuteFatalAttack(*Enemy, *Target, bFront);
+	// 적의 로컬 좌표를 월드 좌표로 변환
+	const FTransform EnemyTransform = Enemy->GetActorTransform();
+	const FVector TargetLocation = EnemyTransform.TransformPosition(RelativeLocation);
+
+	// 플레이어 위치 보정
+	SetActorLocation(TargetLocation);
+	SetActorRotation(TargetRotation);
+
+	// 플레이어 페이탈 어택 애니메이션 재생
+	AnimInstance->PlayActionMontage();
+
+	// [처형 카메라]
+	if (FatalCameraClass)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		GetWorld()->SpawnActor<AActor>(FatalCameraClass, GetActorTransform(), SpawnParams);
+	}
+
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Weapon->SetVisibility(false);
+	LeftHandWeapon->SetVisibility(false);
+
+	return true;
 }
+
 
 bool AWarrior::DebugForceClownFatalAttack(ABossClown& Boss, bool bFront)
 {
@@ -930,6 +1015,11 @@ void AWarrior::Interact()
 	Interactable->Interact(this);
 }
 
+void AWarrior::PlayActionMontage()
+{
+	AnimInstance->PlayActionMontage();
+}
+
 void AWarrior::SetLockOnTarget(ACharacter* Target)
 {
 	bLockOn = true;
@@ -989,26 +1079,58 @@ void AWarrior::SetLeftHandPotionMesh()
 	LeftHandWeapon->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
 }
 
-void AWarrior::EquipArmor(const UItemDataAsset* ItemData)
+void AWarrior::EquipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot)
 {
 	if (!ArmorMID || !ItemData) return;
+
+	ResetArmorMaterial(Slot);
 
 	FString ParameterName = TEXT("Equip_") + ItemData->ItemName.ToString();
 	FName ParameterFName(*ParameterName);
 
-	float Value = 0.f;
 	ArmorMID->SetScalarParameterValue(ParameterFName, 1.f);
 }
 
-void AWarrior::UnequipArmor(const UItemDataAsset* ItemData)
+void AWarrior::UnequipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot)
 {
 	if (!ArmorMID || !ItemData) return;
+
+	ResetArmorMaterial(Slot);
 
 	FString ParameterName = TEXT("Equip_") + ItemData->ItemName.ToString();
 	FName ParameterFName(*ParameterName);
 
-	float Value = 0.f;
 	ArmorMID->SetScalarParameterValue(ParameterFName, 0.f);
+}
+
+void AWarrior::ResetArmorMaterial(EEquipmentSlot Slot)
+{
+	if (!ArmorMID) return;
+
+	FString SlotName;
+	switch (Slot)
+	{
+	case EEquipmentSlot::Head:
+		SlotName = TEXT("Head");
+		break;
+	case EEquipmentSlot::Chest:
+		SlotName = TEXT("Chest");
+		break;
+	case EEquipmentSlot::Arms:
+		SlotName = TEXT("Arms");
+		break;
+	case EEquipmentSlot::Legs:
+		SlotName = TEXT("Legs");
+		break;
+	default:
+		break;
+	}
+
+	FString CoupangName = TEXT("Equip_") + SlotName + TEXT("_Coupang");
+	FString PostOfficeName = TEXT("Equip_") + SlotName + TEXT("_PostOffice");
+
+	ArmorMID->SetScalarParameterValue(*CoupangName, 0.f);
+	ArmorMID->SetScalarParameterValue(*PostOfficeName, 0.f);
 }
 
 //void AWarrior::Interact()
@@ -1031,6 +1153,13 @@ const FWarriorSaveData* AWarrior::GetSaveData() const
 void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 {
 	if (IsDead() || !CharacterStatComponent)
+	{
+		return;
+	}
+
+	// 페이탈 어택 중에는 적에게 데미지를 받지 않음
+	if (ActionState == EActionState::FrontFatalAttack ||
+		ActionState == EActionState::BackFatalAttack)
 	{
 		return;
 	}
@@ -1058,6 +1187,12 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 
 	float Poise = CharacterStatComponent->GetPoise();
 	float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
+
+	// 피격 사운드 재생
+	//if (HitSound)
+	//{
+	//	UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	//}
 
 	const float HPBeforeDamage = CharacterStatComponent->GetCurrentHP();
 	CharacterStatComponent->ApplyDamage(DamageInfo);
@@ -1227,22 +1362,22 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		break;
 	case EEquipmentSlot::Head:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::Chest:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::Arms:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::Legs:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::UpperBelt:
@@ -1292,22 +1427,22 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 		break;
 	case EEquipmentSlot::Head:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::Chest:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::Arms:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::Legs:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::UpperBelt:
@@ -1344,6 +1479,13 @@ bool AWarrior::CheckItemInSlot(const FGuid& InID, EEquipmentSlot Slot)
 	// 장착된 아이템이 장착하려는 아이템이랑 같으면 true 리턴
 	// true 리턴해주면 아이템 해제할거
 	return (Equipment->GetEquippedItem(Slot) == InID);
+}
+
+// 슬롯에 아이템이 있으면 true 반환
+bool AWarrior::CheckInSlot(EEquipmentSlot Slot)
+{
+	const FGuid& EquippedID = Equipment->GetEquippedItem(Slot);
+	return (EquippedID != FGuid());
 }
 
 void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
@@ -1385,7 +1527,9 @@ void AWarrior::HpRecovery(float Amount)
 
 void AWarrior::ToggleLantern()
 {
-	LanternLight->ToggleVisibility();
+	//LanternLight->ToggleVisibility();
+	SetActionState(EActionState::LightOn);
+	AnimInstance->PlayActionMontage();
 }
 
 void AWarrior::UseBeltItem(EEquipmentSlot Slot)
@@ -1630,6 +1774,18 @@ void AWarrior::RespawnAtLastBonfire()
 		UE_LOG(LogTemp, Error,
 			TEXT("[Respawn] 화톳불 및 PlayerStart 복귀 실패"));
 		return;
+	}
+
+	// 적 초기화
+	if (UEnemySpawnSubsystem* SpawnSubsystem = GetWorld()->GetSubsystem<UEnemySpawnSubsystem>())
+	{
+		SpawnSubsystem->ResetAllEnemies();
+	}
+
+	// 부서진 프롭 복원.
+	if (URestorePropSubsystem* RestoreProp = GetWorld()->GetSubsystem<URestorePropSubsystem>())
+	{
+		RestoreProp->RestoreProps();
 	}
 
     if (AnimInstance)

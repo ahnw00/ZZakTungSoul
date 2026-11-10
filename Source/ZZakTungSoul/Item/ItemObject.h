@@ -49,7 +49,7 @@ private:
 	TObjectPtr<class UBoxComponent> Trigger;
 
 	UPROPERTY(VisibleAnywhere, Category = "Box")
-	TObjectPtr<class UStaticMeshComponent> Mesh;
+	TObjectPtr<class USkeletalMeshComponent> Mesh;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item")
 	TObjectPtr<class UItemDataAsset> Item;

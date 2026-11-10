@@ -163,6 +163,15 @@ AWarriorController::AWarriorController()
 	{
 		MenuWidgetClass = MenuWidgetClassRef.Class;
 	}
+
+	// [위젯 사운드]
+	static ConstructorHelpers::FObjectFinder<USoundBase> CardboardSoundRef(
+		TEXT("/Game/Assets/Sound/cardboard.cardboard")
+	);
+	if (CardboardSoundRef.Succeeded())
+	{
+		CardboardSound = CardboardSoundRef.Object;
+	}
 }
 
 void AWarriorController::BeginPlay()
@@ -304,7 +313,6 @@ void AWarriorController::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	//sif(!PlayerHUDWidget)
 }
 
 void AWarriorController::DebugAddSouls()
@@ -354,6 +362,12 @@ void AWarriorController::Move(const FInputActionValue& InputValue)
 			return;
 		case EActionState::Parry:
 			return;
+		case EActionState::Drink:
+			return;
+		case EActionState::FirstLit:
+			return;
+		case EActionState::Lit:
+			return;
 		case EActionState::Block:
 		{
 			if (Warrior->GetWeaponState() == EWeaponState::TwoHand)
@@ -362,9 +376,11 @@ void AWarriorController::Move(const FInputActionValue& InputValue)
 			}
 
 			[[fallthrough]];
+		}
+		case EActionState::Dead:
+			return;
 		case EActionState::None:
 			[[fallthrough]];
-		}
 		default:
 			break;
 		}
@@ -394,7 +410,8 @@ void AWarriorController::Look(const FInputActionValue& InputValue)
 {
 	if (AWarrior* Warrior = Cast<AWarrior>(GetPawn()))
 	{
-		if (Warrior->IsLockOn())
+		// 락온 또는 처형 카메라 연출 중 시점 입력 무시.
+		if (Warrior->IsLockOn() || Warrior->IsFatalCameraActive())
 			return;
 	}
 
@@ -906,6 +923,8 @@ void AWarriorController::ToggleMenuWindow()
 	{
 		return;
 	}
+
+	ClientPlaySound(CardboardSound);
 
 	if (!MenuWidget->IsInViewport())
 	{

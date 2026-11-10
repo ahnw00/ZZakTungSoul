@@ -38,6 +38,8 @@ public:
 	// Reset Enemies
 	void ResetEnemies();
 
+	void RegisterDropItem(class AItemObject* Item);
+
 protected:
 	// Enemy 사망 알림
 	void HandleEnemyDied(AEnemyBase* DeadEnemy, int32 Index);
@@ -50,6 +52,10 @@ protected:
 	// 스폰된 Enemy 참조
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<class AEnemyBase>> SpawnedEnemies;
+
+	// 스폰된 Item 참조
+	UPROPERTY(Transient)
+	TArray<TWeakObjectPtr<class AItemObject>> DropItems;
 
 	// Enemy 사망 상태 저장
 	UPROPERTY(Transient)

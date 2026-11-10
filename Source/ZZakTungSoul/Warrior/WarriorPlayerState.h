@@ -4,14 +4,18 @@
 
 #include "CoreMinimal.h"
 #include <SaveData/WarriorSaveData.h>
+#include <Interface/SoulStateInterface.h>
 #include "GameFramework/PlayerState.h"
 #include "WarriorPlayerState.generated.h"
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSoulChangedDelegate, int32, CurrentSouls);
 
 /**
  * 
  */
 UCLASS()
-class ZZAKTUNGSOUL_API AWarriorPlayerState : public APlayerState
+class ZZAKTUNGSOUL_API AWarriorPlayerState : public APlayerState, public ISoulStateInterface
 {
 	GENERATED_BODY()
 	
@@ -34,6 +38,9 @@ public:
 	// 소울 획득.
 	UFUNCTION(BlueprintCallable, Category = "PlayerState|Souls")
 	void AddSouls(int32 Amount);
+	// 소울 변경 알림.
+	UPROPERTY(BlueprintAssignable, Category = "PlayerState|Souls")
+	FOnSoulChangedDelegate OnSoulChanged;
 
 	// 화톳불 
 	UFUNCTION(BlueprintCallable, Category = "PlayerState|Bonfire")
@@ -48,4 +55,7 @@ private:
 	// 실제 게임 플레이 중 값을 변화하게할 대상
 	UPROPERTY()
 	FWarriorSaveData SaveData;
+
+	// Inherited via ISoulStateInterface
+	virtual void TakeSoul(int32 Amount) override;
 };

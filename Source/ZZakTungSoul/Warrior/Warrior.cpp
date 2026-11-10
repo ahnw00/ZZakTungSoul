@@ -1337,8 +1337,8 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 	case EEquipmentSlot::RightHand:
 	{
 		Weapon->SetSkeletalMesh(InItem->SkeletalMesh.Get());
-		Weapon->SetRelativeLocation(InItem->RelaiveLocation);
-		Weapon->SetRelativeRotation(InItem->EquipRotation);
+		Weapon->SetRelativeLocation(InItem->RightRelativeLocation);
+		Weapon->SetRelativeRotation(InItem->RightEquipRotation);
 		Weapon->SetRelativeScale3D(InItem->RelativeScale);
 		AttackTraceComponent->SetTraceMesh(Weapon);
 
@@ -1350,8 +1350,8 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 	case EEquipmentSlot::LeftHand:
 	{
 		LeftHandWeapon->SetSkeletalMesh(InItem->SkeletalMesh.Get());
-		LeftHandWeapon->SetRelativeLocation(InItem->RelaiveLocation);
-		LeftHandWeapon->SetRelativeRotation(InItem->EquipRotation);
+		LeftHandWeapon->SetRelativeLocation(InItem->LeftRelativeLocation);
+		LeftHandWeapon->SetRelativeRotation(InItem->LeftEquipRotation);
 		LeftHandWeapon->SetRelativeScale3D(InItem->RelativeScale);
 		// Todo: 왼쪽 AttackTraceComponent에 메시 설정해주기
 		AttackTraceComponentLeft->SetTraceMesh(LeftHandWeapon);

@@ -63,10 +63,16 @@ public:
 	TSoftObjectPtr<USkeletalMesh> SkeletalMesh;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FVector RelaiveLocation;
+	FVector LeftRelativeLocation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FRotator EquipRotation;
+	FRotator LeftEquipRotation;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FVector RightRelativeLocation;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FRotator RightEquipRotation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float AttackPower = 0.f;

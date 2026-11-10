@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include <SaveData/WarriorSaveData.h>
+#include <Interface/SoulStateInterface.h>
 #include "GameFramework/PlayerState.h"
 #include "WarriorPlayerState.generated.h"
 
@@ -14,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSoulChangedDelegate, int32, Curre
  * 
  */
 UCLASS()
-class ZZAKTUNGSOUL_API AWarriorPlayerState : public APlayerState
+class ZZAKTUNGSOUL_API AWarriorPlayerState : public APlayerState, public ISoulStateInterface
 {
 	GENERATED_BODY()
 	
@@ -54,4 +55,7 @@ private:
 	// 실제 게임 플레이 중 값을 변화하게할 대상
 	UPROPERTY()
 	FWarriorSaveData SaveData;
+
+	// Inherited via ISoulStateInterface
+	virtual void TakeSoul(int32 Amount) override;
 };

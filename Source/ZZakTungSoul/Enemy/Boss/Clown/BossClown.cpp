@@ -12,11 +12,13 @@
 #include <GeometryCollection/GeometryCollectionObject.h>
 #include <NiagaraComponent.h>
 #include <NiagaraFunctionLibrary.h>
+#include <NiagaraSystem.h>
 #include <Components/SkeletalMeshComponent.h>
 #include <Engine/SkeletalMesh.h>
 #include <GameFramework/CharacterMovementComponent.h>
 #include <GameFramework/ProjectileMovementComponent.h>
 #include <AIController.h>
+#include <BrainComponent.h>
 #include <Engine/World.h>
 #include <UObject/ConstructorHelpers.h>
 #include <Components/CapsuleComponent.h>
@@ -24,13 +26,19 @@
 #include <Algo/AllOf.h>
 #include <Engine/OverlapResult.h>
 #include <Enemy/Boss/Clown/Components/ClownProjectileComponent.h>
+#include <Enemy/EnemyAIController.h>
+#include <Enemy/Components/EnemyStatComponent.h>
 #include <Enemy/Boss/Clown/Components/ClownYabawiComponent.h>
+#include <Enemy/Boss/Clown/Gimmick/ClownFracture.h>
 #include <Enemy/Boss/Encounter/BossRoom.h>
+#include <Warrior/Warrior.h>
+#include <EngineUtils.h>
 #include <Components/BoxComponent.h>
 #include <Engine/StaticMesh.h>
 #include <Engine/StaticMeshActor.h>
 #include <Components/StaticMeshComponent.h>
 #include <Engine/Texture2D.h>
+#include <Materials/MaterialInterface.h>
 #include <Materials/MaterialInterface.h>
 
 namespace
@@ -104,9 +112,215 @@ void ABossClown::BeginPlay()
 {
 	Super::BeginPlay();
 	FindEncounterFloor();
+	RegisterIntroBreakables();
+	if (AttackTraceComponent)
+	{
+		AttackTraceComponent->OnGroundTraceHit.AddUObject(this, &ABossClown::HandleMeleeGroundContact);
+	}
 
 	OnPhase2StageRequested.AddDynamic(this, &ABossClown::PlayPhase2Stage);
 	OnPhase2TransitionStopped.AddDynamic(this, &ABossClown::StopPhase2Presentation);
+}
+
+void ABossClown::RegisterIntroBreakables()
+{
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		AActor* Prop = *It;
+		if (!Prop->ActorHasTag(TEXT("ClownIntroBreakable")))
+		{
+			continue;
+		}
+
+		if (UMeshComponent* PropMesh = Prop->FindComponentByClass<UMeshComponent>())
+		{
+			// Contact is queried separately so stage props cannot push either character.
+			PropMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+			IntroBreakables.Add(PropMesh);
+		}
+	}
+}
+
+void ABossClown::UpdateIntroBreakables()
+{
+	if (!IsClownCombatPhase() && GetBossPhase() != EBossPhase::OpeningAttack)
+	{
+		bIntroBreakablesActive = false;
+		return;
+	}
+
+	const AWarrior* Player = Cast<AWarrior>(GetEncounterTarget());
+	const FVector BossPosition = GetActorLocation();
+	const FVector PlayerPosition = Player ? Player->GetActorLocation() : FVector::ZeroVector;
+	const bool bBossMoved = bIntroBreakablesActive && !BossPosition.Equals(LastIntroBossPosition, 0.1);
+	const bool bPlayerMoved = bIntroBreakablesActive && Player && !Player->IsDead() && !PlayerPosition.Equals(LastIntroPlayerPosition, 0.1);
+	LastIntroBossPosition = BossPosition;
+	LastIntroPlayerPosition = PlayerPosition;
+	bIntroBreakablesActive = true;
+	if (!bBossMoved && !bPlayerMoved)
+	{
+		return;
+	}
+
+	for (const TWeakObjectPtr<UMeshComponent>& Prop : IntroBreakables)
+	{
+		UMeshComponent* PropMesh = Prop.Get();
+		if (!PropMesh || !PropMesh->IsVisible() || PropMesh->GetOwner()->IsHidden() || BrokenIntroProps.Contains(Prop))
+		{
+			continue;
+		}
+
+		const FTransform Transform = PropMesh->GetComponentTransform();
+		const FBoxSphereBounds Bounds = PropMesh->CalcBounds(FTransform::Identity);
+		const FVector Center = Transform.TransformPosition(Bounds.Origin);
+		const FVector Extent = Bounds.BoxExtent * Transform.GetScale3D().GetAbs() + FVector(2.0);
+		const FCollisionShape Shape = FCollisionShape::MakeBox(Extent);
+		const FQuat Rotation = Transform.GetRotation();
+		const bool bBossContact = bBossMoved && GetCapsuleComponent()->OverlapComponent(Center, Rotation, Shape);
+		const bool bPlayerContact = bPlayerMoved && Player->GetCapsuleComponent()->OverlapComponent(Center, Rotation, Shape);
+		if ((bBossContact || bPlayerContact) && ClownFracture::Spawn(*this, *PropMesh, bBossContact ? BossPosition : PlayerPosition))
+		{
+			BrokenIntroProps.Add(Prop, PropMesh->GetCollisionEnabled());
+			PropMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+	}
+}
+
+bool ABossClown::CanBeFatalAttacked(AActor* Attacker) const
+{
+	if (!IsValid(Attacker) || !IsClownCombatPhase() || bReceiveFatalAttack || !Super::CanBeFatalAttacked(Attacker))
+	{
+		return false;
+	}
+
+	const UBossClownAnimationData* Data = GetClownAnimationData();
+	const FVector Offset = (Attacker->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
+	const double Side = FVector::DotProduct(Offset, GetActorForwardVector());
+	const bool bFront = FVector::DotProduct(Attacker->GetActorForwardVector(), GetActorForwardVector()) < 0.0;
+	return Data && (bFront ? (Side > 0.35 && Data->FrontCriticalReaction) : (Side < -0.35 && Data->BackCriticalReaction));
+}
+
+void ABossClown::GetCriticalAttackPlacement(const ACharacter& Attacker, bool bFront, FVector& Location, FRotator& Rotation) const
+{
+	const double Clearance = GetCapsuleComponent()->GetScaledCapsuleRadius() + Attacker.GetCapsuleComponent()->GetScaledCapsuleRadius();
+	const double ForwardOffset = bFront ? Clearance + 52.0 : -Clearance - 9.0;
+	Location = GetActorLocation() + GetActorForwardVector() * ForwardOffset + GetActorRightVector() * (bFront ? 32.0 : -18.0);
+	Location.Z = Attacker.GetActorLocation().Z;
+	Rotation = FRotator(0.0, GetActorRotation().Yaw + (bFront ? 180.0 : 0.0), 0.0);
+}
+
+void ABossClown::ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront)
+{
+	const UBossClownAnimationData* Data = GetClownAnimationData();
+	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+	UAnimMontage* Reaction = Data ? (bIsFront ? Data->FrontCriticalReaction.Get() : Data->BackCriticalReaction.Get()) : nullptr;
+	if (!IsClownCombatPhase() || bReceiveFatalAttack || !Anim || !Reaction)
+	{
+		return;
+	}
+
+	FinishClownAttack(EBossClownAttackResult::Aborted, true, false);
+	SetEnemyState(EEnemyState::Idle);
+	GetCharacterMovement()->StopMovementImmediately();
+	if (AttackTraceComponent)
+	{
+		AttackTraceComponent->EndTrace();
+	}
+	if (Anim->Montage_Play(Reaction) <= 0.0f)
+	{
+		return;
+	}
+
+	bReceiveFatalAttack = true;
+	CurrentFatalMontage = Reaction;
+	SetEnemyActionState(bIsFront ? EEnemyActionState::GetFrontFatalAttack : EEnemyActionState::GetBackFatalAttack);
+	if (AEnemyAIController* AI = Cast<AEnemyAIController>(GetController()))
+	{
+		AI->SetAIWait(true);
+		if (UBrainComponent* Brain = AI->GetBrainComponent(); Brain && Brain->IsRunning() && !Brain->IsPaused())
+		{
+			Brain->PauseLogic(TEXT("Clown critical reaction"));
+			CriticalReactionBrain = Brain;
+		}
+	}
+
+	FOnMontageEnded OnEnded;
+	OnEnded.BindUObject(this, &ABossClown::OnCriticalReactionEnded);
+	Anim->Montage_SetEndDelegate(OnEnded, Reaction);
+	ReceiveDamage(DamageInfo, FHitResult());
+}
+
+void ABossClown::UpdateRotationModeState()
+{
+	if (!bReceiveFatalAttack)
+	{
+		Super::UpdateRotationModeState();
+		return;
+	}
+
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+}
+
+void ABossClown::OnCriticalReactionEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != CurrentFatalMontage)
+	{
+		return;
+	}
+
+	const bool bShouldDie = bDeathAfterCritical;
+	bDeathAfterCritical = false;
+	const TWeakObjectPtr<UBrainComponent> PausedBrain = CriticalReactionBrain;
+	CriticalReactionBrain.Reset();
+	OnFatalAttackFinished();
+	if (!IsClownCombatPhase() || IsActorBeingDestroyed())
+	{
+		return;
+	}
+
+	if (bShouldDie)
+	{
+		SetDead();
+	}
+	else if (EnemyStatComponet)
+	{
+		TryStartPhase2Transition(EnemyStatComponet->GetCurrentHp(), EnemyStatComponet->GetMaxHp());
+	}
+
+	if (IsClownCombatPhase() && PausedBrain.IsValid())
+	{
+		PausedBrain->ResumeLogic(TEXT("Clown critical reaction ended"));
+	}
+}
+
+void ABossClown::TryStartPhase2Transition(float CurrentHp, float MaxHp)
+{
+	if (!bReceiveFatalAttack)
+	{
+		Super::TryStartPhase2Transition(CurrentHp, MaxHp);
+	}
+}
+
+void ABossClown::SetDead()
+{
+	if (bReceiveFatalAttack)
+	{
+		bDeathAfterCritical = true;
+		return;
+	}
+
+	Super::SetDead();
+}
+
+void ABossClown::DeadStart()
+{
+	const UBossClownAnimationData* Data = GetClownAnimationData();
+	if (UAnimInstance* Anim = GetMesh()->GetAnimInstance(); Anim && Data && Data->DeathReaction)
+	{
+		Anim->Montage_Play(Data->DeathReaction, 0.76f);
+	}
 }
 
 void ABossClown::PlayPhase2Stage(ABoss* Boss, EBossPhase2TransitionStage Stage, int32 TransitionID)
@@ -294,7 +508,7 @@ bool ABossClown::CanStartClownAttack(EBossClownAttack Type, AActor* Target) cons
 		return false;
 	}
 
-	if (ActiveAttackID != INDEX_NONE || GetEnemyState() == EEnemyState::Groggy)
+	if (ActiveAttackID != INDEX_NONE || bReceiveFatalAttack || GetEnemyState() == EEnemyState::Groggy)
 	{
 		return false;
 	}
@@ -331,7 +545,7 @@ bool ABossClown::EvaluateClownCondition(AActor* Target, bool bAttack, EBossClown
 {
 	const UBossClownAnimationData* Data = GetClownAnimationData();
 
-	if (!Data || !IsValid(Target) || Chance <= 0.0f)
+	if (!Data || !IsValid(Target) || Chance <= 0.0f || bReceiveFatalAttack || GetEnemyState() == EEnemyState::Groggy)
 	{
 		return false;
 	}
@@ -692,7 +906,7 @@ void ABossClown::RefreshClownMovement()
 
 void ABossClown::FaceClownTarget(AActor* Target, float DeltaTime)
 {
-	if (!IsValid(Target) || !GetClownAnimationData())
+	if (bReceiveFatalAttack || GetEnemyState() == EEnemyState::Groggy || !IsValid(Target) || !GetClownAnimationData())
 	{
 		return;
 	}
@@ -710,6 +924,7 @@ void ABossClown::FaceClownTarget(AActor* Target, float DeltaTime)
 void ABossClown::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	UpdateIntroBreakables();
 
 	if (GetPhase2TransitionStage() == EBossPhase2TransitionStage::Emerging)
 	{
@@ -1473,7 +1688,7 @@ void ABossClown::EnterYabawiGroggy()
 
 	const UBossClownAnimationData* Data = GetClownAnimationData();
 	const FClownPhaseOnePattern* Rules = GetAttackPattern(EBossClownAttack::Yabawi);
-	YabawiGroggyDuration = FMath::Max(Data ? Data->GroggyDuration : 3.0f, Rules ? Rules->ResultDisplayTime + 0.25f : 3.25f);
+	YabawiGroggyDuration = FMath::Max(Data ? Data->GroggyDuration : 4.5f, Rules ? Rules->ResultDisplayTime + 0.25f : 4.5f);
 	ClownAttackStage = EClownAttackStage::Groggy;
 	AttackStageTime = 0.0f;
 	GetWorldTimerManager().ClearTimer(AttackTimeoutHandle);
@@ -1492,9 +1707,7 @@ void ABossClown::EnterYabawiGroggy()
 	GetCharacterMovement()->StopMovementImmediately();
 	ConsumeMovementInputVector();
 	SetEnemyState(EEnemyState::Groggy);
-	GetCharacterMovement()->bOrientRotationToMovement = false;
-	GetCharacterMovement()->bUseControllerDesiredRotation = false;
-	bUseControllerRotationYaw = false;
+	SetEnemyActionState(EEnemyActionState::Groggy);
 
 	if (UAnimInstance* Anim = AttackAnimInstance.Get())
 	{
@@ -1510,7 +1723,6 @@ void ABossClown::EnterYabawiGroggy()
 			ActiveGroggyMontage = Data->GroggyMontage;
 		}
 	}
-
 }
 
 void ABossClown::CompleteClownYabawi(bool bCorrect)
@@ -1596,7 +1808,7 @@ EBossClownAttackResult ABossClown::GetClownAttackResult(int32 ExecutionID) const
 
 void ABossClown::CancelClownAttack(int32 ExecutionID)
 {
-	if (ActiveAttackID != INDEX_NONE && ExecutionID == ActiveAttackID)
+	if (ActiveAttackID != INDEX_NONE && ExecutionID == ActiveAttackID && ClownAttackStage != EClownAttackStage::Groggy)
 	{
 		FinishClownAttack(EBossClownAttackResult::Aborted, true);
 	}
@@ -1716,6 +1928,10 @@ void ABossClown::FinishClownAttack(EBossClownAttackResult Result, bool bStopMont
 	bDashEnded = false;
 
 	RestoreClownMovement();
+	if (bWasYabawiGroggy && GetEnemyActionState() == EEnemyActionState::Groggy)
+	{
+		SetEnemyActionState(EEnemyActionState::None);
+	}
 
 	if (bRestoreState && !IsActorBeingDestroyed() && IsClownCombatPhase() &&
 		(GetEnemyState() == EEnemyState::Attack || GetEnemyState() == EEnemyState::FastChase ||
@@ -1729,6 +1945,21 @@ void ABossClown::FinishClownAttack(EBossClownAttackResult Result, bool bStopMont
 
 void ABossClown::ResetBossGimmicks()
 {
+	CriticalReactionBrain.Reset();
+	if (BossPhase == EBossPhase::Waiting)
+	{
+		for (const auto& Entry : BrokenIntroProps)
+		{
+			if (UMeshComponent* Prop = Entry.Key.Get())
+			{
+				Prop->SetVisibility(true);
+				Prop->SetCollisionEnabled(Entry.Value);
+			}
+		}
+		BrokenIntroProps.Reset();
+	}
+	UpdateIntroBreakables();
+
 	if (BossPhase == EBossPhase::Waiting || IsActorBeingDestroyed())
 	{
 		GetWorldTimerManager().ClearTimer(Phase2WallDebrisTimer);
@@ -1841,6 +2072,135 @@ bool ABossClown::UsesLoopingMontage(EBossClownAttack Type)
 	return Type == EBossClownAttack::TripleBalls || Type == EBossClownAttack::CubeBarrage || Type == EBossClownAttack::Yabawi;
 }
 
+bool ABossClown::IsMeleeSwingActive() const
+{
+	return IsClownCombatPhase() && ActiveAttackID != INDEX_NONE && ClownAttackStage == EClownAttackStage::Montage &&
+		!UsesSpecialPresentation(CurrentAttackType);
+}
+
+void ABossClown::PlayMeleeSwingSound()
+{
+	if (!IsMeleeSwingActive())
+	{
+		return;
+	}
+
+	bPlayedMeleeGroundContact = false;
+	if (const UBossClownAnimationData* Data = GetClownAnimationData())
+	{
+		if (const FClownPatternEffects* Effects = Data->PatternEffects.Find(CurrentAttackType))
+		{
+			Effects->PlaySound(this, GetActorLocation());
+		}
+	}
+}
+
+void ABossClown::HandleMeleeGroundContact(const FHitResult& Hit)
+{
+	const UBossClownAnimationData* Data = GetClownAnimationData();
+	if (!Data || bPlayedMeleeGroundContact || !IsMeleeSwingActive() || !IsEncounterFloorHit(Hit))
+	{
+		return;
+	}
+
+	bPlayedMeleeGroundContact = true;
+	const bool bHeavy = CurrentAttackType == EBossClownAttack::HammerSlam || CurrentAttackType == EBossClownAttack::FastChaseSlam;
+	FClownPatternEffects Impact = Data->MeleeGroundEffects;
+	Impact.Volume *= bHeavy ? 1.0f : 0.65f;
+	const FRotator SurfaceRotation = FRotationMatrix::MakeFromZ(Hit.ImpactNormal).Rotator();
+	Impact.Play(this, Hit.ImpactPoint + Hit.ImpactNormal * 2.0, SurfaceRotation);
+	if (bHeavy && Data->HeavySlamDust.NiagaraSystem)
+	{
+		const FCollisionQueryParams FloorQuery(SCENE_QUERY_STAT(HeavySlamDust), false, this);
+		for (const double Offset : { -37.0, 37.0 })
+		{
+			FVector Ground;
+			if (FindClownPatternFloor(Hit.ImpactPoint + GetActorRightVector() * Offset, FloorQuery, Ground))
+			{
+				Data->HeavySlamDust.PlayVisual(this, Ground + FVector(0.0, 0.0, 6.0), SurfaceRotation);
+			}
+		}
+	}
+}
+
+bool ABossClown::TryPlayBallGroundEffects(const FHitResult& Hit) const
+{
+	const UPrimitiveComponent* Surface = Hit.GetComponent();
+	if (!Surface || Hit.bStartPenetrating || Hit.ImpactNormal.Z < 0.65f ||
+		Surface->GetCollisionResponseToChannel(ECC_Pawn) != ECR_Block)
+	{
+		return false;
+	}
+
+	if (const UBossClownAnimationData* Data = GetClownAnimationData())
+	{
+		const FVector Position = Hit.ImpactPoint + Hit.ImpactNormal * 2.0;
+		const FRotator Rotation = FRotationMatrix::MakeFromZ(Hit.ImpactNormal).Rotator();
+		Data->BallGroundEffects.Play(this, Position, Rotation);
+		Data->BallGroundDust.PlayVisual(this, Position, Rotation);
+	}
+	return true;
+}
+
+void ABossClown::PlayPatternEffects(EBossClownAttack Attack, const FVector& Location, const FRotator& Rotation) const
+{
+	if (const UBossClownAnimationData* Data = GetClownAnimationData())
+	{
+		if (const FClownPatternEffects* Effects = Data->PatternEffects.Find(Attack))
+		{
+			Effects->Play(this, Location, Rotation);
+		}
+	}
+}
+
+void ABossClown::PlayYabawiFailureEffects(const TArray<FVector>& BowlLocations)
+{
+	const UBossClownAnimationData* Data = GetClownAnimationData();
+	if (!Data || BowlLocations.IsEmpty())
+	{
+		return;
+	}
+
+	const FBox BowlBounds(BowlLocations);
+	const FClownPatternEffects& Effects = Data->YabawiFailureEffects;
+	const FVector Center = BowlBounds.GetCenter();
+	Effects.PlaySound(this, Center);
+
+	FVector Ground;
+	const FCollisionQueryParams FloorQuery(SCENE_QUERY_STAT(YabawiFailureFloor), false, this);
+	if (!Effects.NiagaraSystem || !FindClownPatternFloor(Center, FloorQuery, Ground))
+	{
+		return;
+	}
+
+	UNiagaraComponent* Wave = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		this, Effects.NiagaraSystem, Ground + FVector(0.0, 0.0, 4.0), FRotator::ZeroRotator,
+		FVector(Effects.NiagaraScale, Effects.NiagaraScale, 1.0), true, false);
+	if (Wave)
+	{
+		// Keep the purple floor wave and suppress its high, bright emitters.
+		Wave->SetEmitterEnable(TEXT("Sparks1"), false);
+		Wave->SetEmitterEnable(TEXT("Sparks2"), false);
+		Wave->SetEmitterEnable(TEXT("Ray"), false);
+		Wave->SetEmitterEnable(TEXT("Spiral1"), false);
+		const FNiagaraUserRedirectionParameterStore& Parameters = Effects.NiagaraSystem->GetExposedParameters();
+		for (const FName ColorName : { FName(TEXT("User.Color_Smoke")), FName(TEXT("User.Color_Wave")) })
+		{
+			const FNiagaraVariableBase Parameter(FNiagaraTypeDefinition::GetColorDef(), ColorName);
+			if (const TOptional<FLinearColor> Color = Parameters.GetParameterOptionalValue<FLinearColor>(Parameter))
+			{
+				Wave->SetVariableLinearColor(ColorName, Color.GetValue() * 0.64f);
+			}
+		}
+		Wave->Activate(true);
+		if (Effects.NiagaraSystem->IsLooping())
+		{
+			FTimerHandle StopTimer;
+			GetWorldTimerManager().SetTimer(StopTimer, Wave, &UNiagaraComponent::Deactivate, 0.8f, false);
+		}
+	}
+}
+
 bool ABossClown::PrepareClownPattern()
 {
 	BallsLaunched = 0;
@@ -1889,6 +2249,10 @@ bool ABossClown::TickClownSpecial(float DeltaTime, float MontageTime)
 				if (Ball && !Ball->IsLaunched())
 				{
 					Ball->LaunchAt(Target->GetActorLocation());
+					if (Ball->IsLaunched())
+					{
+						PlayPatternEffects(CurrentAttackType, Item->GetActorLocation(), Item->GetActorRotation());
+					}
 					break;
 				}
 			}
@@ -1913,6 +2277,7 @@ void ABossClown::LaunchClapWave(const UBossClownAnimationData& Data, const FDama
 	const FVector Position = GetActorLocation() + GetActorForwardVector() * 100.0f;
 	const int32 NoteCount = FMath::RandRange(16, 22);
 	const float LifeTime = Range / FMath::Max(Speed, 1.0f);
+	PlayPatternEffects(EBossClownAttack::ClapWave, Position, GetActorRotation());
 
 	for (int32 Index = 0; Index < NoteCount; ++Index)
 	{
@@ -2169,6 +2534,7 @@ bool ABossClown::PrepareClownBalls()
 		if (UClownProjectileComponent* Ball = CreateClownProjectile(Data->BallClass, Position, Facing.Rotator(), Data->BallSpeed, 6.0f))
 		{
 			++SpawnedBalls;
+			Ball->EnableBallGroundEffects();
 			const FVector Axis = FMath::VRand();
 			const float Rate = FMath::FRandRange(140.0f, 320.0f);
 			Ball->SetVisualSpin(FRotator(Axis.X * Rate, Axis.Y * Rate, Axis.Z * Rate));
@@ -2262,7 +2628,7 @@ bool ABossClown::PrepareClownYabawi()
 
 	const int32 Count = FMath::Clamp(Rules->BowlCount, 2, 8);
 	const float Diameter = FMath::Max(Rules->BowlDiameter, 100.0f);
-	const float Spacing = FMath::Max(Rules->BowlSpacing, Diameter + 220.0f);
+	const float Spacing = FMath::Max(Rules->BowlSpacing, Diameter + 60.0f);
 	FVector Forward = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
 
 	if (Forward.IsNearlyZero())
@@ -2368,6 +2734,7 @@ bool ABossClown::PrepareClownCubeMarch()
 		Piece->SetCubeAim(Target, Center);
 	}
 
+	PlayPatternEffects(EBossClownAttack::CubeBarrage, Assembly, Forward.Rotation());
 	return true;
 }
 
@@ -2569,5 +2936,6 @@ bool ABossClown::SpawnClownCards(const FClownCardLayout& Layout)
 		return false;
 	}
 
+	PlayPatternEffects(EBossClownAttack::SpawnCards, Layout.Center, GetActorRotation());
 	return true;
 }

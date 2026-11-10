@@ -11,9 +11,12 @@
 #include <Enemy/Animation/EnemyBaseAnimInstance.h>
 #include <Character/CharacterStatComponent.h>
 #include <Interface/CombatDamageInterface.h>
+#include <Interface/SoulStateInterface.h>
 #include <Data/DamageInfo.h>
 
 #include <GameFramework/CharacterMovementComponent.h>
+#include <GameFramework/PlayerController.h>
+#include <GameFramework/PlayerState.h>
 #include <Components/SkeletalMeshComponent.h>
 #include <Components/BoxComponent.h>
 #include <Components/CapsuleComponent.h>
@@ -24,6 +27,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "UObject/ConstructorHelpers.h"
+#include <Sound/SoundCue.h>
 
 AEnemyBase::AEnemyBase()
 {
@@ -57,6 +61,12 @@ AEnemyBase::AEnemyBase()
 		{
 			//UE_LOG(LogTemp, Log, TEXT("AnimInstance Not Set"));
 		}
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> HitSoundRef(TEXT("/Game/Blueprints/Sound/Hit/SC_EnemyHit.SC_EnemyHit"));
+	if (HitSoundRef.Succeeded())
+	{
+		HitSound = HitSoundRef.Object;
 	}
 
 	FatalAttackBox = CreateDefaultSubobject<UBoxComponent>(TEXT("FatalAttackBox"));
@@ -165,6 +175,7 @@ void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& 
 	{
 		SpawnBloodHitEffect(Hit);
 	}
+
 	if (ANormalEnemyAIController* AIController = Cast<ANormalEnemyAIController>(GetController()))
 	{
 		APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
@@ -235,6 +246,12 @@ void AEnemyBase::SpawnBloodHitEffect(const FHitResult& Hit)
 	const FVector SpawnPosition = (SurfaceHit.bStartPenetrating ? SurfaceHit.Location : SurfaceHit.ImpactPoint) + SpawnDirection * 2.f;
 	// Niagara의 로컬 X축을 피격 표면 바깥 방향으로 향하게 한다.
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, BloodHitEffect.Get(), SpawnPosition, SpawnDirection.Rotation(), FVector(BloodHitScale), true, true);
+
+	// 피격 사운드 재생
+	//if (HitSound)
+	//{
+	//	UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	//}
 }
 
 void AEnemyBase::UpdateMovementSpeed()
@@ -481,7 +498,7 @@ void AEnemyBase::InitializeWeapon()
 	NewMeshComp->SetupAttachment(CharacterSKMesh, WeaponAttachSocketName);
 
 	// Transform 설정 Socket의 설정된 값 사용
-	NewMeshComp->SetRelativeTransform(FTransform::Identity);
+	NewMeshComp->SetRelativeTransform(WeaponTransform);
 
 	// Component 등록 -> 런타임 설정
 	NewMeshComp->RegisterComponent();
@@ -525,6 +542,9 @@ void AEnemyBase::SetDead()
 	// Spawner에 사망 상태 발행
 	OnEnemyDied.Broadcast(this);
 
+	// 소울 주기
+	RewardSoul();
+
 	// FatalAttack 중이면 건너뛰기
 	if (false == bReceiveFatalAttack)
 	{
@@ -541,6 +561,38 @@ void AEnemyBase::DeadStart()
 void AEnemyBase::HitStart()
 {
 
+}
+
+void AEnemyBase::RewardSoul()
+{
+	if (false == IsValid(EnemyStatComponet))
+	{
+		return;
+	}
+
+	const int32 SoulAmount = FMath::RoundToInt(EnemyStatComponet->GetSoul());
+	if (SoulAmount <= 0)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	if (false == IsValid(PlayerController))
+	{
+		return;
+	}
+
+	APlayerState* EnemyPlayerState = PlayerController->PlayerState;
+	if (false == IsValid(EnemyPlayerState))
+	{
+		return;
+	}
+
+	// 인터페이스로 Soul 주기
+	if (ISoulStateInterface* EnemySoulReward = Cast<ISoulStateInterface>(EnemyPlayerState))
+	{
+		EnemySoulReward->TakeSoul(SoulAmount);
+	}
 }
 
 void AEnemyBase::SetEnemyMoveState(EEnemyMoveState NewMoveState)

@@ -185,6 +185,7 @@ protected:
 	// 보스별 기믹과 타이머 정리.
 	// 필요한 보스 자식 클래스에서 재정의.
 	virtual void ResetBossGimmicks();
+	virtual void TryStartPhase2Transition(float CurrentHp, float MaxHp);
 
 private:
 	void FinishPresentation(int32 PresentationID);
@@ -193,7 +194,6 @@ private:
 	bool IsPhase2TransitionStep(int32 TransitionID, EBossPhase2TransitionStage Stage) const;
 	void StopPhase2Transition(int32 TransitionID, bool bCancelled);
 	bool ValidateEncounter() const;
-	void TryStartPhase2Transition(float CurrentHp, float MaxHp);
 	void EnterCombatPhase(EBossPhase NewPhase);
 
 	void StartPresentation(EBossPresentation Presentation);

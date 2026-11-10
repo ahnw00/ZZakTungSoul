@@ -35,10 +35,18 @@
 #include "Engine/OverlapResult.h"
 #include <Interface/FatalAttackableInterface.h>
 
+#include <Enemy/Spawner/EnemySpawnSubsystem.h>
+#include <Gimmick/RestorePropSubsystem.h>
+
+#include <Sound/SoundCue.h>
+#include <UObject/ConstructorHelpers.h>
+#include <Kismet/GameplayStatics.h>
+
 // Damage
 #include <Data/DamageInfo.h>
 #include <Interface/CombatDamageInterface.h>
 #include <Enemy/Components/AttackTraceComponent.h>
+#include <Enemy/Boss/Clown/BossClown.h>
 #include <Enemy/Boss/Clown/Gimmick/ClownYabawiBowl.h>
 
 #include <UI/Notify/NotificationSubsystem.h>
@@ -48,6 +56,8 @@
 #include <GameFramework/PlayerController.h>
 
 #include "GameFramework/GameModeBase.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 
 AWarrior::AWarrior()
 {
@@ -154,6 +164,10 @@ AWarrior::AWarrior()
 	AttackTraceComponentLeft->ComponentTags.Remove(TEXT("AttackTrace"));
 	AttackTraceComponentLeft->ComponentTags.AddUnique(TEXT("AttackTraceLeft"));
 
+	AttackTraceComponentRightFoot = CreateDefaultSubobject<UAttackTraceComponent>(TEXT("RightFootAttackTraceComponent"));
+	AttackTraceComponentRightFoot->ComponentTags.Remove(TEXT("AttackTrace"));
+	AttackTraceComponentRightFoot->ComponentTags.AddUnique(TEXT("AttackTraceRightFoot"));
+
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> PotionMeshRef(
 		TEXT("/Game/Assets/Low_Poly_Soda_Can/SKM_CanLowGrade.SKM_CanLowGrade")
@@ -166,6 +180,12 @@ AWarrior::AWarrior()
 	// Player가 소유하지 않으면 AI가 소유해
 	AIControllerClass = AWarriorAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> HitSoundRef(TEXT("/Game/Blueprints/Sound/Hit/SC_PlayerHit.SC_PlayerHit"));
+	if (HitSoundRef.Succeeded())
+	{
+		HitSound = HitSoundRef.Object;
+	}
 }
 
 void AWarrior::BeginPlay()
@@ -184,8 +204,40 @@ void AWarrior::BeginPlay()
 	{
 		AttackTraceComponent->OnTraceHit.AddUObject(this, &AWarrior::HandleAttackTraceHit);
 
-		// Test
-		AttackTraceComponent->SetTraceMesh(Weapon);
+		if (Weapon->GetSkeletalMeshAsset())
+		{
+			AttackTraceComponent->SetTraceMesh(Weapon);
+		}
+		else
+		{
+			AttackTraceComponent->SetTraceMesh(GetMesh(), TEXT("lowerarm_r"), TEXT("hand_r"));
+		}
+	}
+
+	if (AttackTraceComponentLeft)
+	{
+		AttackTraceComponentLeft->OnTraceHit.AddUObject(this, &AWarrior::HandleAttackTraceHit);
+		if (LeftHandWeapon->GetSkeletalMeshAsset())
+		{
+			AttackTraceComponentLeft->SetTraceMesh(LeftHandWeapon);
+		}
+		else
+		{
+			AttackTraceComponentLeft->SetTraceMesh(GetMesh(), TEXT("lowerarm_l"), TEXT("hand_l"));
+		}
+	}
+
+	if (AttackTraceComponentRightFoot)
+	{
+		AttackTraceComponentRightFoot->OnTraceHit.AddUObject(this, &AWarrior::HandleAttackTraceHit);
+		if (GetMesh()->DoesSocketExist(TEXT("ball_r")))
+		{
+			AttackTraceComponentRightFoot->SetTraceMesh(GetMesh(), TEXT("foot_r"), TEXT("ball_r"));
+		}
+		else
+		{
+			AttackTraceComponentRightFoot->SetTraceMesh(GetMesh(), TEXT("calf_r"), TEXT("foot_r"));
+		}
 	}
 
 	// Material Instance Dynamic 생성
@@ -249,7 +301,9 @@ void AWarrior::Tick(float DeltaTime)
 		}
 
 		if (ActionState != EActionState::Roll)
+		{
 			UpdateLook(DeltaTime);
+		}
 
 		// DrawDebugPoint(GetWorld(), LockOnTarget->GetActorLocation(), 50.f, FColor::Purple, false, 1.f);
 	}
@@ -469,7 +523,13 @@ void AWarrior::SetDead()
     LockOnTarget = nullptr;
 
     if (AttackTraceComponent)
+    {
         AttackTraceComponent->EndTrace();
+    }
+    if (AttackTraceComponentRightFoot)
+    {
+        AttackTraceComponentRightFoot->EndTrace();
+    }
 
     // 시퀀스의 UI와 입력 복구를 먼저 끝낸 뒤 사망 화면으로 전환.
     for (TActorIterator<ABossRoom> It(GetWorld()); It; ++It)
@@ -684,6 +744,63 @@ bool AWarrior::FatalAttack()
 	Weapon->SetVisibility(false);
 	LeftHandWeapon->SetVisibility(false);
 
+	return true;
+}
+
+
+bool AWarrior::DebugForceClownFatalAttack(ABossClown& Boss, bool bFront)
+{
+	const EEnemyActionState BossAction = Boss.GetEnemyActionState();
+	if (IsDead() || ActionState != EActionState::None || !Boss.IsClownCombatPhase() ||
+		BossAction == EEnemyActionState::GetFrontFatalAttack || BossAction == EEnemyActionState::GetBackFatalAttack)
+	{
+		return false;
+	}
+
+	return ExecuteFatalAttack(Boss, Boss, bFront, true);
+}
+
+bool AWarrior::ExecuteFatalAttack(AActor& Enemy, IFatalAttackableInterface& Target, bool bFront, bool bForced)
+{
+	const FVector RelativeLocation = bFront ? FVector(80.f, 10.f, 0.f) : FVector(-120.f, 0.f, 0.f);
+	FVector TargetLocation = Enemy.GetActorTransform().TransformPosition(RelativeLocation);
+	FRotator TargetRotation = (Enemy.GetActorLocation() - GetActorLocation()).Rotation();
+	if (!bFront)
+	{
+		TargetRotation.Yaw -= 10.f;
+	}
+
+	const ABossClown* Clown = Cast<ABossClown>(&Enemy);
+	if (Clown)
+	{
+		Clown->GetCriticalAttackPlacement(*this, bFront, TargetLocation, TargetRotation);
+		if (bForced)
+		{
+			const double BossFloor = Clown->GetActorLocation().Z - Clown->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+			TargetLocation.Z = BossFloor + GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+			if (!GetWorld()->FindTeleportSpot(this, TargetLocation, TargetRotation))
+			{
+				return false;
+			}
+		}
+	}
+
+	FDamageInfo DamageInfo;
+	DamageInfo.AttackDamage = CharacterStatComponent->GetAttackPower() * 2.0f;
+	Target.ReceiveFatalAttack(DamageInfo, bFront);
+
+	const EEnemyActionState Reaction = bFront ? EEnemyActionState::GetFrontFatalAttack : EEnemyActionState::GetBackFatalAttack;
+	if (Clown && Clown->GetEnemyActionState() != Reaction)
+	{
+		return false;
+	}
+
+	SetActionState(bFront ? EActionState::FrontFatalAttack : EActionState::BackFatalAttack);
+	SetActorLocationAndRotation(TargetLocation, TargetRotation);
+	if (!AnimInstance->PlayActionMontage())
+	{
+		EndAction();
+	}
 	return true;
 }
 
@@ -941,7 +1058,9 @@ void AWarrior::SetActionState(EActionState NewState)
 	}
 
 	if (NewState != EActionState::None && ActionState != EActionState::None)
+	{
 		return;
+	}
 
 	ActionState = NewState;
 }
@@ -1069,6 +1188,20 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 	float Poise = CharacterStatComponent->GetPoise();
 	float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
 
+	// 피격 사운드 재생
+	//if (HitSound)
+	//{
+	//	UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	//}
+
+	const float HPBeforeDamage = CharacterStatComponent->GetCurrentHP();
+	CharacterStatComponent->ApplyDamage(DamageInfo);
+
+	if (CharacterStatComponent->GetCurrentHP() < HPBeforeDamage)
+	{
+		SpawnBloodHitEffect(Hit);
+	}
+
 	if (Poise < DamageInfo.PoiseDamage)
 	{
 		// 스텐스 낮추기.
@@ -1101,6 +1234,48 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 		AnimInstance->PlayActionMontage();
 		CharacterStatComponent->ApplyDamage(DamageInfo);
 	}
+}
+
+void AWarrior::SpawnBloodHitEffect(const FHitResult& Hit)
+{
+	// 앞잡 등의 위치 정보 없는 피해에는 임의의 위치에 생성하지 않는다.
+	if (!BloodHitEffect || !GetWorld() || Hit.GetActor() != this || !Hit.GetComponent())
+	{
+		return;
+	}
+
+	FHitResult SurfaceHit = Hit;
+	FVector OutwardDirection = Hit.ImpactNormal.GetSafeNormal();
+	if (OutwardDirection.IsNearlyZero())
+	{
+		OutwardDirection = (Hit.TraceStart - Hit.TraceEnd).GetSafeNormal();
+	}
+	if (OutwardDirection.IsNearlyZero())
+	{
+		OutwardDirection = GetActorForwardVector();
+	}
+
+	// 캡슐에 맞았을 때는 메시의 Physics Asset에서 실제 표면을 다시 찾는다.
+	if (USkeletalMeshComponent* CharacterMesh = GetMesh(); CharacterMesh && Hit.GetComponent() != CharacterMesh)
+	{
+		const FVector ImpactPoint = Hit.bStartPenetrating ? Hit.Location : Hit.ImpactPoint;
+		const float TraceDistance = FMath::Max(GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f, 150.f);
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(BloodHitSurface), false);
+		FHitResult MeshHit;
+		if (CharacterMesh->LineTraceComponent(MeshHit, ImpactPoint + OutwardDirection * TraceDistance, ImpactPoint - OutwardDirection * TraceDistance, Params))
+		{
+			SurfaceHit = MeshHit;
+		}
+	}
+
+	FVector SpawnDirection = SurfaceHit.ImpactNormal.GetSafeNormal();
+	if (SpawnDirection.IsNearlyZero())
+	{
+		SpawnDirection = OutwardDirection;
+	}
+	const FVector SpawnPosition = (SurfaceHit.bStartPenetrating ? SurfaceHit.Location : SurfaceHit.ImpactPoint) + SpawnDirection * 2.f;
+	// Niagara의 로컬 X축을 피격 표면 바깥 방향으로 향하게 한다.
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, BloodHitEffect.Get(), SpawnPosition, SpawnDirection.Rotation(), FVector(BloodHitScale), true, true);
 }
 
 void AWarrior::HandleAttackTraceHit(const FHitResult& Hit)
@@ -1244,9 +1419,11 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 		break;
 	case EEquipmentSlot::RightHand:
 		Weapon->SetSkeletalMesh(nullptr);
+		AttackTraceComponent->SetTraceMesh(GetMesh(), TEXT("lowerarm_r"), TEXT("hand_r"));
 		break;
 	case EEquipmentSlot::LeftHand:
 		LeftHandWeapon->SetSkeletalMesh(nullptr);
+		AttackTraceComponentLeft->SetTraceMesh(GetMesh(), TEXT("lowerarm_l"), TEXT("hand_l"));
 		break;
 	case EEquipmentSlot::Head:
 	{
@@ -1597,6 +1774,18 @@ void AWarrior::RespawnAtLastBonfire()
 		UE_LOG(LogTemp, Error,
 			TEXT("[Respawn] 화톳불 및 PlayerStart 복귀 실패"));
 		return;
+	}
+
+	// 적 초기화
+	if (UEnemySpawnSubsystem* SpawnSubsystem = GetWorld()->GetSubsystem<UEnemySpawnSubsystem>())
+	{
+		SpawnSubsystem->ResetAllEnemies();
+	}
+
+	// 부서진 프롭 복원.
+	if (URestorePropSubsystem* RestoreProp = GetWorld()->GetSubsystem<URestorePropSubsystem>())
+	{
+		RestoreProp->RestoreProps();
 	}
 
     if (AnimInstance)

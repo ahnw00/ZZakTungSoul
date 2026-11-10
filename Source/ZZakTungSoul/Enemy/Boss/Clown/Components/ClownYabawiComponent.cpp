@@ -11,8 +11,8 @@
 
 namespace
 {
+	constexpr int32 MaxRoundsPerPhase = 2;
 	constexpr float AnswerOpenTime = 0.6f;
-	constexpr float ExplosionDisplayTime = 0.65f;
 	constexpr float PanelHeight = 220.0f;
 }
 
@@ -27,7 +27,8 @@ bool UClownYabawiComponent::CanStart() const
 	const ABossClown* Boss = Cast<ABossClown>(GetOwner());
 	const FClownPhaseOnePattern* Pattern = Boss ? Boss->GetAttackPattern(EBossClownAttack::Yabawi) : nullptr;
 
-	return Boss && Boss->IsClownCombatPhase() && Stage == EClownYabawiStage::None && GetWorld() && Pattern &&
+	return Boss && Boss->IsClownCombatPhase() && Stage == EClownYabawiStage::None &&
+		RoundsStartedThisPhase < MaxRoundsPerPhase && GetWorld() && Pattern &&
 		Pattern->bEnabled && Boss->GetClownAttackData(EBossClownAttack::Yabawi) && Pattern->BowlMesh &&
 		Pattern->BallMesh && GetWorld()->GetTimeSeconds() >= ReadyTime;
 }
@@ -94,6 +95,7 @@ bool UClownYabawiComponent::StartRound(AActor* Player, const TArray<FVector>& Po
 		Widget->TakeWidget();
 	}
 
+	++RoundsStartedThisPhase;
 	SetStage(EClownYabawiStage::Reveal);
 	SetComponentTickEnabled(true);
 
@@ -266,6 +268,7 @@ void UClownYabawiComponent::CommitSelection()
 	}
 
 	const bool bCorrect = Bowls.IndexOfByKey(Bowl) == CorrectBowl;
+	Bowl->BreakShell(PendingHit);
 	Bowl->OnBowlStruck(PendingHit);
 	Resolve(bCorrect ? ERoundResult::Correct : ERoundResult::Wrong);
 }
@@ -304,7 +307,9 @@ void UClownYabawiComponent::Resolve(ERoundResult Result)
 		return;
 	}
 
-	// 각 그릇은 모두 폭발하되 겹친 폭발로 같은 플레이어에게 피해를 중복 적용하지 않음.
+	// 각 그릇의 피해 범위를 합치되, 같은 플레이어에게 피해는 한 번만 적용한다.
+	const float Radius = FMath::Max(Settings.ExplosionRadius, 100.0f);
+	TArray<FVector> BowlLocations;
 	FVector ExplosionCenter = FVector::ZeroVector;
 	bool bInRange = false;
 
@@ -315,14 +320,16 @@ void UClownYabawiComponent::Resolve(ERoundResult Result)
 			continue;
 		}
 
-		Bowl->UpdateExplosion(Settings.ExplosionRadius, 0.0f);
+		BowlLocations.Add(Bowl->GetActorLocation());
 
-		if (FVector::Dist(Player->GetActorLocation(), Bowl->GetActorLocation()) <= FMath::Max(Settings.ExplosionRadius, 100.0f))
+		if (FVector::Dist(Player->GetActorLocation(), Bowl->GetActorLocation()) <= Radius)
 		{
 			bInRange = true;
 			ExplosionCenter = Bowl->GetActorLocation();
 		}
 	}
+
+	Boss->PlayYabawiFailureEffects(BowlLocations);
 
 	if (bInRange)
 	{
@@ -393,6 +400,13 @@ void UClownYabawiComponent::TickComponent(
 		if (Alpha >= 1.0f)
 		{
 			Bowls[CorrectBowl]->ShowBall(false);
+			if (const UBossClownAnimationData* Data = Boss->GetClownAnimationData())
+			{
+				if (const FClownPatternEffects* Cover = Data->PatternEffects.Find(EBossClownAttack::Yabawi))
+				{
+					Cover->PlaySound(this, (Bowls[0]->GetActorLocation() + Bowls.Last()->GetActorLocation()) * 0.5f);
+				}
+			}
 			SetStage(EClownYabawiStage::Shuffle);
 			StartSwap();
 		}
@@ -452,14 +466,6 @@ void UClownYabawiComponent::TickComponent(
 
 		const bool bCorrect = RoundResult == ERoundResult::Correct;
 
-		if (!bCorrect)
-		{
-			for (AClownYabawiBowl* Bowl : Bowls)
-			{
-				Bowl->UpdateExplosion(Settings.ExplosionRadius, StageTime / ExplosionDisplayTime);
-			}
-		}
-
 		if (StageTime >= FMath::Max(Settings.ResultDisplayTime, 1.0f))
 		{
 			Boss->CompleteClownYabawi(bCorrect);
@@ -472,7 +478,7 @@ void UClownYabawiComponent::TickComponent(
 	}
 }
 
-void UClownYabawiComponent::CancelRound(bool bResetCooldown)
+void UClownYabawiComponent::CancelRound(bool bResetPhase)
 {
 	const bool bWasActive = Stage != EClownYabawiStage::None || !Bowls.IsEmpty();
 	Stage = EClownYabawiStage::None;
@@ -503,9 +509,10 @@ void UClownYabawiComponent::CancelRound(bool bResetCooldown)
 	Target.Reset();
 	SetComponentTickEnabled(false);
 
-	if (bResetCooldown)
+	if (bResetPhase)
 	{
 		ReadyTime = 0.0;
+		RoundsStartedThisPhase = 0;
 	}
 	else if (bWasActive && GetWorld())
 	{

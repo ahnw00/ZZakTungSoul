@@ -8,6 +8,7 @@
 class URetainerBox;
 class UCurveFloat;
 class UTextBlock;
+class USoundBase;
 
 UCLASS(Abstract)
 class ZZAKTUNGSOUL_API UNotificationWidget : public UUserWidget
@@ -20,10 +21,7 @@ public:
 	void SetNotificationText(const FText& InText);
 
 protected:
-	virtual void NativeTick(
-		const FGeometry& MyGeometry,
-		float InDeltaTime
-	) override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	virtual void OnAnimationFinished_Implementation(const UWidgetAnimation* Animation) override;
 
@@ -38,6 +36,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_Message;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Notification|Audio")
+	TObjectPtr<USoundBase> ShowSound;
 
 private:
 	void UpdateBlurRadius(float AnimationTime);

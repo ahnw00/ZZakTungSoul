@@ -7,6 +7,7 @@
 #include <Enemy/NormalEnemy/NormalEnemyBase.h>
 #include <Enemy/Spawner/EnemySpawnSubsystem.h>
 #include <Enemy/AI/EnemyAIBlackboardKey.h>
+#include <Item/ItemObject.h>
 
 #include <Engine/World.h>
 #include <Engine/TargetPoint.h>
@@ -122,6 +123,7 @@ AEnemyBase* AEnemySpawner::SpawnEnemy(int32 Index)
 	if (ANormalEnemyBase* NormalEnemy = Cast<ANormalEnemyBase>(NewEnemy))
 	{
 		NormalEnemy->SetPatrolPath(SpawnData.PatrolPath.Get());
+		NormalEnemy->SetEnemySpawner(this);
 	}
 
 	// 생성 완료
@@ -151,6 +153,17 @@ AEnemyBase* AEnemySpawner::GetSpawnEnemy(int32 Index) const
 
 void AEnemySpawner::ResetEnemies()
 {
+	// 드랍 아이템 초기화
+	for (const TWeakObjectPtr<AItemObject>& ItemPtr : DropItems)
+	{
+		if (AItemObject* Item = ItemPtr.Get())
+		{
+			Item->Destroy();
+		}
+	}
+
+	DropItems.Reset();
+
 	for (int32 Index = 0; Index < SpawnDataList.Num(); ++Index)
 	{
 		if (false == SpawnedEnemies.IsValidIndex(Index) || false == DeadFlags.IsValidIndex(Index))
@@ -212,6 +225,14 @@ void AEnemySpawner::ResetEnemies()
 				}
 			}
 		}
+	}
+}
+
+void AEnemySpawner::RegisterDropItem(AItemObject* Item)
+{
+	if (IsValid(Item))
+	{
+		DropItems.AddUnique(Item);
 	}
 }
 

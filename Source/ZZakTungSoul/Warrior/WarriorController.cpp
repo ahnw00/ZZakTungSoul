@@ -40,8 +40,9 @@
 #include "Kismet/GameplayStatics.h"
 #include <Enemy/Boss/Boss.h>
 #include <Enemy/Boss/Clown/BossClown.h>
+#include <Enemy/Components/AttackTraceComponent.h>
 #include <Enemy/Components/EnemyStatComponent.h>
-#include <UI/Notify/NotificationSubsystem.h>
+#include <Character/CharacterStatComponent.h>
 #include "Engine/LocalPlayer.h"
 
 AWarriorController::AWarriorController()
@@ -280,6 +281,7 @@ void AWarriorController::SetupInputComponent()
 	// 
 	//---------------------------------------------------------------
 	EnhancedInput->BindAction(IA_DebugToggle, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugToggle);
+	InputComponent->BindKey(EKeys::Zero, IE_Pressed, this, &AWarriorController::TriggerDebugNum0).bConsumeInput = false;
 	EnhancedInput->BindAction(IA_DebugNum1, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum1);
 	EnhancedInput->BindAction(IA_DebugNum2, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum2);
 	EnhancedInput->BindAction(IA_DebugNum3, ETriggerEvent::Started, this, &AWarriorController::TriggerDebugNum3);
@@ -628,7 +630,7 @@ void AWarriorController::TriggerDebugToggle()
 		return;
 	}
 
-	bIsDebugModeActive = ~bIsDebugModeActive;
+	bIsDebugModeActive = !bIsDebugModeActive;
 
 	if (bIsDebugModeActive)
 	{
@@ -643,6 +645,21 @@ void AWarriorController::TriggerDebugToggle()
 
 		subsystem->RemoveMappingContext(IMC_Debug);
 		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("Debug Off"));
+	}
+}
+
+void AWarriorController::TriggerDebugNum0()
+{
+	if (!bIsDebugModeActive)
+	{
+		return;
+	}
+
+	const bool bEnabled = UAttackTraceComponent::ToggleDebugDrawing();
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, bEnabled ? FColor::Green : FColor::Yellow,
+			bEnabled ? TEXT("Attack Trace Debug On") : TEXT("Attack Trace Debug Off"));
 	}
 }
 
@@ -665,61 +682,69 @@ void AWarriorController::TriggerDebugNum1()
 
 void AWarriorController::TriggerDebugNum2()
 {
-	UNotificationSubsystem* NotificationSystem =
-		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
-			GetLocalPlayer()
-		);
-
-	if (NotificationSystem)
+	ABossClown* Boss = FindDebugClownBoss();
+	if (!Boss)
 	{
-		NotificationSystem->ShowNotification(
-			ENotificationType::Death
-		);
+		return;
 	}
+
+	if (UEnemyStatComponent* Stats = Boss->FindComponentByClass<UEnemyStatComponent>())
+	{
+		Stats->SetCurrentHp(0.0f);
+	}
+	Boss->SetDead();
 }
 
 void AWarriorController::TriggerDebugNum3()
 {
-	UNotificationSubsystem* NotificationSystem =
-		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
-			GetLocalPlayer()
-		);
-
-	if (NotificationSystem)
+	const AWarrior* Warrior = Cast<AWarrior>(GetPawn());
+	if (!bIsDebugModeActive || !Warrior || Warrior->IsDead())
 	{
-		NotificationSystem->ShowNotification(
-			ENotificationType::BossClear
-		);
+		return;
+	}
+
+	if (UCharacterStatComponent* Stats = Warrior->GetCharacterStatComponent())
+	{
+		Stats->SetCurrentHP(Stats->GetMaxHP());
 	}
 }
 
 void AWarriorController::TriggerDebugNum4()
 {
-	UNotificationSubsystem* NotificationSystem =
-		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
-			GetLocalPlayer()
-		);
-
-	if (NotificationSystem)
-	{
-		NotificationSystem->ShowNotification(
-			ENotificationType::BornFireLit
-		);
-	}
+	TriggerDebugClownFatalAttack(true);
 }
 
 void AWarriorController::TriggerDebugNum5()
 {
-	UNotificationSubsystem* NotificationSystem =
-		ULocalPlayer::GetSubsystem<UNotificationSubsystem>(
-			GetLocalPlayer()
-		);
+	TriggerDebugClownFatalAttack(false);
+}
 
-	if (NotificationSystem)
+ABossClown* AWarriorController::FindDebugClownBoss() const
+{
+	if (!bIsDebugModeActive || !GetPawn())
 	{
-		NotificationSystem->ShowNotification(
-			ENotificationType::Region
-		);
+		return nullptr;
+	}
+
+	for (TActorIterator<ABossClown> It(GetWorld()); It; ++It)
+	{
+		ABossClown* Boss = *It;
+		if (Boss->GetEncounterTarget() == GetPawn() && Boss->IsClownCombatPhase())
+		{
+			return Boss;
+		}
+	}
+
+	return nullptr;
+}
+
+void AWarriorController::TriggerDebugClownFatalAttack(bool bFront)
+{
+	AWarrior* Warrior = Cast<AWarrior>(GetPawn());
+	ABossClown* Boss = FindDebugClownBoss();
+	if (Warrior && Boss)
+	{
+		Warrior->DebugForceClownFatalAttack(*Boss, bFront);
 	}
 }
 

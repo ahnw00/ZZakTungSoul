@@ -10,6 +10,8 @@
 // 전방 선언
 //class APatrolPath;
 class UEnemyAnimationMontageData;
+class AItemObject;
+class AEnemySpawner;
 
 /**
  * 
@@ -42,10 +44,18 @@ public:
 
 	virtual bool GetActionDamageInfo(int32 Index, FDamageInfo& DamageInfo) const override;
 
+	// Spawner Getter
+	void SetEnemySpawner(AEnemySpawner* InSpawner);
+
 protected:
 	virtual void DeadStart() override;
 
 	virtual void HitStart() override;
+
+	void EnemyDropItem();
+
+protected:
+	TWeakObjectPtr<AEnemySpawner> EnemySpawner;
 
 protected:
 	// PatrolPath 참조
@@ -59,4 +69,15 @@ protected:
 	// 공격 선택
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|ActionMontage|SelectAttack")
 	EEnemySelectAttack CurrentSelectAttack = EEnemySelectAttack::Attack01;
+
+	// 드랍 아이템
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|DropItem")
+	TSubclassOf<AItemObject> DropItemClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|DropItem")
+	float DropPercent = 10.0f;
+
+	// 중복 드랍 방지
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|DropItem")
+	uint32 bIsDrop : 1 = false;
 };

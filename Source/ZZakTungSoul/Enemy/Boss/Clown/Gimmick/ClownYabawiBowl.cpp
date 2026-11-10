@@ -1,12 +1,14 @@
 #include <Enemy/Boss/Clown/Gimmick/ClownYabawiBowl.h>
 #include <Enemy/Boss/Clown/Components/ClownYabawiComponent.h>
 #include <Enemy/Boss/Clown/Data/BossClownAnimationData.h>
+#include <Enemy/Boss/Clown/BossClown.h>
+#include <Enemy/Boss/Clown/Gimmick/ClownFracture.h>
+#include <Warrior/Warrior.h>
 #include <Components/SceneComponent.h>
 #include <Components/StaticMeshComponent.h>
 #include <Components/BoxComponent.h>
+#include <Components/CapsuleComponent.h>
 #include <Engine/StaticMesh.h>
-#include <Materials/MaterialInstanceDynamic.h>
-#include <UObject/ConstructorHelpers.h>
 
 AClownYabawiBowl::AClownYabawiBowl()
 {
@@ -22,22 +24,13 @@ AClownYabawiBowl::AClownYabawiBowl()
 	BallMesh->SetupAttachment(RootComponent);
 	BallMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	Explosion = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Explosion"));
-	Explosion->SetupAttachment(RootComponent);
-	Explosion->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	Explosion->SetCastShadow(false);
-	Explosion->SetVisibility(false);
-	Explosion->SetRelativeLocation(FVector(0.0f, 0.0f, 10.0f));
-
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> Plane(TEXT("/Engine/BasicShapes/Plane.Plane"));
-	Explosion->SetStaticMesh(Plane.Object);
-
 	AttackHitBox = CreateDefaultSubobject<UBoxComponent>(TEXT("AttackHitBox"));
 	AttackHitBox->SetupAttachment(RootComponent);
 	AttackHitBox->SetCollisionObjectType(ECC_WorldDynamic);
 	AttackHitBox->SetCollisionResponseToAllChannels(ECR_Ignore);
 	AttackHitBox->SetGenerateOverlapEvents(false);
 	AttackHitBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AttackHitBox->OnComponentBeginOverlap.AddDynamic(this, &AClownYabawiBowl::OnBodyOverlap);
 }
 
 void AClownYabawiBowl::Initialize(UClownYabawiComponent* Round, int32 InRoundID, const FClownPhaseOnePattern& Settings)
@@ -66,13 +59,7 @@ void AClownYabawiBowl::Initialize(UClownYabawiComponent* Round, int32 InRoundID,
 	AttackHitBox->SetRelativeLocation(FVector(0.0f, 0.0f, HitHalfHeight));
 
 	AttackHitBox->SetCollisionResponseToChannel(Settings.AttackTraceChannel, ECR_Overlap);
-
-	if (Settings.ExplosionMaterial)
-	{
-		UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(Settings.ExplosionMaterial, this);
-		Material->SetVectorParameterValue(TEXT("Color"), FLinearColor(8.0f, 0.4f, 0.02f));
-		Explosion->SetMaterial(0, Material);
-	}
+	AttackHitBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
 	SetCoverAlpha(0.0f);
 	ShowBall(false);
@@ -80,7 +67,31 @@ void AClownYabawiBowl::Initialize(UClownYabawiComponent* Round, int32 InRoundID,
 
 void AClownYabawiBowl::SetAttackSelectionEnabled(bool bEnabled)
 {
+	AttackHitBox->SetGenerateOverlapEvents(bEnabled);
 	AttackHitBox->SetCollisionEnabled(bEnabled ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+}
+
+void AClownYabawiBowl::OnBodyOverlap(UPrimitiveComponent* Trigger, AActor* OtherActor, UPrimitiveComponent* OtherComponent,
+	int32 BodyIndex, bool bFromSweep, const FHitResult& Sweep)
+{
+	AWarrior* Player = Cast<AWarrior>(OtherActor);
+	UClownYabawiComponent* Round = YabawiRound.Get();
+	if (!Round || !Player || Player->GetCapsuleComponent() != OtherComponent)
+	{
+		return;
+	}
+
+	FHitResult Contact = bFromSweep ? Sweep : FHitResult(this, AttackHitBox, AttackHitBox->GetComponentLocation(), FVector::UpVector);
+	Contact.TraceStart = Player->GetActorLocation();
+	Round->SelectBowl(Player, this, RoundID, Contact);
+}
+
+void AClownYabawiBowl::BreakShell(const FHitResult& Hit)
+{
+	if (const ABossClown* Boss = Cast<ABossClown>(GetOwner()))
+	{
+		ClownFracture::Spawn(*Boss, *BowlMesh, Hit.ImpactPoint, ClownFracture::PatternDebrisLifeSpan);
+	}
 }
 
 bool AClownYabawiBowl::ReceivePlayerAttack(AActor* Player, const FHitResult& Hit)
@@ -116,15 +127,4 @@ void AClownYabawiBowl::UpdateAnswerReveal(float OpenAlpha, float ElapsedTime)
 	SetCoverAlpha(1.0f - LiftAlpha);
 	BallMesh->SetRelativeLocation(BallRestLocation + FVector(0.0f, 0.0f, FloatHeight));
 	ShowBall(OpenAlpha >= 0.4f);
-}
-
-void AClownYabawiBowl::UpdateExplosion(float Radius, float Alpha)
-{
-	Explosion->SetVisibility(Alpha < 1.0f);
-
-	if (Alpha < 1.0f)
-	{
-		const float Scale = Radius * 2.0f / 100.0f * FMath::Clamp(Alpha * 2.5f, 0.05f, 1.0f);
-		Explosion->SetRelativeScale3D(FVector(Scale, Scale, 1.0f));
-	}
 }

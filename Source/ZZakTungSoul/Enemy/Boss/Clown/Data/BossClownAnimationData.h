@@ -6,11 +6,14 @@
 #include <Enemy/Data/EnemyAttackData.h>
 #include "BossClownAnimationData.generated.h"
 
+class UGeometryCollection;
+
 class AActor;
 class UTexture2D;
 class UStaticMesh;
-class UMaterialInterface;
 class AClownYabawiBowl;
+class UNiagaraSystem;
+class USoundBase;
 
 UENUM(BlueprintType)
 enum class EBossClownAttack : uint8
@@ -142,9 +145,31 @@ struct FClownPhaseOnePattern
 		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides))
 	FDamageInfo ExplosionDamage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,
-		meta = (EditCondition = "AttackType == EBossClownAttack::Yabawi", EditConditionHides))
-	TObjectPtr<UMaterialInterface> ExplosionMaterial;
+};
+
+USTRUCT()
+struct FClownPatternEffects
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<USoundBase> Sound;
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
+	float Volume = 1.0f;
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.1"))
+	float Pitch = 1.0f;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UNiagaraSystem> NiagaraSystem;
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.01"))
+	float NiagaraScale = 1.0f;
+
+	void Play(const UObject* WorldContext, const FVector& Location, const FRotator& Rotation) const;
+	void PlaySound(const UObject* WorldContext, const FVector& Location) const;
+	void PlayVisual(const UObject* WorldContext, const FVector& Location, const FRotator& Rotation) const;
 };
 
 UCLASS()
@@ -162,7 +187,7 @@ public:
 	bool bEnableTacticalActions = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clown|Behavior", meta = (ClampMin = "1"))
-	float GroggyDuration = 3.0f;
+	float GroggyDuration = 4.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Behavior", meta = (ClampMin = "1"))
 	float BackstepDistance = 220.0f;
@@ -197,6 +222,39 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Clown|Attacks",
 		meta = (DisplayName = "Attack Patterns", TitleProperty = "AttackType"))
 	TArray<FClownPhaseOnePattern> PhaseOnePatterns;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Effects")
+	TMap<EBossClownAttack, FClownPatternEffects> PatternEffects;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Effects")
+	FClownPatternEffects MeleeGroundEffects;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Effects")
+	FClownPatternEffects HeavySlamDust;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Effects")
+	FClownPatternEffects BallGroundEffects;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Clown|Effects")
+	FClownPatternEffects BallGroundDust;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Clown|Effects")
+	TObjectPtr<UNiagaraSystem> BallSpinEffect;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Effects")
+	FClownPatternEffects YabawiFailureEffects;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Fracture")
+	TMap<FName, TObjectPtr<UGeometryCollection>> Fractures;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Reactions")
+	TObjectPtr<UAnimMontage> FrontCriticalReaction;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Reactions")
+	TObjectPtr<UAnimMontage> BackCriticalReaction;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Reactions")
+	TObjectPtr<UAnimMontage> DeathReaction;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Movement", meta = (ClampMin = "1"))
 	float FastChaseSpeed = 850.0f;

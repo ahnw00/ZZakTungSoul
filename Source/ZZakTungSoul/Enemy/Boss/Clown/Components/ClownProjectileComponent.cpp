@@ -1,6 +1,8 @@
 #include <Enemy/Boss/Clown/Components/ClownProjectileComponent.h>
 #include <Enemy/Boss/Clown/BossClown.h>
+#include <Enemy/Boss/Clown/Gimmick/ClownFracture.h>
 #include <Enemy/Components/AttackTraceComponent.h>
+#include <Warrior/Warrior.h>
 #include <Components/StaticMeshComponent.h>
 #include <Components/BoxComponent.h>
 #include <Components/CapsuleComponent.h>
@@ -8,6 +10,8 @@
 #include <Engine/StaticMesh.h>
 #include <Engine/Texture2D.h>
 #include <Materials/MaterialInstanceDynamic.h>
+#include <NiagaraComponent.h>
+#include <NiagaraFunctionLibrary.h>
 #include <UObject/ConstructorHelpers.h>
 
 UClownProjectileComponent::UClownProjectileComponent()
@@ -270,11 +274,8 @@ void UClownProjectileComponent::TickCard(float DeltaTime)
 	{
 		bCardActive = true;
 
-		if (bSafeCard)
-		{
-			CardCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		}
-		else
+		CardCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (!bSafeCard)
 		{
 			SetTracing(true);
 		}
@@ -282,22 +283,31 @@ void UClownProjectileComponent::TickCard(float DeltaTime)
 
 	Owner->SetActorRotation(FRotator((bSafeCard ? 1.0f : -1.0f) * FMath::Lerp(4.0f, 90.0f, Alpha * Alpha), CardYaw, 0.0f));
 
-	if (Alpha >= 1.0f)
+	if (UStaticMeshComponent* Mesh = VisualMesh.Get(); Mesh && Mesh->GetStaticMesh())
 	{
-		// 첫 착지 프레임의 끝부분도 PostPhysics 트레이스에 포함한다.
-		if (PreviousElapsed >= FallStart + CardFallTime)
+		const FVector Extent = Mesh->GetStaticMesh()->GetBounds().BoxExtent * Mesh->GetComponentScale().GetAbs();
+		if (AWarrior* Player = FindTouchingPlayer(Mesh->Bounds.Origin, Mesh->GetComponentQuat(), Extent))
 		{
-			SetTracing(false);
-			CardCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			if (bSafeCard)
+			{
+				BreakAt(Player->GetActorLocation());
+			}
+			else
+			{
+				const FHitResult Contact(Player, Player->GetCapsuleComponent(), Player->GetActorLocation(), FVector::UpVector);
+				HandleTraceHit(Contact);
+			}
+			if (Owner->IsActorBeingDestroyed())
+			{
+				return;
+			}
 		}
+	}
 
-		const float Sink = FMath::Clamp((CardElapsed - FallStart - CardFallTime - LifeTime) / 0.3f, 0.0f, 1.0f);
-		Owner->SetActorLocation(CardOrigin - FVector(0.0f, 0.0f, 30.0f * Sink));
-
-		if (Sink >= 1.0f)
-		{
-			Owner->Destroy();
-		}
+	// 착지 프레임의 PostPhysics 피해 판정이 먼저 실행되게 한다.
+	if (Alpha >= 1.0f && PreviousElapsed >= FallStart + CardFallTime)
+	{
+		BreakAt(VisualMesh.IsValid() ? VisualMesh->Bounds.Origin : CardOrigin);
 	}
 }
 
@@ -312,6 +322,45 @@ void UClownProjectileComponent::SetVisualSpin(const FRotator& Rate)
 	}
 
 	SetComponentTickEnabled(true);
+}
+
+void UClownProjectileComponent::TickBallSpin(float DeltaTime)
+{
+	UStaticMeshComponent* Mesh = VisualMesh.Get();
+	if (!Mesh || VisualSpin.IsNearlyZero())
+	{
+		return;
+	}
+
+	Mesh->AddLocalRotation(VisualSpin * DeltaTime);
+	if (!bBallGroundEffects)
+	{
+		return;
+	}
+
+	if (BallSpinEffect)
+	{
+		if (BallSpinEffect->IsComplete())
+		{
+			BallSpinEffect->Activate(true);
+		}
+		return;
+	}
+
+	const ABossClown* Boss = Cast<ABossClown>(GetOwner()->GetOwner());
+	const UBossClownAnimationData* Data = Boss ? Boss->GetClownAnimationData() : nullptr;
+	if (Data && Data->BallSpinEffect)
+	{
+		BallSpinEffect = UNiagaraFunctionLibrary::SpawnSystemAttached(Data->BallSpinEffect, Mesh, NAME_None,
+			FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, false, false);
+		if (BallSpinEffect)
+		{
+			BallSpinEffect->SetAbsolute(false, false, true);
+			BallSpinEffect->SetWorldScale3D(FVector(0.23f));
+			BallSpinEffect->SetEmitterEnable(TEXT("Leaves"), false);
+			BallSpinEffect->Activate(true);
+		}
+	}
 }
 
 void UClownProjectileComponent::LaunchAt(const FVector& TargetLocation)
@@ -368,15 +417,31 @@ void UClownProjectileComponent::TickComponent(
 		return;
 	}
 
-	if (VisualMesh.IsValid() && !VisualSpin.IsNearlyZero())
+	TickBallSpin(DeltaTime);
+	if (!bLaunched)
 	{
-		VisualMesh->AddLocalRotation(VisualSpin * DeltaTime);
+		return;
 	}
 
-	if (bLaunched)
+	const FVector Travel = FlightDirection * Speed * DeltaTime;
+	if (const UStaticMeshComponent* Mesh = VisualMesh.Get(); bBallGroundEffects && Mesh)
 	{
-		Owner->AddActorWorldOffset(FlightDirection * Speed * DeltaTime, false);
+		const FVector Center = Mesh->Bounds.Origin;
+		const float Radius = FMath::Max(1.0f, Mesh->Bounds.BoxExtent.GetMin());
+		FCollisionQueryParams Query(SCENE_QUERY_STAT(ClownBallImpact), false, Owner);
+		Query.AddIgnoredActor(Boss);
+		FHitResult Floor;
+		if (GetWorld()->SweepSingleByObjectType(Floor, Center, Center + Travel, FQuat::Identity,
+			FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionShape::MakeSphere(Radius), Query) &&
+			Boss->TryPlayBallGroundEffects(Floor))
+		{
+			Owner->AddActorWorldOffset(Floor.Location - Center, false);
+			BreakAt(Floor.ImpactPoint);
+			return;
+		}
 	}
+
+	Owner->AddActorWorldOffset(Travel, false);
 }
 
 void UClownProjectileComponent::HandleTraceHit(const FHitResult& Hit)
@@ -411,19 +476,89 @@ void UClownProjectileComponent::HandleTraceHit(const FHitResult& Hit)
 		HitActors.Add(HitActor);
 		Target->ReceiveDamage(Damage, Hit);
 
-		if (!bCardHazard && !bCubeMarch)
+		const AWarrior* Player = Cast<AWarrior>(HitActor);
+		const bool bBodyContact = Player && Player->GetCapsuleComponent() == Hit.GetComponent();
+		if (Player && (bBallGroundEffects || (bBodyContact && (bCardHazard || bCubeMarch))))
+		{
+			BreakAt(Hit.ImpactPoint);
+		}
+		else if (!bCardHazard && !bCubeMarch)
 		{
 			Owner->Destroy();
 		}
 	}
 	else if (Hit.bBlockingHit && !bCardHazard && !bCubeMarch)
 	{
-		Owner->Destroy();
+		if (bBallGroundEffects)
+		{
+			HandleBallGroundHit(Hit);
+			if (!Owner->IsActorBeingDestroyed())
+			{
+				BreakAt(Hit.ImpactPoint);
+			}
+		}
+		else
+		{
+			Owner->Destroy();
+		}
 	}
+}
+
+void UClownProjectileComponent::EnableBallGroundEffects()
+{
+	bBallGroundEffects = true;
+}
+
+void UClownProjectileComponent::HandleBallGroundHit(const FHitResult& Hit)
+{
+	if (!bBallGroundEffects || !bLaunched)
+	{
+		return;
+	}
+
+	const AActor* Owner = GetOwner();
+	const ABossClown* Boss = Owner ? Cast<ABossClown>(Owner->GetOwner()) : nullptr;
+	if (IsValid(Boss) && Boss->TryPlayBallGroundEffects(Hit))
+	{
+		BreakAt(Hit.ImpactPoint);
+	}
+}
+
+void UClownProjectileComponent::BreakAt(const FVector& ImpactPoint)
+{
+	AActor* Owner = GetOwner();
+	if (!Owner || Owner->IsActorBeingDestroyed() || (bCardHazard && !bCardActive) || (bCubeMarch && !bCubeTracing))
+	{
+		return;
+	}
+
+	const ABossClown* Boss = Cast<ABossClown>(Owner->GetOwner());
+	if (Boss && VisualMesh.IsValid())
+	{
+		ClownFracture::Spawn(*Boss, *VisualMesh.Get(), ImpactPoint, ClownFracture::PatternDebrisLifeSpan);
+	}
+	Owner->Destroy();
+}
+
+AWarrior* UClownProjectileComponent::FindTouchingPlayer(const FVector& Location, const FQuat& Rotation, const FVector& HalfExtent) const
+{
+	const AActor* Owner = GetOwner();
+	const ABossClown* Boss = Owner ? Cast<ABossClown>(Owner->GetOwner()) : nullptr;
+	AWarrior* Player = Boss ? Cast<AWarrior>(Boss->GetEncounterTarget()) : nullptr;
+	if (IsValid(Player) && !Player->IsDead() &&
+		Player->GetCapsuleComponent()->OverlapComponent(Location, Rotation, FCollisionShape::MakeBox(HalfExtent)))
+	{
+		return Player;
+	}
+	return nullptr;
 }
 
 void UClownProjectileComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (IsValid(BallSpinEffect))
+	{
+		BallSpinEffect->DestroyComponent();
+	}
 	SetTracing(false);
 	AActor* Owner = GetOwner();
 	ABossClown* Boss = Owner ? Cast<ABossClown>(Owner->GetOwner()) : nullptr;
@@ -441,6 +576,7 @@ void UClownProjectileComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 		}
 
 		Trace->OnTraceHit.RemoveAll(this);
+		Trace->OnGroundTraceHit.RemoveAll(this);
 		Trace->RemoveTickPrerequisiteComponent(this);
 	}
 
@@ -646,6 +782,17 @@ void UClownProjectileComponent::TickCubeMarch(float DeltaTime)
 	if (bMoving && BlockingHit.bBlockingHit)
 	{
 		HandleTraceHit(BlockingHit);
+	}
+
+	if (bMoving && CubeCollision && !Owner->IsActorBeingDestroyed())
+	{
+		const FVector Extent = CubeCollision->GetScaledBoxExtent() + FVector(2.0);
+		if (AWarrior* Player = FindTouchingPlayer(Owner->GetActorLocation(), Owner->GetActorQuat(), Extent))
+		{
+			const FHitResult Contact(Player, Player->GetCapsuleComponent(), Player->GetActorLocation(), FVector::UpVector);
+			HandleTraceHit(Contact);
+			return;
+		}
 	}
 
 	if (VisualMesh.IsValid() && CubeElapsed >= 8.6f)

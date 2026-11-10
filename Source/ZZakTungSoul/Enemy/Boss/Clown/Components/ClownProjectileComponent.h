@@ -11,6 +11,8 @@ class UStaticMesh;
 class UMaterialInterface;
 class UTexture2D;
 class UBoxComponent;
+class AWarrior;
+class UNiagaraComponent;
 // 일반 Actor BP에 추가하는 발사체 이동 / 피해 전달 컴포넌트.
 // 판정은 BP에 추가한 기존 AttackTraceComponent가 담당.
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -30,6 +32,7 @@ public:
 	void LaunchAt(const FVector& TargetLocation);
 
 	void SetVisualSpin(const FRotator& Rate);
+	void EnableBallGroundEffects();
 	void ArmCubeMarch(UStaticMesh* Piece, const FVector& Assembly, const FVector& Start, const FVector& End,
 		float MarchTime, bool bShowPath);
 	void SetCubeAim(AActor* Target, const FVector& Center);
@@ -56,7 +59,11 @@ protected:
 
 private:
 	void HandleTraceHit(const FHitResult& Hit);
+	void HandleBallGroundHit(const FHitResult& Hit);
+	void BreakAt(const FVector& ImpactPoint);
+	AWarrior* FindTouchingPlayer(const FVector& Location, const FQuat& Rotation, const FVector& HalfExtent) const;
 	void SetTracing(bool bEnabled);
+	void TickBallSpin(float DeltaTime);
 	void TickCard(float DeltaTime);
 	void TickCubeMarch(float DeltaTime);
 	void RestoreProjectileMaterial(UStaticMeshComponent* Mesh, bool bCube);
@@ -101,6 +108,9 @@ private:
 
 	TArray<TWeakObjectPtr<UAttackTraceComponent>> AttackTraces;
 	TSet<TWeakObjectPtr<AActor>> HitActors;
+	bool bBallGroundEffects = false;
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraComponent> BallSpinEffect;
 
 	FVector FlightDirection = FVector::ForwardVector;
 	FRotator VisualSpin = FRotator::ZeroRotator;

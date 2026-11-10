@@ -18,7 +18,7 @@
 // [전방 선언].
 class UCharacterStatComponent;
 class UAnimMontage;
-
+class UNiagaraSystem;
 /**
  * 
  */
@@ -167,7 +167,7 @@ public:
 	void Attack();
 	void FinishAttack();
 	bool FatalAttack();
-
+	bool DebugForceClownFatalAttack(class ABossClown& Boss, bool bFront);
 	
 	FORCEINLINE bool IsFatalCameraActive() const { return bFatalCameraActive; }
 
@@ -223,6 +223,7 @@ public:
 	//FORCEINLINE UArrowComponent GetLockOnPoint() { return LockOnPoint; }
 
 private:
+	bool ExecuteFatalAttack(AActor& Enemy, class IFatalAttackableInterface& Target, bool bFront, bool bForced = false);
 	class IFatalAttackableInterface* CurrentFatalAttackable = nullptr;
 
 	// [처형 카메라].
@@ -245,6 +246,14 @@ protected:
 	// 데미지 처리 판정 -> 상위 클래스에서 인터페이스 사용함
 	virtual void ReceiveDamage(const struct FDamageInfo& DamageInfo, const FHitResult& Hit) override;
 
+	void SpawnBloodHitEffect(const FHitResult& Hit);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Effects")
+	TObjectPtr<UNiagaraSystem> BloodHitEffect;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|Effects", meta = (ClampMin = "0.01"))
+	float BloodHitScale = 1.f;
+
 	// Trace에 걸린 액터 처리 함수
 	void HandleAttackTraceHit(const FHitResult& Hit);
 
@@ -255,6 +264,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
 	TObjectPtr<class UAttackTraceComponent> AttackTraceComponentLeft;
+
+	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
+	TObjectPtr<class UAttackTraceComponent> AttackTraceComponentRightFoot;
 
 	UPROPERTY(VisibleAnywhere, Category = "Player|Combat")
 	TObjectPtr<class UAttackTraceComponent> ParryTraceComponent;
@@ -308,6 +320,9 @@ private:
 	// 상호작용할 대상 저장 변수
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AActor>> DetectedActors;
+
+	UPROPERTY()
+	TObjectPtr<class USoundCue> HitSound;
 
 public:
 	//virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;

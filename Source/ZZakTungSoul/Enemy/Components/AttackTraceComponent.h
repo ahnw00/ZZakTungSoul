@@ -39,10 +39,9 @@ public:
 	void EndTrace();
 
 	// 매쉬 컴포넌트 설정 함수
-	void SetTraceMesh(UMeshComponent* InTraceMesh);
+	void SetTraceMesh(UMeshComponent* InTraceMesh, FName StartSocket = NAME_None, FName EndSocket = NAME_None);
 
-	UPROPERTY(EditDefaultsOnly, Category = "Trace|Debug")
-	bool bDrawDebug = false;
+	static bool ToggleDebugDrawing();
 
 private:
 	// Sweep Trace 실행 함수
@@ -58,6 +57,9 @@ public:
 	// 충돌 성공 델리게이트 이벤트
 	FOnAttackTraceHit OnTraceHit;
 
+	// 별도 월드 지면 판정. 피해와 패링에 사용하는 TraceChannel은 그대로 유지한다.
+	FOnAttackTraceHit OnGroundTraceHit;
+
 	// 패링 당할 시 델리게이트 이벤트
 	FOnGetParried OnGetParried;
 
@@ -71,6 +73,8 @@ private:
 	// 이전 프레임의 공격 위치
 	FVector PreviousStart = FVector::ZeroVector;
 	FVector PreviousEnd = FVector::ZeroVector;
+	FName TraceStartOverride;
+	FName TraceEndOverride;
 
 private:
 	// 소켓 이름 키로 지정

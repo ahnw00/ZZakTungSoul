@@ -2,6 +2,7 @@
 
 
 #include "Anim/AnimNotifyState/AnimNotifyState_AttackTrace.h"
+#include <Enemy/Boss/Clown/BossClown.h>
 #include <Enemy/Components/AttackTraceComponent.h>
 
 void UAnimNotifyState_AttackTrace::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
@@ -14,6 +15,10 @@ void UAnimNotifyState_AttackTrace::NotifyBegin(USkeletalMeshComponent* MeshComp,
 		if (TraceComp)
 		{
 			TraceComp->BeginTrace();
+			if (ABossClown* Clown = Cast<ABossClown>(MeshComp->GetOwner()))
+			{
+				Clown->PlayMeleeSwingSound();
+			}
 		}
 	}
 }

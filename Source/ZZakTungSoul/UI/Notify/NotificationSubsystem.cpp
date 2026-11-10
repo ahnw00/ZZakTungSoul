@@ -4,6 +4,7 @@
 #include "GameFramework/PlayerController.h"
 #include "UObject/ConstructorHelpers.h"
 
+
 UNotificationSubsystem::UNotificationSubsystem()
 {
 	// 사망 알림 BP
@@ -61,6 +62,38 @@ UNotificationSubsystem::UNotificationSubsystem()
 			RegionWidgetClassRef.Class
 		);
 	}
+
+	//static ConstructorHelpers::FObjectFinder<USoundBase> BonrFireLitSoundRef(
+	//	TEXT("/Game/Blueprints/Interactable/Fire_Ignite.Fire_Ignite"));
+
+	//if (BonrFireLitSoundRef.Succeeded())
+	//{
+	//	BonrFireLitSound = BonrFireLitSoundRef.Object;
+	//}
+
+	//static ConstructorHelpers::FObjectFinder<USoundBase> DeathSoundRef(
+	//	TEXT("/Game/Blueprints/Interactable/Fire_Ignite.Fire_Ignite"));
+
+	//if (DeathSoundRef.Succeeded())
+	//{
+	//	DeathSound = DeathSoundRef.Object;
+	//}
+
+	//static ConstructorHelpers::FObjectFinder<USoundBase> BossClearSoundRef(
+	//	TEXT("/Game/Blueprints/Interactable/Fire_Ignite.Fire_Ignite"));
+
+	//if (BossClearSoundRef.Succeeded())
+	//{
+	//	BossClearSound = BossClearSoundRef.Object;
+	//}
+
+	//static ConstructorHelpers::FObjectFinder<USoundBase> RegionSoundRef(
+	//	TEXT("/Game/Blueprints/Interactable/Fire_Ignite.Fire_Ignite"));
+
+	//if (RegionSoundRef.Succeeded())
+	//{
+	//	RegionSound = RegionSoundRef.Object;
+	//}
 }
 
 void UNotificationSubsystem::Initialize(
@@ -161,6 +194,7 @@ void UNotificationSubsystem::HideNotification(
 	if (IsValid(Widget))
 	{
 		Widget->HideNotification();
+
 	}
 }
 

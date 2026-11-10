@@ -1,8 +1,9 @@
-#pragma once
+﻿#pragma once
 
 #include <CoreMinimal.h>
 #include <GameFramework/Actor.h>
 #include <Interface/InteractableInterface.h>
+#include <Misc/FrameTime.h>
 #include "Blueprint/UserWidget.h"
 #include "TimerManager.h"
 #include "BossRoom.generated.h"
@@ -10,13 +11,20 @@
 class ABoss;
 class AWarrior;
 class APlayerController;
+class UAnimMontage;
 class ALevelSequenceActor;
 class ULevelSequence;
 class ULevelSequencePlayer;
+class UMovieSceneSequencePlayer;
+class UMaterialInterface;
+class UMaterialInstanceDynamic;
 class USceneComponent;
 class UBoxComponent;
 class UArrowComponent;
+class UAudioComponent;
+class USoundBase;
 class UStaticMeshComponent;
+class USkeletalMeshComponent;
 class UBossRoomSubsystem;
 class UBossHUDWidget;
 enum class EBossPhase2TransitionStage : uint8;
@@ -58,6 +66,7 @@ public:
 	void SetOtherSideGateEnabled(bool bEnabled);
 
 protected:
+	virtual void PostLoad() override;
 	virtual void PostRegisterAllComponents() override;
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -71,11 +80,19 @@ private:
 	bool TryEnter(AWarrior* Player, bool bFromFog, bool bOtherSide = false);
 	bool IsPlayerAtGate(const AWarrior* Player) const;
 
+	bool BeginClownFogEntry(AWarrior* Player, bool bOtherSide);
+	void TickClownFogEntry(float DeltaSeconds);
+	void EndClownFogEntry(bool bReachedInside);
+
 	void BeginBattle();
 	void FinishClear();
 	void RefreshGate();
 
+	void UpdateEncounterMusic();
+	void SetEncounterMusic(USoundBase* Music, float Volume = 1.f);
+
 	void StopIntro();
+	void OnIntroSequenceUpdated(const UMovieSceneSequencePlayer& Player, FFrameTime CurrentTime, FFrameTime PreviousTime);
 	void LockPlayer(AWarrior* Player);
 	void UnlockPlayer();
 
@@ -164,7 +181,61 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "BossRoom|UI",
 		meta = (ClampMin = "0.0"))
 	float BossHUDHideDelay = 2.5f;
+
+	UPROPERTY(VisibleAnywhere, Category = "BossRoom|Audio")
+	TObjectPtr<UAudioComponent> ClownApproachMusic;
+
+	UPROPERTY(EditAnywhere, Category = "BossRoom|Audio")
+	TObjectPtr<USoundBase> Phase1CombatMusic;
+
+	UPROPERTY(EditAnywhere, Category = "BossRoom|Audio", meta = (ClampMin = "0.0", DisplayAfter = "Phase1CombatMusic"))
+	float Phase1CombatMusicVolume = 1.f;
+
+	UPROPERTY(EditAnywhere, Category = "BossRoom|Audio")
+	TObjectPtr<USoundBase> Phase2SearchMusic;
+
+	UPROPERTY(EditAnywhere, Category = "BossRoom|Audio", meta = (ClampMin = "0.0", DisplayAfter = "Phase2SearchMusic"))
+	float Phase2SearchMusicVolume = 1.f;
+
+	UPROPERTY(EditAnywhere, Category = "BossRoom|Audio")
+	TObjectPtr<USoundBase> Phase2CombatMusic;
+
+	UPROPERTY(EditAnywhere, Category = "BossRoom|Audio", meta = (ClampMin = "0.0", DisplayAfter = "Phase2CombatMusic"))
+	float Phase2CombatMusicVolume = 1.f;
+
 private:
+	// 기존에 저장된 공통 볼륨을 읽기 위한 필드.
+	UPROPERTY()
+	float EncounterMusicVolume = -1.f;
+
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> ClownFogEntryMontage;
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInterface> ClownFogOpeningMaterial;
+	UPROPERTY()
+	TObjectPtr<UAudioComponent> EncounterMusic;
+
+	TOptional<FFrameNumber> ClownApproachMusicCutFrame;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> FogEntryOriginalMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> FogEntryOpening;
+
+	TWeakObjectPtr<UStaticMeshComponent> TraversedFogVisual;
+	TWeakObjectPtr<UBoxComponent> TraversedFogGate;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, bool> FogEntryWeaponVisibility;
+	FVector FogEntryStart = FVector::ZeroVector;
+	FVector FogEntryEnd = FVector::ZeroVector;
+	FQuat FogEntryStartRotation = FQuat::Identity;
+	FQuat FogEntryFacing = FQuat::Identity;
+	float FogEntryElapsed = 0.0f;
+	float FogEntryDuration = 0.0f;
+	float FogEntryPreviousTickInterval = 0.0f;
+	bool bFogEntryActive = false;
+
 	// 실행 중 생성한 시퀀스 플레이어와 액터.
 	UPROPERTY(Transient)
 	TObjectPtr<ULevelSequencePlayer> IntroPlayer;

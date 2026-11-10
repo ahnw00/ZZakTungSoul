@@ -157,6 +157,11 @@ bool AWarriorPlayerState::IsBonfireLit(const FName& BonfireID) const
 	return SaveData.LitBonfireIDs.Contains(BonfireID);
 }
 
+void AWarriorPlayerState::TakeSoul(int32 Amount)
+{
+	AddSouls(Amount);
+}
+
 // 화톳불 등록.
 bool AWarriorPlayerState::RegisterLitBonfire(const FName& BonfireID)
 {

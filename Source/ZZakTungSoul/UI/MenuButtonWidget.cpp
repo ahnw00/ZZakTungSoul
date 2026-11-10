@@ -39,6 +39,11 @@ void UMenuButtonWidget::ResetButtonImage()
 // 버튼 위에 있는 아이템 이미지 세팅
 void UMenuButtonWidget::SetItemImage(UTexture2D* InTexture)
 {
+	if (!InTexture)
+	{
+		ResetButtonImage();
+		return;
+	}
 	MenuButtonImage->SetBrushFromTexture(InTexture);
 	MenuButtonImage->SetColorAndOpacity(FLinearColor::White);
 }

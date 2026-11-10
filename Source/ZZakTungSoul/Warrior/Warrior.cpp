@@ -392,6 +392,19 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
             LeftHandWeapon->SetSkeletalMesh(nullptr);
     }
 
+	if (ActionState == EActionState::FrontFatalAttack ||
+		ActionState == EActionState::BackFatalAttack)
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Weapon->SetVisibility(true);
+		LeftHandWeapon->SetVisibility(true);
+	}
+
+	if (ActionState == EActionState::LightOn)
+	{
+		LanternLight->ToggleVisibility();
+	}
+
     if (ActionState != EActionState::Attack)
         SetActionState(EActionState::None);
 }
@@ -627,7 +640,7 @@ bool AWarrior::FatalAttack()
 	// 적 기준 상대적인 위치
 	// 앞잡
 	FVector RelativeLocation;
-	if (Dot < -0.8f)
+	if (Dot < -0.7f)
 	{
 		SetActionState(EActionState::FrontFatalAttack);
 		RelativeLocation = FVector(80.f, 10.f, 0.f);
@@ -651,6 +664,10 @@ bool AWarrior::FatalAttack()
 
 	// 플레이어 페이탈 어택 애니메이션 재생
 	AnimInstance->PlayActionMontage();
+
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Weapon->SetVisibility(false);
+	LeftHandWeapon->SetVisibility(false);
 
 	return true;
 }
@@ -866,6 +883,11 @@ void AWarrior::Interact()
 	Interactable->Interact(this);
 }
 
+void AWarrior::PlayActionMontage()
+{
+	AnimInstance->PlayActionMontage();
+}
+
 void AWarrior::SetLockOnTarget(ACharacter* Target)
 {
 	bLockOn = true;
@@ -997,6 +1019,13 @@ const FWarriorSaveData* AWarrior::GetSaveData() const
 void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 {
 	if (IsDead() || !CharacterStatComponent)
+	{
+		return;
+	}
+
+	// 페이탈 어택 중에는 적에게 데미지를 받지 않음
+	if (ActionState == EActionState::FrontFatalAttack ||
+		ActionState == EActionState::BackFatalAttack)
 	{
 		return;
 	}
@@ -1260,6 +1289,13 @@ bool AWarrior::CheckItemInSlot(const FGuid& InID, EEquipmentSlot Slot)
 	return (Equipment->GetEquippedItem(Slot) == InID);
 }
 
+// 슬롯에 아이템이 있으면 true 반환
+bool AWarrior::CheckInSlot(EEquipmentSlot Slot)
+{
+	const FGuid& EquippedID = Equipment->GetEquippedItem(Slot);
+	return (EquippedID != FGuid());
+}
+
 void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
 {
 	if (ActionState != EActionState::None)
@@ -1299,7 +1335,9 @@ void AWarrior::HpRecovery(float Amount)
 
 void AWarrior::ToggleLantern()
 {
-	LanternLight->ToggleVisibility();
+	//LanternLight->ToggleVisibility();
+	SetActionState(EActionState::LightOn);
+	AnimInstance->PlayActionMontage();
 }
 
 void AWarrior::UseBeltItem(EEquipmentSlot Slot)

@@ -37,6 +37,11 @@ void UMenuWidget::NativeOnInitialized()
         Button->SetParentWidget(this);
     }
 
+    if (Equipment)
+    {
+        Equipment->OnEquipItem.AddUObject(this, &UMenuWidget::ChangeButtonsImage);
+    }
+
     //ChangeButtonsImage();
 }
 
@@ -226,9 +231,6 @@ void UMenuWidget::ChangeButtonsImage()
         }
 
         UTexture2D* InTexture = GetTexture(InstanceID);
-        if (!InTexture)
-            continue;
-
         SetButtonImage(Buttons[static_cast<int32>(ButtonType) - 1], InTexture);
     }
 }

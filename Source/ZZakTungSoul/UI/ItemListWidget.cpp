@@ -441,15 +441,17 @@ void UItemListWidget::EquipItem(const FGuid& InstanceID)
         return;
     }
 
+    // 현재 장착하려는 슬롯에 아이템이 장착되어있는지 확인
     bool bResult = WC->CheckItemInSlot(InstanceID, CurrentEquipSlot);
 
-    // Todo: 만약 장착된 아이템 버튼을 누르면 해제되도록
-    if (WC->CheckItemInSlot(InstanceID, CurrentEquipSlot))
+    // 만약 장착된 아이템 버튼을 누르면 해제되도록
+    if (bResult)
     {
         WC->UnequipItem(CurrentEquipSlot);
         return;
     }
 
+    // 아니면 다른 곳에 장착된 아이템이라면 해제
 
     WC->EquipItem(InstanceID, CurrentEquipSlot);
     UE_LOG(LogTemp, Log, TEXT("Equip Item"));

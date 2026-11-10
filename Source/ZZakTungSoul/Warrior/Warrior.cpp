@@ -134,8 +134,8 @@ AWarrior::AWarrior()
 	{
 		//Lantern->SetSkeletalMesh(LanternMeshRef.Object);
 		LanternMesh = LanternMeshRef.Object;
-		Lantern->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
-		Lantern->SetRelativeLocation(FVector(-40.f, 8.f, 10.f));
+		//Lantern->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
+		//Lantern->SetRelativeLocation(FVector(-40.f, 8.f, 10.f));
 	}
 	Lantern->SetupAttachment(GetMesh(), TEXT("pelvis_Socket"));
 
@@ -397,6 +397,19 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
             LeftHandWeapon->SetSkeletalMesh(nullptr);
     }
 
+	if (ActionState == EActionState::FrontFatalAttack ||
+		ActionState == EActionState::BackFatalAttack)
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Weapon->SetVisibility(true);
+		LeftHandWeapon->SetVisibility(true);
+	}
+
+	if (ActionState == EActionState::LightOn)
+	{
+		LanternLight->ToggleVisibility();
+	}
+
     if (ActionState != EActionState::Attack)
         SetActionState(EActionState::None);
 }
@@ -631,7 +644,7 @@ bool AWarrior::FatalAttack()
 	// 적 기준 상대적인 위치
 	// 앞잡
 	FVector RelativeLocation;
-	if (Dot < -0.8f)
+	if (Dot < -0.7f)
 	{
 		SetActionState(EActionState::FrontFatalAttack);
 		RelativeLocation = FVector(80.f, 10.f, 0.f);
@@ -666,6 +679,10 @@ bool AWarrior::FatalAttack()
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		GetWorld()->SpawnActor<AActor>(FatalCameraClass, GetActorTransform(), SpawnParams);
 	}
+
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Weapon->SetVisibility(false);
+	LeftHandWeapon->SetVisibility(false);
 
 	return true;
 }
@@ -881,6 +898,11 @@ void AWarrior::Interact()
 	Interactable->Interact(this);
 }
 
+void AWarrior::PlayActionMontage()
+{
+	AnimInstance->PlayActionMontage();
+}
+
 void AWarrior::SetLockOnTarget(ACharacter* Target)
 {
 	bLockOn = true;
@@ -938,26 +960,58 @@ void AWarrior::SetLeftHandPotionMesh()
 	LeftHandWeapon->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
 }
 
-void AWarrior::EquipArmor(const UItemDataAsset* ItemData)
+void AWarrior::EquipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot)
 {
 	if (!ArmorMID || !ItemData) return;
+
+	ResetArmorMaterial(Slot);
 
 	FString ParameterName = TEXT("Equip_") + ItemData->ItemName.ToString();
 	FName ParameterFName(*ParameterName);
 
-	float Value = 0.f;
 	ArmorMID->SetScalarParameterValue(ParameterFName, 1.f);
 }
 
-void AWarrior::UnequipArmor(const UItemDataAsset* ItemData)
+void AWarrior::UnequipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot)
 {
 	if (!ArmorMID || !ItemData) return;
+
+	ResetArmorMaterial(Slot);
 
 	FString ParameterName = TEXT("Equip_") + ItemData->ItemName.ToString();
 	FName ParameterFName(*ParameterName);
 
-	float Value = 0.f;
 	ArmorMID->SetScalarParameterValue(ParameterFName, 0.f);
+}
+
+void AWarrior::ResetArmorMaterial(EEquipmentSlot Slot)
+{
+	if (!ArmorMID) return;
+
+	FString SlotName;
+	switch (Slot)
+	{
+	case EEquipmentSlot::Head:
+		SlotName = TEXT("Head");
+		break;
+	case EEquipmentSlot::Chest:
+		SlotName = TEXT("Chest");
+		break;
+	case EEquipmentSlot::Arms:
+		SlotName = TEXT("Arms");
+		break;
+	case EEquipmentSlot::Legs:
+		SlotName = TEXT("Legs");
+		break;
+	default:
+		break;
+	}
+
+	FString CoupangName = TEXT("Equip_") + SlotName + TEXT("_Coupang");
+	FString PostOfficeName = TEXT("Equip_") + SlotName + TEXT("_PostOffice");
+
+	ArmorMID->SetScalarParameterValue(*CoupangName, 0.f);
+	ArmorMID->SetScalarParameterValue(*PostOfficeName, 0.f);
 }
 
 //void AWarrior::Interact()
@@ -980,6 +1034,13 @@ const FWarriorSaveData* AWarrior::GetSaveData() const
 void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hit)
 {
 	if (IsDead() || !CharacterStatComponent)
+	{
+		return;
+	}
+
+	// 페이탈 어택 중에는 적에게 데미지를 받지 않음
+	if (ActionState == EActionState::FrontFatalAttack ||
+		ActionState == EActionState::BackFatalAttack)
 	{
 		return;
 	}
@@ -1126,22 +1187,22 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		break;
 	case EEquipmentSlot::Head:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::Chest:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::Arms:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::Legs:
 	{
-		EquipArmor(InItem);
+		EquipArmor(InItem, Slot);
 	}
 		break;
 	case EEquipmentSlot::UpperBelt:
@@ -1189,22 +1250,22 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 		break;
 	case EEquipmentSlot::Head:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::Chest:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::Arms:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::Legs:
 	{
-		UnequipArmor(ItemData);
+		UnequipArmor(ItemData, Slot);
 	}
 		break;
 	case EEquipmentSlot::UpperBelt:
@@ -1241,6 +1302,13 @@ bool AWarrior::CheckItemInSlot(const FGuid& InID, EEquipmentSlot Slot)
 	// 장착된 아이템이 장착하려는 아이템이랑 같으면 true 리턴
 	// true 리턴해주면 아이템 해제할거
 	return (Equipment->GetEquippedItem(Slot) == InID);
+}
+
+// 슬롯에 아이템이 있으면 true 반환
+bool AWarrior::CheckInSlot(EEquipmentSlot Slot)
+{
+	const FGuid& EquippedID = Equipment->GetEquippedItem(Slot);
+	return (EquippedID != FGuid());
 }
 
 void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
@@ -1282,7 +1350,9 @@ void AWarrior::HpRecovery(float Amount)
 
 void AWarrior::ToggleLantern()
 {
-	LanternLight->ToggleVisibility();
+	//LanternLight->ToggleVisibility();
+	SetActionState(EActionState::LightOn);
+	AnimInstance->PlayActionMontage();
 }
 
 void AWarrior::UseBeltItem(EEquipmentSlot Slot)

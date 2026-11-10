@@ -201,6 +201,8 @@ void ABonfire::Interact(AActor* detectedActor)
 	if (BonfireState == EBonfireState::Unlit)
 	{
 		BonfireState = EBonfireState::Lit;
+		Interactor->SetActionState(EActionState::FirstLit);
+		Interactor->PlayActionMontage();
 
 		if (FireEffect)
 		{
@@ -249,6 +251,9 @@ void ABonfire::Interact(AActor* detectedActor)
 	// 이후 상호작용.
 	if (BonfireState == EBonfireState::Lit)
 	{
+		Interactor->SetActionState(EActionState::Lit);
+		Interactor->PlayActionMontage();
+
 		if (ICharacterStatInterface* StatOwner = Cast<ICharacterStatInterface>(Interactor))
 		{
 			if (UCharacterStatComponent* StatComp = StatOwner->GetCharacterStatComponent())

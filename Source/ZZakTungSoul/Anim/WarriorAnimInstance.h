@@ -78,6 +78,15 @@ private:
 	UPROPERTY()
 	UAnimMontage* DrinkMontage;
 
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> LightOnMontage;
+
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> FirstLitMontage;
+
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> LitMontage;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	float CurrentPawnSpeed;

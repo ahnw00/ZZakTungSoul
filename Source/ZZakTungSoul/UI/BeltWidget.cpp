@@ -11,10 +11,28 @@
 void UBeltWidget::OnEquipmentChanged()
 {
 	FGuid InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::UpperBelt);
-    UpperBeltImage->SetBrushFromTexture(GetTexture(InstanceID));
+    UTexture2D* InTexture = GetTexture(InstanceID);
+    if (InTexture)
+    {
+        UpperBeltImage->SetBrushFromTexture(GetTexture(InstanceID));
+        UpperBeltImage->SetColorAndOpacity(FLinearColor::White);
+    }
+    else
+    {
+        UpperBeltImage->SetColorAndOpacity(FLinearColor::Transparent);
+    }
 
     InstanceID = Equipment->GetEquippedItem(EEquipmentSlot::LowerBelt);
-    LowerBeltImage->SetBrushFromTexture(GetTexture(InstanceID));
+    InTexture = GetTexture(InstanceID);
+    if (InTexture)
+    {
+        LowerBeltImage->SetBrushFromTexture(GetTexture(InstanceID));
+        LowerBeltImage->SetColorAndOpacity(FLinearColor::White);
+    }
+    else
+    {
+        LowerBeltImage->SetColorAndOpacity(FLinearColor::Transparent);
+    }
 }
 
 UTexture2D* UBeltWidget::GetTexture(FGuid InstanceID)

@@ -226,4 +226,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<UBonfireMenuWidget> BonfireMenuWidget;
 
+	// 위젯 사운드
+	UPROPERTY()
+	TObjectPtr<USoundBase> CardboardSound;
 };

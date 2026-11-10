@@ -195,6 +195,7 @@ public:
 
 	// 상호작용
 	void Interact();
+	void PlayActionMontage();
 
 	// Getter/Setter
 	
@@ -265,11 +266,15 @@ public:
 
 	void UnequipItem(EEquipmentSlot Slot);
 
-	void EquipArmor(const UItemDataAsset* ItemData);
+	void EquipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot);
 
-	void UnequipArmor(const UItemDataAsset* ItemData);
+	void UnequipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot);
+
+	void ResetArmorMaterial(EEquipmentSlot Slot);
 
 	bool CheckItemInSlot(const FGuid& InID, EEquipmentSlot Slot);
+
+	bool CheckInSlot(EEquipmentSlot Slot);
 
 	// Inherited via IItemInterface
 	void ObtainItem(class UItemDataAsset* detectedItem) override;

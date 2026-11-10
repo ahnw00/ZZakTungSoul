@@ -86,6 +86,30 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 		DrinkMontage = DrinkMontageRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> LightOnMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_LightOn_Montage.Warrior_LightOn_Montage")
+	);
+	if (LightOnMontageRef.Succeeded())
+	{
+		LightOnMontage = LightOnMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> FirstLitMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_FirstLit_Montage.Warrior_FirstLit_Montage")
+	);
+	if (FirstLitMontageRef.Succeeded())
+	{
+		FirstLitMontage = FirstLitMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> LitMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_Lit_Montage.Warrior_Lit_Montage")
+	);
+	if (LitMontageRef.Succeeded())
+	{
+		LitMontage = LitMontageRef.Object;
+	}
+
 	const int32 NoneAttackMontageMaxCount = 4;
 
 	for (int32 i = 1; i <= NoneAttackMontageMaxCount; i++)
@@ -514,6 +538,21 @@ bool UWarriorAnimInstance::PlayActionMontage()
 	case EActionState::Drink:
 	{
 		return Montage_Play(DrinkMontage) > 0.f;
+	}
+
+	case EActionState::LightOn:
+	{
+		return Montage_Play(LightOnMontage) > 0.f;
+	}
+
+	case EActionState::FirstLit:
+	{
+		return Montage_Play(FirstLitMontage) > 0.f;
+	}
+
+	case EActionState::Lit:
+	{
+		return Montage_Play(LitMontage) > 0.f;
 	}
 
 	default:

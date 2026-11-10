@@ -4,7 +4,14 @@
 #include "UI/MenuButtonWidget.h"
 #include <UI/MenuWidget.h>
 #include <Components/Button.h>
+#include <Components/Image.h>
 
+
+void UMenuButtonWidget::NativePreConstruct()
+{
+	SetButtonImage();
+	ResetButtonImage();
+}
 
 void UMenuButtonWidget::NativeConstruct()
 {
@@ -23,20 +30,33 @@ void UMenuButtonWidget::OnButtonClicked()
 	}
 }
 
+// 버튼 위에 있는 아이템 이미지 초기화
 void UMenuButtonWidget::ResetButtonImage()
 {
-	FButtonStyle Style = MenuButton->GetStyle();
-
-	Style.Normal.SetResourceObject(nullptr);
-
-	MenuButton->SetStyle(Style);
+	MenuButtonImage->SetColorAndOpacity(FLinearColor::Transparent);
 }
 
-void UMenuButtonWidget::SetButtonImage(UTexture2D* InTexture)
+// 버튼 위에 있는 아이템 이미지 세팅
+void UMenuButtonWidget::SetItemImage(UTexture2D* InTexture)
+{
+	if (!InTexture)
+	{
+		ResetButtonImage();
+		return;
+	}
+	MenuButtonImage->SetBrushFromTexture(InTexture);
+	MenuButtonImage->SetColorAndOpacity(FLinearColor::White);
+}
+
+// 초기 버튼 기본 이미지 세팅
+void UMenuButtonWidget::SetButtonImage()
 {
 	FButtonStyle Style = MenuButton->GetStyle();
 
-	Style.Normal.SetResourceObject(InTexture);
+	Style.Normal.SetResourceObject(ButtonImage);
+	Style.Hovered.SetResourceObject(ButtonImage);
+	Style.Pressed.SetResourceObject(ButtonImage);
 
 	MenuButton->SetStyle(Style);
+	//MenuButtonImage->SetBrushFromSoftTexture(InTexture);
 }

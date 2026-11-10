@@ -6,6 +6,17 @@
 #include <Engine/World.h>
 #include <DrawDebugHelpers.h>
 
+namespace
+{
+	bool bDrawAttackTraces = true;
+}
+
+bool UAttackTraceComponent::ToggleDebugDrawing()
+{
+	bDrawAttackTraces = !bDrawAttackTraces;
+	return bDrawAttackTraces;
+}
+
 // Sets default values for this component's properties
 UAttackTraceComponent::UAttackTraceComponent()
 {
@@ -50,8 +61,8 @@ void UAttackTraceComponent::TickComponent(
 		return;
 	}
 
-	const FVector CurrentStart = Mesh->GetSocketLocation(TraceStartSocketName);
-	const FVector CurrentEnd = Mesh->GetSocketLocation(TraceEndSocketName);
+	const FVector CurrentStart = Mesh->GetSocketLocation(TraceStartOverride.IsNone() ? TraceStartSocketName : TraceStartOverride);
+	const FVector CurrentEnd = Mesh->GetSocketLocation(TraceEndOverride.IsNone() ? TraceEndSocketName : TraceEndOverride);
 
 	// 이전 프레임과 현재 프레임의 중간 지점
 	const FVector PreviousCenter = (PreviousStart + PreviousEnd) * 0.5f;
@@ -82,7 +93,9 @@ void UAttackTraceComponent::BeginTrace()
 	}
 
 	// Socket 유효성 검사
-	if (!Mesh->DoesSocketExist(TraceStartSocketName) || !Mesh->DoesSocketExist(TraceEndSocketName))
+	const FName StartSocket = TraceStartOverride.IsNone() ? TraceStartSocketName : TraceStartOverride;
+	const FName EndSocket = TraceEndOverride.IsNone() ? TraceEndSocketName : TraceEndOverride;
+	if (!Mesh->DoesSocketExist(StartSocket) || !Mesh->DoesSocketExist(EndSocket))
 	{
 		return;
 	}
@@ -94,8 +107,8 @@ void UAttackTraceComponent::BeginTrace()
 	HitActors.Reset();
 
 	// 현재 판정하는 소켓 위치 저장
-	PreviousStart = Mesh->GetSocketLocation(TraceStartSocketName);
-	PreviousEnd = Mesh->GetSocketLocation(TraceEndSocketName);
+	PreviousStart = Mesh->GetSocketLocation(StartSocket);
+	PreviousEnd = Mesh->GetSocketLocation(EndSocket);
 
 	bIsTracing = true;
 
@@ -115,10 +128,10 @@ void UAttackTraceComponent::EndTrace()
 	HitActors.Reset();
 }
 
-void UAttackTraceComponent::SetTraceMesh(UMeshComponent* InTraceMesh)
+void UAttackTraceComponent::SetTraceMesh(UMeshComponent* InTraceMesh, FName StartSocket, FName EndSocket)
 {
 	// 기존 Mesh와 같으면 건너뛰기
-	if (TraceMesh.Get() == InTraceMesh)
+	if (TraceMesh.Get() == InTraceMesh && TraceStartOverride == StartSocket && TraceEndOverride == EndSocket)
 	{
 		return;
 	}
@@ -137,7 +150,8 @@ void UAttackTraceComponent::SetTraceMesh(UMeshComponent* InTraceMesh)
 	}
 
 	// 소켓 유효성 검사
-	if (!InTraceMesh->DoesSocketExist(TraceStartSocketName) || !InTraceMesh->DoesSocketExist(TraceEndSocketName))
+	if (!InTraceMesh->DoesSocketExist(StartSocket.IsNone() ? TraceStartSocketName : StartSocket) ||
+		!InTraceMesh->DoesSocketExist(EndSocket.IsNone() ? TraceEndSocketName : EndSocket))
 	{
 		// TraceMesh.Reset();
 		return;
@@ -145,6 +159,8 @@ void UAttackTraceComponent::SetTraceMesh(UMeshComponent* InTraceMesh)
 
 	// Mesh 등록
 	TraceMesh = InTraceMesh;
+	TraceStartOverride = StartSocket;
+	TraceEndOverride = EndSocket;
 }
 
 void UAttackTraceComponent::CheckTrace(
@@ -193,19 +209,14 @@ void UAttackTraceComponent::CheckTrace(
 	const bool bResult = World->SweepMultiByChannel(
 		HitResults, PreviousCenter, CurrentCenter, CapsuleRotation, TraceChannel.GetValue(), TraceShape, Params);
 
-#ifdef ENABLE_DRAW_DEBUG
-
-	DrawDebugCapsule(World, CurrentCenter, CapsuleHalfHeight, TraceRadius, CapsuleRotation,
-		bResult ? FColor::Red : FColor::Green, false, 0.5f);
-	DrawDebugLine(World, PreviousCenter, CurrentCenter, FColor::Yellow, false, 1.0f);
-#endif // ENABLE_DRAW_DEBUG
-
-	// SweepMulti's bool reports blocking hits only. Non-blocking attack targets
-	// (such as yabawi bowls) are still present in HitResults.
-	if (HitResults.IsEmpty())
+#if ENABLE_DRAW_DEBUG
+	if (bDrawAttackTraces)
 	{
-		return;
+		DrawDebugCapsule(World, CurrentCenter, CapsuleHalfHeight, TraceRadius, CapsuleRotation,
+			bResult ? FColor::Red : FColor::Green, false, 0.5f);
+		DrawDebugLine(World, PreviousCenter, CurrentCenter, FColor::Yellow, false, 1.0f);
 	}
+#endif // ENABLE_DRAW_DEBUG
 
 	// 충돌 대상 처리하기 전 우선 패링을 했는지 판단
 	for (const FHitResult& Hit : HitResults)
@@ -236,6 +247,22 @@ void UAttackTraceComponent::CheckTrace(
 	for (const FHitResult& Hit : HitResults)
 	{
 		TraceHitResult(Hit);
+	}
+
+	if (bIsTracing && OnGroundTraceHit.IsBound())
+	{
+		TArray<FHitResult> GroundHits;
+		FCollisionObjectQueryParams GroundObjects;
+		GroundObjects.AddObjectTypesToQuery(ECC_WorldStatic);
+		GroundObjects.AddObjectTypesToQuery(ECC_WorldDynamic);
+		World->SweepMultiByObjectType(GroundHits, PreviousCenter, CurrentCenter, CapsuleRotation, GroundObjects, TraceShape, Params);
+		for (const FHitResult& Hit : GroundHits)
+		{
+			if (!Hit.bStartPenetrating && Hit.ImpactNormal.Z >= 0.9f)
+			{
+				OnGroundTraceHit.Broadcast(Hit);
+			}
+		}
 	}
 }
 

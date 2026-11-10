@@ -29,7 +29,7 @@ public:
 	UClownYabawiComponent();
 	bool CanStart() const;
 	bool StartRound(AActor* Player, const TArray<FVector>& Positions);
-	void CancelRound(bool bResetCooldown = false);
+	void CancelRound(bool bResetPhase = false);
 	virtual void TickComponent(
 		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -80,6 +80,7 @@ private:
 	TWeakObjectPtr<AActor> Target;
 	int32 RoundSerial = 0;
 	int32 RoundID = INDEX_NONE;
+	int32 RoundsStartedThisPhase = 0;
 	int32 CorrectBowl = INDEX_NONE;
 
 	int32 SwapA = INDEX_NONE;

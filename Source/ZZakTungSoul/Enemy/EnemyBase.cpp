@@ -165,6 +165,7 @@ void AEnemyBase::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& 
 	{
 		SpawnBloodHitEffect(Hit);
 	}
+
 	if (ANormalEnemyAIController* AIController = Cast<ANormalEnemyAIController>(GetController()))
 	{
 		APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);

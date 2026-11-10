@@ -1,21 +1,31 @@
 #include <Enemy/Boss/Encounter/BossRoom.h>
 #include <Enemy/Boss/Encounter/BossRoomSubsystem.h>
 #include <Enemy/Boss/Boss.h>
+#include <Enemy/Boss/Clown/BossClown.h>
 #include <Warrior/Warrior.h>
+#include <Animation/AnimInstance.h>
+#include <Animation/AnimMontage.h>
 #include <Components/SceneComponent.h>
 #include <Components/BoxComponent.h>
 #include <Components/ArrowComponent.h>
+#include <Components/AudioComponent.h>
 #include <Components/StaticMeshComponent.h>
 #include <Components/CapsuleComponent.h>
+#include <Components/SkeletalMeshComponent.h>
 #include <GameFramework/CharacterMovementComponent.h>
 #include <GameFramework/PlayerController.h>
 #include <Engine/GameInstance.h>
 #include <Engine/World.h>
 #include <Kismet/GameplayStatics.h>
+#include <Materials/MaterialInstanceDynamic.h>
+#include <UObject/ConstructorHelpers.h>
 #include <LevelSequence.h>
 #include <LevelSequenceActor.h>
 #include <LevelSequencePlayer.h>
+#include <MovieScene.h>
 #include <MovieSceneSequencePlaybackSettings.h>
+#include <Sound/SoundAttenuation.h>
+#include <Sound/SoundBase.h>
 #include "UI/BossHUDWidget.h"
 #include "Components/InputComponent.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
@@ -27,6 +37,13 @@ ABossRoom::ABossRoom()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickInterval = 0.1f;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> FogEntry(
+		TEXT("/Game/Blueprints/Enemy/Boss/Clown/Animation/Encounter/AM_ClownFogEnter_Warrior.AM_ClownFogEnter_Warrior"));
+	ClownFogEntryMontage = FogEntry.Object;
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> FogOpening(
+		TEXT("/Game/Blueprints/Enemy/Boss/Clown/VFX/M_ClownFogOpening.M_ClownFogOpening"));
+	ClownFogOpeningMaterial = FogOpening.Object;
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
@@ -119,6 +136,43 @@ ABossRoom::ABossRoom()
 	InsidePoint->SetupAttachment(SceneRoot);
 	InsidePoint->SetRelativeLocation(FVector(400, 0, 100));
 
+	ClownApproachMusic = CreateDefaultSubobject<UAudioComponent>(TEXT("ClownApproachMusic"));
+	ClownApproachMusic->SetupAttachment(InsidePoint);
+	ClownApproachMusic->SetAutoActivate(false);
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> ApproachSong(TEXT(
+		"/Game/Blueprints/Enemy/Boss/Clown/Sound/Work/Fu\u010D\u00EDk_Entry_of_the_Gladiators__Arr__for_Brass_Ensemble_."
+		"Fu\u010D\u00EDk_Entry_of_the_Gladiators__Arr__for_Brass_Ensemble_"));
+	ClownApproachMusic->SetSound(ApproachSong.Object);
+	ClownApproachMusic->SetVolumeMultiplier(0.18f);
+
+	FSoundAttenuationSettings Attenuation;
+	Attenuation.AttenuationShapeExtents = FVector(400.f, 0.f, 0.f);
+	Attenuation.FalloffDistance = 2100.f;
+	Attenuation.bAttenuateWithLPF = true;
+	Attenuation.LPFRadiusMin = 450.f;
+	Attenuation.LPFRadiusMax = 2000.f;
+	Attenuation.LPFFrequencyAtMin = 7000.f;
+	Attenuation.LPFFrequencyAtMax = 1600.f;
+	ClownApproachMusic->AdjustAttenuation(Attenuation);
+
+	EncounterMusic = CreateDefaultSubobject<UAudioComponent>(TEXT("EncounterMusic"));
+	EncounterMusic->SetupAttachment(SceneRoot);
+	EncounterMusic->SetAutoActivate(false);
+	EncounterMusic->bAllowSpatialization = false;
+}
+
+void ABossRoom::PostLoad()
+{
+	Super::PostLoad();
+
+	if (EncounterMusicVolume >= 0.f)
+	{
+		Phase1CombatMusicVolume = EncounterMusicVolume;
+		Phase2SearchMusicVolume = EncounterMusicVolume;
+		Phase2CombatMusicVolume = EncounterMusicVolume;
+		EncounterMusicVolume = -1.f;
+	}
 }
 
 void ABossRoom::PostRegisterAllComponents()
@@ -172,6 +226,16 @@ void ABossRoom::BeginPlay()
 		InitialBossClass = BossActor->GetClass();
 		BossInitialTransform = BossActor->GetActorTransform();
 		InitialBossArena = BossActor->GetEncounterArena();
+
+		const UMovieScene* MovieScene = IntroSequence ? IntroSequence->GetMovieScene() : nullptr;
+		if (MovieScene && BossActor->IsA<ABossClown>())
+		{
+			const int32 CutIndex = MovieScene->FindMarkedFrameByLabel(TEXT("ClownApproachMusicCut"));
+			if (CutIndex != INDEX_NONE)
+			{
+				ClownApproachMusicCutFrame = MovieScene->GetMarkedFrames()[CutIndex].FrameNumber;
+			}
+		}
 	}
 	else
 	{
@@ -185,6 +249,12 @@ void ABossRoom::BeginPlay()
 void ABossRoom::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	if (bFogEntryActive)
+	{
+		TickClownFogEntry(DeltaSeconds);
+		return;
+	}
 
 	if (bChangingState ||
 		(RoomState != EBossRoomState::Intro &&
@@ -214,11 +284,19 @@ void ABossRoom::Tick(float DeltaSeconds)
 		BossActor->GetBossPhase() == EBossPhase::Waiting)
 	{
 		FailAttempt();
+		return;
+	}
+
+	if (RoomState == EBossRoomState::Fighting)
+	{
+		UpdateEncounterMusic();
 	}
 }
 
 void ABossRoom::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	EndClownFogEntry(false);
+
 	if (IsValid(BossActor.Get()))
 	{
 		BossActor->OnPhase2StageRequested.RemoveDynamic(this, &ABossRoom::UpdateBossHUDForPhase2);
@@ -226,6 +304,7 @@ void ABossRoom::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	bChangingState = true;
 	StopIntro();
+	SetEncounterMusic(nullptr);
 	HideBossHUD();
 
 	// 플레이어의 상호작용 목록에서 제거.
@@ -428,7 +507,7 @@ void ABossRoom::SetOtherSideGateEnabled(bool bEnabled)
 
 bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog, bool bOtherSide)
 {
-	if (bChangingState || RoomState != EBossRoomState::Ready || RoomID.IsNone() || !GetRoomSubsystem() ||
+	if (bChangingState || bFogEntryActive || RoomState != EBossRoomState::Ready || RoomID.IsNone() || !GetRoomSubsystem() ||
 		!IsPlayerAlive(Player) || !IsValid(BossActor.Get()) || BossActor->GetBossPhase() != EBossPhase::Waiting)
 	{
 		return false;
@@ -441,6 +520,11 @@ bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog, bool bOtherSide)
 	if ((bFirst && bFromFog) || (!bFirst && !bFromFog))
 	{
 		return false;
+	}
+
+	if (bFromFog && BossActor->IsA<ABossClown>())
+	{
+		return BeginClownFogEntry(Player, bOtherSide);
 	}
 
 	if (bFirst)
@@ -538,6 +622,11 @@ bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog, bool bOtherSide)
 
 		LockPlayer(Player);
 
+		if (ClownApproachMusicCutFrame.IsSet())
+		{
+			IntroPlayer->OnSequenceUpdated().AddUObject(this, &ABossRoom::OnIntroSequenceUpdated);
+		}
+
 		IntroPlayer->OnFinished.AddDynamic(this, &ABossRoom::OnIntroFinished);
 		IntroPlayer->Play();
 	}
@@ -547,6 +636,189 @@ bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog, bool bOtherSide)
 	}
 
 	return true;
+}
+
+bool ABossRoom::BeginClownFogEntry(AWarrior* Player, bool bOtherSide)
+{
+	UCharacterMovementComponent* Movement = Player->GetCharacterMovement();
+	UAnimInstance* Anim = Player->GetMesh()->GetAnimInstance();
+	if (!ClownFogEntryMontage || !Anim || !Movement->IsMovingOnGround() ||
+		Player->GetActionState() != EActionState::None || !Cast<APlayerController>(Player->GetController()))
+	{
+		return false;
+	}
+
+	UBoxComponent* Gate = bOtherSide ? OhterSideGateBlocker.Get() : GateBlocker.Get();
+	const UArrowComponent* Inside = bOtherSide ? OtherSideInsidePoint.Get() : InsidePoint.Get();
+	const FVector GateCenter = Gate->GetComponentLocation();
+	FVector Inward = Gate->GetForwardVector().GetSafeNormal2D();
+	if (FVector::DotProduct(Inside->GetComponentLocation() - GateCenter, Inward) < 0.0)
+	{
+		Inward *= -1.0;
+	}
+
+	const UCapsuleComponent* Capsule = Player->GetCapsuleComponent();
+	const FVector Extent = Gate->GetScaledBoxExtent();
+	const double Radius = Capsule->GetScaledCapsuleRadius();
+	const FVector Across = FVector::CrossProduct(FVector::UpVector, Inward);
+	const double SideLimit = FMath::Max(Extent.Y - Radius - 6.0, 0.0);
+	FogEntryStart = Player->GetActorLocation();
+	const double Side = FMath::Clamp(FVector::DotProduct(FogEntryStart - GateCenter, Across), -SideLimit, SideLimit);
+	FVector GatePath = GateCenter + Across * Side;
+	GatePath.Z = FogEntryStart.Z;
+	FogEntryEnd = GatePath + Inward * (Extent.X + Radius + 36.0);
+	FogEntryStartRotation = Player->GetActorQuat();
+	FogEntryFacing = Inward.ToOrientationQuat();
+
+	FogEntryDuration = Anim->Montage_Play(ClownFogEntryMontage, 1.0f, EMontagePlayReturnType::Duration);
+	if (FogEntryDuration <= 0.0f)
+	{
+		return false;
+	}
+
+	EncounterPlayer = Player;
+	TraversedFogGate = Gate;
+	if (ClownFogOpeningMaterial)
+	{
+		UStaticMeshComponent* Visual = bOtherSide ? OhterSideFogMesh.Get() : FogMesh.Get();
+		TraversedFogVisual = Visual;
+		FogEntryOriginalMaterial = Visual->GetMaterial(0);
+		FogEntryOpening = Visual->CreateDynamicMaterialInstance(0, ClownFogOpeningMaterial);
+	}
+	FogEntryElapsed = 0.0f;
+	bFogEntryActive = true;
+	FogEntryPreviousTickInterval = GetActorTickInterval();
+	SetActorTickInterval(0.0f);
+	LockPlayer(Player);
+	if (Player->IsLockOn())
+	{
+		Player->ChangeLockOn(false);
+	}
+	Movement->DisableMovement();
+	Player->GetCapsuleComponent()->IgnoreComponentWhenMoving(Gate, true);
+
+	for (USceneComponent* Child : Player->GetMesh()->GetAttachChildren())
+	{
+		USkeletalMeshComponent* HeldMesh = Cast<USkeletalMeshComponent>(Child);
+		if (HeldMesh && (HeldMesh->GetFName() == TEXT("Weapon") || HeldMesh->GetFName() == TEXT("LeftHandWeapon")))
+		{
+			FogEntryWeaponVisibility.Add(HeldMesh, HeldMesh->IsVisible());
+			HeldMesh->SetVisibility(false);
+		}
+	}
+
+	return true;
+}
+
+void ABossRoom::TickClownFogEntry(float DeltaSeconds)
+{
+	AWarrior* Player = EncounterPlayer.Get();
+	if (!IsPlayerAlive(Player) || !TraversedFogGate.IsValid() ||
+		!IsValid(BossActor.Get()) || BossActor->GetBossPhase() != EBossPhase::Waiting)
+	{
+		EndClownFogEntry(false);
+		return;
+	}
+
+	const UAnimInstance* Anim = Player->GetMesh()->GetAnimInstance();
+	if (FogEntryElapsed < FogEntryDuration * 0.82f && (!Anim || !Anim->Montage_IsActive(ClownFogEntryMontage)))
+	{
+		EndClownFogEntry(false);
+		return;
+	}
+
+	FogEntryElapsed += DeltaSeconds;
+	const float Alpha = FMath::Clamp(FogEntryElapsed / FogEntryDuration, 0.0f, 1.0f);
+	const float Cross = FMath::InterpEaseInOut(0.0f, 1.0f, Alpha, 1.25f);
+	FVector Desired = FMath::Lerp(FogEntryStart, FogEntryEnd, Cross);
+	const double HalfHeight = Player->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	const FCollisionQueryParams FloorQuery(SCENE_QUERY_STAT(ClownFogEntryFloor), false, Player);
+	FHitResult Floor;
+	if (GetWorld()->LineTraceSingleByChannel(Floor, Desired + FVector(0, 0, 35), Desired - FVector(0, 0, HalfHeight + 70),
+		ECC_WorldStatic, FloorQuery) && Floor.ImpactNormal.Z > 0.6f)
+	{
+		Desired.Z = Floor.ImpactPoint.Z + HalfHeight + 2.0;
+	}
+
+	const FQuat Rotation = FQuat::Slerp(FogEntryStartRotation, FogEntryFacing, FMath::Min(Alpha / 0.25f, 1.0f));
+	Player->SetActorLocationAndRotation(Desired, Rotation, true);
+	if (FogEntryOpening && TraversedFogVisual.IsValid())
+	{
+		const FVector Hand = Player->GetMesh()->GetSocketLocation(TEXT("hand_r"));
+		const FVector Normal = FogEntryFacing.GetForwardVector();
+		const FVector FogCenter = TraversedFogVisual->GetComponentLocation();
+		const double HandDepth = FVector::DotProduct(Hand - FogCenter, Normal);
+		const FVector OpeningCenter = Hand - Normal * HandDepth;
+		const float Reach = FMath::SmoothStep(0.12f, 0.29f, Alpha) * (1.0f - FMath::SmoothStep(0.71f, 0.94f, Alpha));
+		const float Strength = Reach * (1.0f - FMath::SmoothStep(15.0, 95.0, FMath::Abs(HandDepth)));
+		FogEntryOpening->SetVectorParameterValue(TEXT("FogOpeningHand"),
+			FLinearColor(OpeningCenter.X, OpeningCenter.Y, OpeningCenter.Z, 1.0f));
+		FogEntryOpening->SetScalarParameterValue(TEXT("FogOpeningAmount"), Strength);
+	}
+
+	if (Alpha >= 1.0f)
+	{
+		const UBoxComponent* Gate = TraversedFogGate.Get();
+		const double Clearance = Gate->GetScaledBoxExtent().X + Player->GetCapsuleComponent()->GetScaledCapsuleRadius();
+		const double Depth = FVector::DotProduct(Player->GetActorLocation() - Gate->GetComponentLocation(), FogEntryFacing.GetForwardVector());
+		EndClownFogEntry(Depth > Clearance);
+	}
+}
+
+void ABossRoom::EndClownFogEntry(bool bReachedInside)
+{
+	if (!bFogEntryActive)
+	{
+		return;
+	}
+
+	bFogEntryActive = false;
+	SetActorTickInterval(FogEntryPreviousTickInterval);
+	AWarrior* Player = EncounterPlayer.Get();
+	if (Player)
+	{
+		if (UBoxComponent* Gate = TraversedFogGate.Get())
+		{
+			Player->GetCapsuleComponent()->IgnoreComponentWhenMoving(Gate, false);
+		}
+		if (UAnimInstance* Anim = Player->GetMesh()->GetAnimInstance())
+		{
+			Anim->Montage_Stop(0.15f, ClownFogEntryMontage);
+		}
+		if (IsPlayerAlive(Player))
+		{
+			Player->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		}
+	}
+	TraversedFogGate.Reset();
+	if (UStaticMeshComponent* Visual = TraversedFogVisual.Get())
+	{
+		Visual->SetMaterial(0, FogEntryOriginalMaterial);
+	}
+	TraversedFogVisual.Reset();
+	FogEntryOriginalMaterial = nullptr;
+	FogEntryOpening = nullptr;
+
+	for (const auto& Item : FogEntryWeaponVisibility)
+	{
+		if (USkeletalMeshComponent* HeldMesh = Item.Key.Get())
+		{
+			HeldMesh->SetVisibility(Item.Value);
+		}
+	}
+	FogEntryWeaponVisibility.Reset();
+	UnlockPlayer();
+
+	if (bReachedInside && IsPlayerAlive(Player))
+	{
+		RoomState = EBossRoomState::Intro;
+		BeginBattle();
+	}
+	else
+	{
+		EncounterPlayer.Reset();
+		RefreshGate();
+	}
 }
 
 void ABossRoom::LockPlayer(AWarrior* Player)
@@ -614,15 +886,32 @@ void ABossRoom::UnlockPlayer()
 	RestoreSequenceUI();
 }
 
+void ABossRoom::OnIntroSequenceUpdated(const UMovieSceneSequencePlayer& Player, FFrameTime CurrentTime, FFrameTime)
+{
+	if (!ClownApproachMusic->IsPlaying())
+	{
+		return;
+	}
+
+	const FFrameRate TickResolution = IntroSequence->GetMovieScene()->GetTickResolution();
+	const FFrameTime SequenceTime = FFrameRate::TransformTime(CurrentTime, Player.GetCurrentTime().Rate, TickResolution);
+	if (SequenceTime >= FFrameTime(ClownApproachMusicCutFrame.GetValue()))
+	{
+		ClownApproachMusic->Stop();
+	}
+}
+
 void ABossRoom::StopIntro()
 {
 	// 시퀀스 중단 전에 완료 콜백부터 해제.
 	if (IsValid(IntroPlayer.Get()))
 	{
+		IntroPlayer->OnSequenceUpdated().RemoveAll(this);
 		IntroPlayer->OnFinished.RemoveDynamic(this, &ABossRoom::OnIntroFinished);
 		IntroPlayer->Stop();
 	}
 
+	ClownApproachMusic->Stop();
 	UnlockPlayer();
 
 	IntroPlayer = nullptr;
@@ -680,10 +969,57 @@ void ABossRoom::BeginBattle()
 
 	BossActor->OnPhase2StageRequested.AddUniqueDynamic(this, &ABossRoom::UpdateBossHUDForPhase2);
 	ShowBossHUD();
+	UpdateEncounterMusic();
+}
+
+void ABossRoom::UpdateEncounterMusic()
+{
+	switch (BossActor->GetBossPhase())
+	{
+	case EBossPhase::OpeningAttack:
+	case EBossPhase::Phase1:
+		SetEncounterMusic(Phase1CombatMusic, Phase1CombatMusicVolume);
+		break;
+
+	case EBossPhase::PhaseTransition:
+		if (BossActor->GetPhase2TransitionStage() == EBossPhase2TransitionStage::Searching)
+		{
+			SetEncounterMusic(Phase2SearchMusic, Phase2SearchMusicVolume);
+		}
+		break;
+
+	case EBossPhase::Phase2:
+		SetEncounterMusic(Phase2CombatMusic, Phase2CombatMusicVolume);
+		break;
+
+	default:
+		break;
+	}
+}
+
+void ABossRoom::SetEncounterMusic(USoundBase* Music, float Volume)
+{
+	const bool bMusicChanged = EncounterMusic->Sound != Music;
+	if (bMusicChanged)
+	{
+		EncounterMusic->Stop();
+		EncounterMusic->SetSound(Music);
+	}
+
+	if (Music && (bMusicChanged || EncounterMusic->VolumeMultiplier != Volume))
+	{
+		EncounterMusic->SetVolumeMultiplier(Volume);
+		if (Volume > 0.f && !EncounterMusic->IsPlaying())
+		{
+			EncounterMusic->Play();
+		}
+	}
 }
 
 void ABossRoom::FailAttempt()
 {
+	EndClownFogEntry(false);
+
 	if (bChangingState || RoomState == EBossRoomState::Ready || RoomState == EBossRoomState::Cleared)
 	{
 		return;
@@ -699,6 +1035,7 @@ void ABossRoom::FailAttempt()
 	bChangingState = true;
 
 	StopIntro();
+	SetEncounterMusic(nullptr);
 	HideBossHUD();
 
 	if (IsValid(BossActor.Get()))
@@ -723,6 +1060,7 @@ void ABossRoom::FinishClear()
 	bChangingState = true;
 
 	StopIntro();
+	SetEncounterMusic(nullptr);
 	RoomState = EBossRoomState::Cleared;
 
 	// 마지막 체력 감소와 데미지 숫자를 보여준 뒤 체력바 제거.
@@ -792,6 +1130,13 @@ void ABossRoom::RefreshGate()
 
 	const bool bShowFog = bClosed && RoomState != EBossRoomState::Intro;
 	const bool bOtherSideClosed = bEnableOtherSideGate && bClosed;
+
+	if (BossActor && BossActor->IsA<ABossClown>())
+	{
+		// The fog gate stops the player capsule but must not collapse the spring arm during entry.
+		GateBlocker->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+		OhterSideGateBlocker->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	}
 
 	FogMesh->SetVisibility(bShowFog, true);
 	OhterSideFogMesh->SetVisibility(bEnableOtherSideGate && bShowFog, true);
@@ -876,10 +1221,12 @@ void ABossRoom::ApplySavedProgress()
 		return;
 	}
 
+	EndClownFogEntry(false);
 	bChangingState = true;
 
 	// 현재 진행 중인 전투와 연출 표시 정리
 	StopIntro();
+	SetEncounterMusic(nullptr);
 	HideBossHUD();
 	EncounterPlayer.Reset();
 
@@ -959,4 +1306,10 @@ void ABossRoom::ApplySavedProgress()
 
 	// 시청 이력과 클리어 상태에 맞춰 안개문 갱신
 	RefreshGate();
+
+	if (ClownApproachMusicCutFrame.IsSet() && ClownApproachMusic->Sound &&
+		RoomState == EBossRoomState::Ready && IsFirstEntry())
+	{
+		ClownApproachMusic->Play();
+	}
 }

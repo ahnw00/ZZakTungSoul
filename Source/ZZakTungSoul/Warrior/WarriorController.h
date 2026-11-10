@@ -167,6 +167,7 @@ private:
 	// 
 	//---------------------------------------------------------------
 	void TriggerDebugToggle();
+	void TriggerDebugNum0();
 	void TriggerDebugNum1();
 	void TriggerDebugNum2();
 	void TriggerDebugNum3();
@@ -177,6 +178,8 @@ private:
 	void TriggerDebugNum8();
 	void TriggerDebugNum9();
 
+	class ABossClown* FindDebugClownBoss() const;
+	void TriggerDebugClownFatalAttack(bool bFront);
 
 	// [UI]
 public:

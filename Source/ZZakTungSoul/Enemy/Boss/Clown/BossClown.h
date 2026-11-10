@@ -8,6 +8,7 @@
 
 class UAnimInstance;
 class UAnimMontage;
+class UBrainComponent;
 class UAnimSequence;
 class AChaosCacheManager;
 class UGeometryCollectionComponent;
@@ -58,6 +59,12 @@ public:
 	EBossClownAttackResult GetClownAttackResult(int32 ExecutionID) const;
 	// 광대 전용 Notify에서 현재 공격의 타격 데미지 설정.
 	void SetClownAttackDamage(int32 DamageIndex, UAnimSequenceBase* SourceAnimation);
+	void PlayMeleeSwingSound();
+	void PlayYabawiFailureEffects(const TArray<FVector>& BowlLocations);
+	bool TryPlayBallGroundEffects(const FHitResult& Hit) const;
+
+	void GetCriticalAttackPlacement(const ACharacter& Attacker, bool bFront, FVector& Location, FRotator& Rotation) const;
+	virtual void SetDead() override;
 
 	const FClownPhaseOnePattern* GetAttackPattern(EBossClownAttack AttackType) const;
 	const FEnemyAttackData* GetClownAttackData(EBossClownAttack Type) const;
@@ -83,6 +90,11 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void HandleAttackTraceHit(const FHitResult& Hit) override;
 	virtual void ResetBossGimmicks() override;
+	virtual void TryStartPhase2Transition(float CurrentHp, float MaxHp) override;
+	virtual bool CanBeFatalAttacked(AActor* Attacker) const override;
+	virtual void ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront) override;
+	virtual void UpdateRotationModeState() override;
+	virtual void DeadStart() override;
 	// 일반 적 데이터와 분리한 광대 전용 애니메이션 데이터.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Clown|Data")
 	TObjectPtr<UBossClownAnimationData> ClownAnimationData;
@@ -91,6 +103,19 @@ protected:
 	float AttackTimeout = 15.0f;
 
 private:
+	void RegisterIntroBreakables();
+	void UpdateIntroBreakables();
+
+	TArray<TWeakObjectPtr<UMeshComponent>> IntroBreakables;
+	TMap<TWeakObjectPtr<UMeshComponent>, ECollisionEnabled::Type> BrokenIntroProps;
+	FVector LastIntroBossPosition = FVector::ZeroVector;
+	FVector LastIntroPlayerPosition = FVector::ZeroVector;
+	bool bIntroBreakablesActive = false;
+
+	void OnCriticalReactionEnded(UAnimMontage* Montage, bool bInterrupted);
+	TWeakObjectPtr<UBrainComponent> CriticalReactionBrain;
+	bool bDeathAfterCritical = false;
+
 	UPROPERTY(EditInstanceOnly, Category = "Clown|Phase2 Transition")
 	TObjectPtr<UAnimSequence> Phase2DisappearAnimation;
 
@@ -246,6 +271,10 @@ private:
 	static bool UsesSpecialPresentation(EBossClownAttack Type);
 	static bool UsesLoopingMontage(EBossClownAttack Type);
 	bool PrepareClownPattern();
+	void PlayPatternEffects(EBossClownAttack Attack, const FVector& Location, const FRotator& Rotation) const;
+	void HandleMeleeGroundContact(const FHitResult& Hit);
+	bool IsMeleeSwingActive() const;
+	bool bPlayedMeleeGroundContact = false;
 	bool TickClownSpecial(float DeltaTime, float MontageTime);
 	void FindEncounterFloor();
 	bool IsEncounterFloorHit(const FHitResult& Hit) const;

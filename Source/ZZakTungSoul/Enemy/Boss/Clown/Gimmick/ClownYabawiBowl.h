@@ -21,6 +21,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Clown|Yabawi")
 	bool ReceivePlayerAttack(AActor* Player, const FHitResult& Hit);
+	void BreakShell(const FHitResult& Hit);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Clown|Yabawi")
 	void OnBowlStruck(const FHitResult& Hit);
@@ -28,17 +29,17 @@ public:
 	void SetCoverAlpha(float Alpha);
 	void ShowBall(bool bVisible);
 	void UpdateAnswerReveal(float OpenAlpha, float ElapsedTime);
-	void UpdateExplosion(float Radius, float Alpha);
 
 private:
+	UFUNCTION()
+	void OnBodyOverlap(UPrimitiveComponent* Trigger, AActor* OtherActor, UPrimitiveComponent* OtherComponent,
+		int32 BodyIndex, bool bFromSweep, const FHitResult& Sweep);
+
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> BowlMesh;
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> BallMesh;
-
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UStaticMeshComponent> Explosion;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBoxComponent> AttackHitBox;

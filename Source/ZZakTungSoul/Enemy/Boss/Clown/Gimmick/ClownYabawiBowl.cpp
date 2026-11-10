@@ -86,11 +86,11 @@ void AClownYabawiBowl::OnBodyOverlap(UPrimitiveComponent* Trigger, AActor* Other
 	Round->SelectBowl(Player, this, RoundID, Contact);
 }
 
-void AClownYabawiBowl::BreakShell(const FHitResult& Hit)
+void AClownYabawiBowl::BreakShell()
 {
 	if (const ABossClown* Boss = Cast<ABossClown>(GetOwner()))
 	{
-		ClownFracture::Spawn(*Boss, *BowlMesh, Hit.ImpactPoint, ClownFracture::PatternDebrisLifeSpan);
+		ClownFracture::PlayCached(*Boss, *BowlMesh, ClownFracture::PatternDebrisLifeSpan);
 	}
 }
 

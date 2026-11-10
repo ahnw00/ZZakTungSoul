@@ -268,7 +268,7 @@ void UClownYabawiComponent::CommitSelection()
 	}
 
 	const bool bCorrect = Bowls.IndexOfByKey(Bowl) == CorrectBowl;
-	Bowl->BreakShell(PendingHit);
+	Bowl->BreakShell();
 	Bowl->OnBowlStruck(PendingHit);
 	Resolve(bCorrect ? ERoundResult::Correct : ERoundResult::Wrong);
 }

@@ -290,7 +290,7 @@ void UClownProjectileComponent::TickCard(float DeltaTime)
 		{
 			if (bSafeCard)
 			{
-				BreakAt(Player->GetActorLocation());
+				Break();
 			}
 			else
 			{
@@ -307,7 +307,7 @@ void UClownProjectileComponent::TickCard(float DeltaTime)
 	// 착지 프레임의 PostPhysics 피해 판정이 먼저 실행되게 한다.
 	if (Alpha >= 1.0f && PreviousElapsed >= FallStart + CardFallTime)
 	{
-		BreakAt(VisualMesh.IsValid() ? VisualMesh->Bounds.Origin : CardOrigin);
+		Break();
 	}
 }
 
@@ -436,7 +436,7 @@ void UClownProjectileComponent::TickComponent(
 			Boss->TryPlayBallGroundEffects(Floor))
 		{
 			Owner->AddActorWorldOffset(Floor.Location - Center, false);
-			BreakAt(Floor.ImpactPoint);
+			Break();
 			return;
 		}
 	}
@@ -480,7 +480,7 @@ void UClownProjectileComponent::HandleTraceHit(const FHitResult& Hit)
 		const bool bBodyContact = Player && Player->GetCapsuleComponent() == Hit.GetComponent();
 		if (Player && (bBallGroundEffects || (bBodyContact && (bCardHazard || bCubeMarch))))
 		{
-			BreakAt(Hit.ImpactPoint);
+			Break();
 		}
 		else if (!bCardHazard && !bCubeMarch)
 		{
@@ -494,7 +494,7 @@ void UClownProjectileComponent::HandleTraceHit(const FHitResult& Hit)
 			HandleBallGroundHit(Hit);
 			if (!Owner->IsActorBeingDestroyed())
 			{
-				BreakAt(Hit.ImpactPoint);
+				Break();
 			}
 		}
 		else
@@ -520,11 +520,11 @@ void UClownProjectileComponent::HandleBallGroundHit(const FHitResult& Hit)
 	const ABossClown* Boss = Owner ? Cast<ABossClown>(Owner->GetOwner()) : nullptr;
 	if (IsValid(Boss) && Boss->TryPlayBallGroundEffects(Hit))
 	{
-		BreakAt(Hit.ImpactPoint);
+		Break();
 	}
 }
 
-void UClownProjectileComponent::BreakAt(const FVector& ImpactPoint)
+void UClownProjectileComponent::Break()
 {
 	AActor* Owner = GetOwner();
 	if (!Owner || Owner->IsActorBeingDestroyed() || (bCardHazard && !bCardActive) || (bCubeMarch && !bCubeTracing))
@@ -535,7 +535,7 @@ void UClownProjectileComponent::BreakAt(const FVector& ImpactPoint)
 	const ABossClown* Boss = Cast<ABossClown>(Owner->GetOwner());
 	if (Boss && VisualMesh.IsValid())
 	{
-		ClownFracture::Spawn(*Boss, *VisualMesh.Get(), ImpactPoint, ClownFracture::PatternDebrisLifeSpan);
+		ClownFracture::PlayCached(*Boss, *VisualMesh.Get(), ClownFracture::PatternDebrisLifeSpan);
 	}
 	Owner->Destroy();
 }

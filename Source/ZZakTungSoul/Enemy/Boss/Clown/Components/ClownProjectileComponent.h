@@ -60,7 +60,7 @@ protected:
 private:
 	void HandleTraceHit(const FHitResult& Hit);
 	void HandleBallGroundHit(const FHitResult& Hit);
-	void BreakAt(const FVector& ImpactPoint);
+	void Break();
 	AWarrior* FindTouchingPlayer(const FVector& Location, const FQuat& Rotation, const FVector& HalfExtent) const;
 	void SetTracing(bool bEnabled);
 	void TickBallSpin(float DeltaTime);

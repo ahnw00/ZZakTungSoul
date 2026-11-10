@@ -1,4 +1,4 @@
-#include <Enemy/Boss/Encounter/BossRoom.h>
+﻿#include <Enemy/Boss/Encounter/BossRoom.h>
 #include <Enemy/Boss/Encounter/BossRoomSubsystem.h>
 #include <Enemy/Boss/Boss.h>
 #include <Enemy/Boss/Clown/BossClown.h>
@@ -141,8 +141,7 @@ ABossRoom::ABossRoom()
 	ClownApproachMusic->SetAutoActivate(false);
 
 	static ConstructorHelpers::FObjectFinder<USoundBase> ApproachSong(TEXT(
-		"/Game/Blueprints/Enemy/Boss/Clown/Sound/Work/Fu\u010D\u00EDk_Entry_of_the_Gladiators__Arr__for_Brass_Ensemble_."
-		"Fu\u010D\u00EDk_Entry_of_the_Gladiators__Arr__for_Brass_Ensemble_"));
+		"/Game/Assets/Sound/Clown/SFX_ApproachSong.SFX_ApproachSong"));
 	ClownApproachMusic->SetSound(ApproachSong.Object);
 	ClownApproachMusic->SetVolumeMultiplier(0.18f);
 

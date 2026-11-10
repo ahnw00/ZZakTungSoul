@@ -21,7 +21,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Clown|Yabawi")
 	bool ReceivePlayerAttack(AActor* Player, const FHitResult& Hit);
-	void BreakShell(const FHitResult& Hit);
+	void BreakShell();
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Clown|Yabawi")
 	void OnBowlStruck(const FHitResult& Hit);

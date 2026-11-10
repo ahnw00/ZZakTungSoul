@@ -3,6 +3,7 @@
 #include <Engine/StaticMesh.h>
 #include <Engine/World.h>
 #include <GeometryCollection/GeometryCollectionObject.h>
+#include <Chaos/CacheCollection.h>
 #include <Kismet/GameplayStatics.h>
 #include <NiagaraComponent.h>
 #include <NiagaraFunctionLibrary.h>
@@ -158,4 +159,8 @@ UBossClownAnimationData::UBossClownAnimationData()
 	AddFracture(TEXT("IntroCube"), TEXT("GC_ClownIntroCube"));
 	AddFracture(TEXT("SM_Crate"), TEXT("GC_ClownCrate"));
 	AddFracture(TEXT("SKM_CanLowGrade"), TEXT("GC_ClownCan"));
+
+	static ConstructorHelpers::FObjectFinder<UChaosCacheCollection> CacheCollection(TEXT(
+		"/Game/Blueprints/Enemy/Boss/Clown/Fracture/CC_ClownFractures.CC_ClownFractures"));
+	FractureCaches = CacheCollection.Object;
 }

@@ -178,7 +178,7 @@ void ABossClown::UpdateIntroBreakables()
 		const FQuat Rotation = Transform.GetRotation();
 		const bool bBossContact = bBossMoved && GetCapsuleComponent()->OverlapComponent(Center, Rotation, Shape);
 		const bool bPlayerContact = bPlayerMoved && Player->GetCapsuleComponent()->OverlapComponent(Center, Rotation, Shape);
-		if ((bBossContact || bPlayerContact) && ClownFracture::Spawn(*this, *PropMesh, bBossContact ? BossPosition : PlayerPosition))
+		if ((bBossContact || bPlayerContact) && ClownFracture::PlayCached(*this, *PropMesh))
 		{
 			BrokenIntroProps.Add(Prop, PropMesh->GetCollisionEnabled());
 			PropMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);

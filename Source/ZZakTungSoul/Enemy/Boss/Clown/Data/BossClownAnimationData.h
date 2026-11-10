@@ -7,6 +7,7 @@
 #include "BossClownAnimationData.generated.h"
 
 class UGeometryCollection;
+class UChaosCacheCollection;
 
 class AActor;
 class UTexture2D;
@@ -246,6 +247,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Fracture")
 	TMap<FName, TObjectPtr<UGeometryCollection>> Fractures;
+
+	UPROPERTY(EditAnywhere, Category = "Clown|Fracture")
+	TObjectPtr<UChaosCacheCollection> FractureCaches;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Reactions")
 	TObjectPtr<UAnimMontage> FrontCriticalReaction;

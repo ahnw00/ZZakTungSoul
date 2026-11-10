@@ -30,6 +30,9 @@ enum class EActionState : uint8
 	Stun,
 	PickUp,
 	Drink,
+	LightOn,
+	FirstLit,
+	Lit,
 	Dead
 };
 

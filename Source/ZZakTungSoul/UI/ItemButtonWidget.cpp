@@ -3,6 +3,7 @@
 
 #include "UI/ItemButtonWidget.h"
 #include <Components/Button.h>
+#include <Components/Image.h>
 
 
 void UItemButtonWidget::NativeConstruct()
@@ -32,4 +33,9 @@ void UItemButtonWidget::ResetButtonImage()
 	Style.Pressed.SetResourceObject(nullptr);
 
 	ItemButton->SetStyle(Style);
+}
+
+void UItemButtonWidget::SetItemImage(TSoftObjectPtr<UTexture2D> InTexture)
+{
+	ItemImage->SetBrushFromSoftTexture(InTexture);
 }

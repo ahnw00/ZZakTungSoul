@@ -8,6 +8,9 @@
 #include "GameFramework/PlayerState.h"
 #include "WarriorPlayerState.generated.h"
 
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSoulChangedDelegate, int32, CurrentSouls);
+
 /**
  * 
  */
@@ -35,6 +38,9 @@ public:
 	// 소울 획득.
 	UFUNCTION(BlueprintCallable, Category = "PlayerState|Souls")
 	void AddSouls(int32 Amount);
+	// 소울 변경 알림.
+	UPROPERTY(BlueprintAssignable, Category = "PlayerState|Souls")
+	FOnSoulChangedDelegate OnSoulChanged;
 
 	// 화톳불 
 	UFUNCTION(BlueprintCallable, Category = "PlayerState|Bonfire")

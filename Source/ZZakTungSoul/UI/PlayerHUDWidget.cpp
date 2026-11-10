@@ -5,6 +5,8 @@
 #include "Components/ProgressBar.h"
 #include "Character/CharacterStatComponent.h"
 #include "Interface/CharacterStatInterface.h"
+#include "UIHelpers.h"
+#include <Warrior/WarriorPlayerState.h>
 
 
 
@@ -17,12 +19,16 @@ void UPlayerHUDWidget::NativeConstruct()
 	{
 		BindStatComponent(StatOwner->GetCharacterStatComponent());
 	}
+	// 소울 표시용 PlayerState 연결.
+	BindPlayerState(GetOwningPlayerState<AWarriorPlayerState>());
 }
 
 void UPlayerHUDWidget::NativeDestruct()
 {
 	// 델리게이트 연결 정리.
 	BindStatComponent(nullptr);
+
+	BindPlayerState(nullptr);
 
 	Super::NativeDestruct();
 }
@@ -57,6 +63,24 @@ void UPlayerHUDWidget::BindStatComponent(UCharacterStatComponent* InStatComp)
 	}
 }
 
+void UPlayerHUDWidget::BindPlayerState(AWarriorPlayerState* InPlayerState)
+{
+	// 기존 연결 해제.
+	if (CurrentPlayerState.IsValid())
+	{
+		CurrentPlayerState->OnSoulChanged.RemoveDynamic(this, &UPlayerHUDWidget::UpdateSouls);
+	}
+	// 새 PlayerState 저장.
+	CurrentPlayerState = InPlayerState;
+
+	// 새 PlayerState 연결 및 현재 소울 표시.
+	if (CurrentPlayerState.IsValid())
+	{
+		CurrentPlayerState->OnSoulChanged.AddUniqueDynamic(this, &UPlayerHUDWidget::UpdateSouls);
+		UpdateSouls(CurrentPlayerState->GetSaveData().Souls);
+	}
+}
+
 // 프로그레스바 헬퍼 함수.
 void UPlayerHUDWidget::UpdateProgressBar(UProgressBar* Bar, float Current, float Max)
 {
@@ -87,4 +111,9 @@ void UPlayerHUDWidget::UpdateFP(float CurrentFP, float MaxFP)
 void UPlayerHUDWidget::UpdateStamina(float CurrentStamina, float MaxStamina)
 {
 	UpdateProgressBar(ProgressBar_Stamina, CurrentStamina, MaxStamina);
+}
+
+void UPlayerHUDWidget::UpdateSouls(int32 CurrentSouls)
+{
+	UIHelpers::SetNumberText(TextBlock_Souls, CurrentSouls);
 }

@@ -13,11 +13,11 @@
 #include "TimerManager.h"
 #include "Warrior.generated.h"
 
-class UAnimMontage;
 
 
 // [전방 선언].
 class UCharacterStatComponent;
+class UAnimMontage;
 
 /**
  * 
@@ -69,7 +69,7 @@ private:
 		int32 OtherBodyIndex);
 
 private:
-	UPROPERTY(VisibleAnywhere, Category = "Camera")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* SpringArm;
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	class UCameraComponent* Camera;
@@ -167,6 +167,10 @@ public:
 	void Attack();
 	void FinishAttack();
 	bool FatalAttack();
+
+	
+	FORCEINLINE bool IsFatalCameraActive() const { return bFatalCameraActive; }
+
 	void SetComboWindow(bool bOpen);
 	void OnComboTransition();
 	void ChargeAttack();
@@ -191,6 +195,7 @@ public:
 
 	// 상호작용
 	void Interact();
+	void PlayActionMontage();
 
 	// Getter/Setter
 	
@@ -220,6 +225,12 @@ public:
 private:
 	class IFatalAttackableInterface* CurrentFatalAttackable = nullptr;
 
+	// [처형 카메라].
+	TWeakObjectPtr<AActor> FatalCameraTarget;
+	bool bFatalCameraActive = false;
+	UPROPERTY(EditDefaultsOnly, Category = "FatalCinematic")
+	TSubclassOf<AActor> FatalCameraClass;
+	
 public:
 	// [캐릭터 스탯].
 	virtual UCharacterStatComponent* GetCharacterStatComponent() const override { return CharacterStatComponent; }
@@ -255,11 +266,15 @@ public:
 
 	void UnequipItem(EEquipmentSlot Slot);
 
-	void EquipArmor(const UItemDataAsset* ItemData);
+	void EquipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot);
 
-	void UnequipArmor(const UItemDataAsset* ItemData);
+	void UnequipArmor(const UItemDataAsset* ItemData, EEquipmentSlot Slot);
+
+	void ResetArmorMaterial(EEquipmentSlot Slot);
 
 	bool CheckItemInSlot(const FGuid& InID, EEquipmentSlot Slot);
+
+	bool CheckInSlot(EEquipmentSlot Slot);
 
 	// Inherited via IItemInterface
 	void ObtainItem(class UItemDataAsset* detectedItem) override;

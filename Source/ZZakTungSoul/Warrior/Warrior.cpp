@@ -720,13 +720,17 @@ bool AWarrior::FatalAttack()
 
 	// 적을 바라보는 방향으로 회전
 	FRotator TargetRotation = (Enemy->GetActorLocation() - GetActorLocation()).Rotation();
-	
+
+
 	// 적 기준 상대적인 위치
 	// 앞잡
+	// 앞잡 뒤잡 여부 판단.
+	bool bFront = false;
 	FVector RelativeLocation;
 	if (Dot < -0.7f)
 	{
 		SetActionState(EActionState::FrontFatalAttack);
+		bFront = true;
 		RelativeLocation = FVector(80.f, 10.f, 0.f);
 		// 카메라 관련.
 		TargetRotation = (Enemy->GetActorLocation() - Enemy->GetActorTransform().TransformPosition(RelativeLocation)).Rotation();
@@ -753,11 +757,12 @@ bool AWarrior::FatalAttack()
 	AnimInstance->PlayActionMontage();
 
 	// [처형 카메라]
-	if (FatalCameraClass)
+	const TSubclassOf<AActor> CameraClass = bFront ? FatalCameraClass : FatalBackCameraClass;
+	if (CameraClass)
 	{
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		GetWorld()->SpawnActor<AActor>(FatalCameraClass, GetActorTransform(), SpawnParams);
+		GetWorld()->SpawnActor<AActor>(CameraClass, GetActorTransform(), SpawnParams);
 	}
 
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);

@@ -48,7 +48,7 @@ void UMainMenuWidget::OnNewGameClicked()
 	{
 		UGameplayStatics::DeleteGameInSlot(SlotName, 0);
 	}
-
+	
 	// 로딩 화면을 거쳐 새 게임 시작(빈 옵션).
 	StartGameWithLoadingScreen(TEXT(""));
 }

@@ -466,6 +466,12 @@ void AEnemyBase::HandleAttackTraceHit(const FHitResult& Hit)
 		return;
 	}
 
+	// 같은 적 hit 방지
+	if (HitActor->IsA<AEnemyBase>())
+	{
+		return;
+	}
+
 	//UE_LOG(LogTemp, Log, TEXT("Attack Hit: %s"), *HitActor->GetName());
 
 	// 인터페이스 형변환

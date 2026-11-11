@@ -642,8 +642,9 @@ bool ABossRoom::BeginClownFogEntry(AWarrior* Player, bool bOtherSide)
 {
 	UCharacterMovementComponent* Movement = Player->GetCharacterMovement();
 	UAnimInstance* Anim = Player->GetMesh()->GetAnimInstance();
+	const APlayerController* Controller = Cast<APlayerController>(Player->GetController());
 	if (!ClownFogEntryMontage || !Anim || !Movement->IsMovingOnGround() ||
-		Player->GetActionState() != EActionState::None || !Cast<APlayerController>(Player->GetController()))
+		Player->GetActionState() != EActionState::None || !Controller)
 	{
 		return false;
 	}
@@ -669,6 +670,7 @@ bool ABossRoom::BeginClownFogEntry(AWarrior* Player, bool bOtherSide)
 	FogEntryEnd = GatePath + Inward * (Extent.X + Radius + 36.0);
 	FogEntryStartRotation = Player->GetActorQuat();
 	FogEntryFacing = Inward.ToOrientationQuat();
+	FogEntryStartControlRotation = Controller->GetControlRotation();
 
 	FogEntryDuration = Anim->Montage_Play(ClownFogEntryMontage, 1.0f, EMontagePlayReturnType::Duration);
 	if (FogEntryDuration <= 0.0f)
@@ -729,6 +731,15 @@ void ABossRoom::TickClownFogEntry(float DeltaSeconds)
 
 	FogEntryElapsed += DeltaSeconds;
 	const float Alpha = FMath::Clamp(FogEntryElapsed / FogEntryDuration, 0.0f, 1.0f);
+	const float TurnAlpha = FMath::Min(Alpha / 0.25f, 1.0f);
+	if (APlayerController* Controller = LockedController.Get())
+	{
+		const float CameraAlpha = FMath::SmoothStep(0.0f, 1.0f, TurnAlpha);
+		FRotator ControlRotation = FogEntryStartControlRotation;
+		ControlRotation.Yaw += FMath::FindDeltaAngleDegrees(ControlRotation.Yaw, FogEntryFacing.Rotator().Yaw) * CameraAlpha;
+		Controller->SetControlRotation(ControlRotation);
+	}
+
 	const float Cross = FMath::InterpEaseInOut(0.0f, 1.0f, Alpha, 1.25f);
 	FVector Desired = FMath::Lerp(FogEntryStart, FogEntryEnd, Cross);
 	const double HalfHeight = Player->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
@@ -740,7 +751,7 @@ void ABossRoom::TickClownFogEntry(float DeltaSeconds)
 		Desired.Z = Floor.ImpactPoint.Z + HalfHeight + 2.0;
 	}
 
-	const FQuat Rotation = FQuat::Slerp(FogEntryStartRotation, FogEntryFacing, FMath::Min(Alpha / 0.25f, 1.0f));
+	const FQuat Rotation = FQuat::Slerp(FogEntryStartRotation, FogEntryFacing, TurnAlpha);
 	Player->SetActorLocationAndRotation(Desired, Rotation, true);
 	if (FogEntryOpening && TraversedFogVisual.IsValid())
 	{

@@ -1,4 +1,4 @@
-#include <Enemy/Boss/Clown/Data/BossClownAnimationData.h>
+﻿#include <Enemy/Boss/Clown/Data/BossClownAnimationData.h>
 #include <Animation/AnimMontage.h>
 #include <Engine/StaticMesh.h>
 #include <Engine/World.h>
@@ -46,6 +46,7 @@ UBossClownAnimationData::UBossClownAnimationData()
 		TEXT("/Game/Assets/Lowpoly_Bowl_3D_Model_for_Architecture_and_Kitchen/bowl/StaticMeshes/bowl.bowl"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Ball(
 		TEXT("/Game/Blueprints/Enemy/Boss/Clown/Projectiles/SM_ClownBeachBallVivid.SM_ClownBeachBallVivid"));
+
 	FClownPhaseOnePattern& Yabawi = PhaseOnePatterns.AddDefaulted_GetRef();
 	Yabawi.AttackType = EBossClownAttack::Yabawi;
 	Yabawi.bAllowInPhase1 = false;
@@ -57,73 +58,80 @@ UBossClownAnimationData::UBossClownAnimationData()
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> FrontCritical(
 		TEXT("/Game/Blueprints/Enemy/Boss/Clown/Animation/Encounter/AM_Clown_FrontCritical.AM_Clown_FrontCritical"));
+
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> BackCritical(
 		TEXT("/Game/Blueprints/Enemy/Boss/Clown/Animation/Encounter/AM_Clown_BackCritical.AM_Clown_BackCritical"));
+
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> Death(
 		TEXT("/Game/Blueprints/Enemy/Boss/Clown/Animation/Encounter/AM_Clown_Death.AM_Clown_Death"));
+
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> YabawiGroggy(
 		TEXT("/Game/Blueprints/Enemy/Boss/Clown/Animation/Encounter/AM_Clown_YabawiGroggy.AM_Clown_YabawiGroggy"));
+
 	GroggyMontage = YabawiGroggy.Object;
 	FrontCriticalReaction = FrontCritical.Object;
 	BackCriticalReaction = BackCritical.Object;
 	DeathReaction = Death.Object;
 
-	const auto LoadSound = [](const TCHAR* Folder, int32 Variation = 1)
-	{
-		const FString Name = FString::Printf(TEXT("%s_%02d"), Folder, Variation);
-		const FString Path = FString::Printf(TEXT("/Game/FreeGameSoundsVol1/SFX/%s/%s.%s"), Folder, *Name, *Name);
-		return ConstructorHelpers::FObjectFinder<USoundBase>(*Path).Object;
-	};
-	const auto LoadNiagara = [](const TCHAR* Variant)
-	{
-		const FString Name = FString(TEXT("NS_Free_Magic_")) + Variant;
-		const FString Path = FString::Printf(TEXT("/Game/Free_Magic/VFX_Niagara/%s.%s"), *Name, *Name);
-		return ConstructorHelpers::FObjectFinder<UNiagaraSystem>(*Path).Object;
-	};
-	UNiagaraSystem* RevealCircle = LoadNiagara(TEXT("Circle1"));
+	static ConstructorHelpers::FObjectFinder<USoundBase> Sweep(
+		TEXT("/Game/Assets/Sound/Clown/SFX_Clown_WeaponSweep.SFX_Clown_WeaponSweep"));
 
-	const auto LoadClownFoley = [](const TCHAR* Name)
-	{
-		const FString Path = FString::Printf(TEXT("/Game/Blueprints/Enemy/Boss/Clown/Sound/%s.%s"), Name, Name);
-		return ConstructorHelpers::FObjectFinder<USoundBase>(*Path).Object;
-	};
-	const auto SetPatternEffects = [this](EBossClownAttack Attack, USoundBase* Sound,
-		float Volume, UNiagaraSystem* System = nullptr, float Scale = 1.0f, float Pitch = 1.0f)
-	{
-		FClownPatternEffects& Effects = PatternEffects.FindOrAdd(Attack);
-		Effects.Sound = Sound;
-		Effects.Volume = Volume;
-		Effects.Pitch = Pitch;
-		Effects.NiagaraSystem = System;
-		Effects.NiagaraScale = Scale;
-	};
+	static ConstructorHelpers::FObjectFinder<USoundBase> Slam(
+		TEXT("/Game/Assets/Sound/Clown/SFX_Clown_WeaponSlam.SFX_Clown_WeaponSlam"));
 
-	USoundBase* Sweep = LoadClownFoley(TEXT("SFX_Clown_WeaponSweep"));
-	USoundBase* Slam = LoadClownFoley(TEXT("SFX_Clown_WeaponSlam"));
-	SetPatternEffects(EBossClownAttack::HammerSweep, Sweep, 1.0f);
-	SetPatternEffects(EBossClownAttack::HammerSlam, Slam, 0.95f);
-	SetPatternEffects(EBossClownAttack::FastChaseSlam, Slam, 0.95f, nullptr, 1.0f, 1.08f);
-	SetPatternEffects(EBossClownAttack::DashSweep, Sweep, 0.9f, nullptr, 1.0f, 1.12f);
-	SetPatternEffects(EBossClownAttack::TripleBalls, LoadClownFoley(TEXT("SFX_Clown_BallRelease")), 0.68f);
-	SetPatternEffects(EBossClownAttack::ClapWave, LoadSound(TEXT("Spell_Fireball")), 0.75f, LoadNiagara(TEXT("Attack2")), 0.7f);
-	SetPatternEffects(EBossClownAttack::SpawnCards, LoadSound(TEXT("Spell_Ice_Spear")), 0.65f, RevealCircle, 0.65f);
-	SetPatternEffects(EBossClownAttack::CubeBarrage, LoadSound(TEXT("Forge_Hammer_On_Anvil_Medium")), 0.7f, LoadNiagara(TEXT("Circle2")), 0.8f);
+	static ConstructorHelpers::FObjectFinder<USoundBase> BallRelease(
+		TEXT("/Game/Assets/Sound/Clown/SFX_Clown_BallRelease.SFX_Clown_BallRelease"));
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> ClapWave(
+		TEXT("/Game/Assets/FreeGameSoundsVol1/SFX/Spell_Fireball/Spell_Fireball_01.Spell_Fireball_01"));
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> CardSpawn(
+		TEXT("/Game/Assets/FreeGameSoundsVol1/SFX/Spell_Ice_Spear/Spell_Ice_Spear_01.Spell_Ice_Spear_01"));
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> CubeBarrage(
+		TEXT("/Game/Assets/FreeGameSoundsVol1/SFX/Forge_Hammer_On_Anvil_Medium/Forge_Hammer_On_Anvil_Medium_01.Forge_Hammer_On_Anvil_Medium_01"));
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> ClapWaveVisual(
+		TEXT("/Game/Assets/Free_Magic/VFX_Niagara/NS_Free_Magic_Attack2.NS_Free_Magic_Attack2"));
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> CardSpawnVisual(
+		TEXT("/Game/Assets/Free_Magic/VFX_Niagara/NS_Free_Magic_Circle1.NS_Free_Magic_Circle1"));
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> CubeBarrageVisual(
+		TEXT("/Game/Assets/Free_Magic/VFX_Niagara/NS_Free_Magic_Circle2.NS_Free_Magic_Circle2"));
+
+	PatternEffects.Add(EBossClownAttack::HammerSweep, {Sweep.Object});
+	PatternEffects.Add(EBossClownAttack::HammerSlam, {Slam.Object, 0.95f});
+	PatternEffects.Add(EBossClownAttack::FastChaseSlam, {Slam.Object, 0.95f, 1.08f});
+	PatternEffects.Add(EBossClownAttack::DashSweep, {Sweep.Object, 0.9f, 1.12f});
+	PatternEffects.Add(EBossClownAttack::TripleBalls, {BallRelease.Object, 0.68f});
+	PatternEffects.Add(EBossClownAttack::ClapWave, {ClapWave.Object, 0.75f, 1.0f, ClapWaveVisual.Object, 0.7f});
+	PatternEffects.Add(EBossClownAttack::SpawnCards, {CardSpawn.Object, 0.65f, 1.0f, CardSpawnVisual.Object, 0.65f});
+	PatternEffects.Add(EBossClownAttack::CubeBarrage, {CubeBarrage.Object, 0.7f, 1.0f, CubeBarrageVisual.Object, 0.8f});
 
 	const ConstructorHelpers::FObjectFinder<USoundBase> BowlTap(
-		TEXT("/Game/Blueprints/Enemy/Boss/Clown/Sound/SFX_PingPong_1.SFX_PingPong_1"));
+		TEXT("/Game/Assets/Sound/Clown/SFX_PingPong_1.SFX_PingPong_1"));
+
 	FClownPatternEffects& BowlCover = PatternEffects.Add(EBossClownAttack::Yabawi);
+
 	BowlCover.Sound = BowlTap.Object;
 	BowlCover.Volume = 0.45f;
 	BowlCover.Pitch = 0.85f;
 
 	const ConstructorHelpers::FObjectFinder<UNiagaraSystem> Gravel(
-		TEXT("/Game/A_Surface_Footstep/Niagara_FX/ParticleSystems/PSN_Gravel_Surface.PSN_Gravel_Surface"));
-	MeleeGroundEffects.Sound = LoadClownFoley(TEXT("SFX_Clown_StoneImpact"));
+		TEXT("/Game/Assets/A_Surface_Footstep/Niagara_FX/ParticleSystems/PSN_Gravel_Surface.PSN_Gravel_Surface"));
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> StoneImpact(
+		TEXT("/Game/Assets/Sound/Clown/SFX_Clown_StoneImpact.SFX_Clown_StoneImpact"));
+
+	MeleeGroundEffects.Sound = StoneImpact.Object;
 	MeleeGroundEffects.Volume = 0.95f;
 	MeleeGroundEffects.NiagaraSystem = Gravel.Object;
 	MeleeGroundEffects.NiagaraScale = 4.5f;
+
 	const ConstructorHelpers::FObjectFinder<UNiagaraSystem> SlamDust(
-		TEXT("/Game/A_Surface_Footstep/Niagara_FX/ParticleSystems/PSN_Dirt_Surface.PSN_Dirt_Surface"));
+		TEXT("/Game/Assets/A_Surface_Footstep/Niagara_FX/ParticleSystems/PSN_Dirt_Surface.PSN_Dirt_Surface"));
+
 	HeavySlamDust.NiagaraSystem = SlamDust.Object;
 	HeavySlamDust.NiagaraScale = 3.5f;
 	BallGroundEffects = MeleeGroundEffects;
@@ -132,33 +140,54 @@ UBossClownAnimationData::UBossClownAnimationData()
 	BallGroundEffects.NiagaraScale = 1.45f;
 	BallGroundDust.NiagaraSystem = SlamDust.Object;
 	BallGroundDust.NiagaraScale = 1.1f;
+
 	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> BallWind(
 		TEXT("/Game/Assets/BlinkAndDashVFX/VFX_Niagara/NS_Dash_Wind.NS_Dash_Wind"));
 	BallSpinEffect = BallWind.Object;
 
-	YabawiFailureEffects.Sound = LoadSound(TEXT("Pickaxe_Strike_Rock"));
+	static ConstructorHelpers::FObjectFinder<USoundBase> YabawiFailureSound(
+		TEXT("/Game/Assets/FreeGameSoundsVol1/SFX/Pickaxe_Strike_Rock/Pickaxe_Strike_Rock_01.Pickaxe_Strike_Rock_01"));
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> YabawiFailureVisual(
+		TEXT("/Game/Assets/Free_Magic/VFX_Niagara/NS_Free_Magic_Area2.NS_Free_Magic_Area2"));
+
+	YabawiFailureEffects.Sound = YabawiFailureSound.Object;
 	YabawiFailureEffects.Volume = 0.95f;
 	YabawiFailureEffects.Pitch = 0.55f;
-	YabawiFailureEffects.NiagaraSystem = LoadNiagara(TEXT("Area2"));
+	YabawiFailureEffects.NiagaraSystem = YabawiFailureVisual.Object;
 	YabawiFailureEffects.NiagaraScale = 2.3f;
 
-	const auto AddFracture = [this](FName Shape, const TCHAR* Asset, const TCHAR* Subfolder = TEXT(""))
+	struct FFractureAssetPath
 	{
-		const FString Path = FString::Printf(TEXT("/Game/Blueprints/Enemy/Boss/Clown/Fracture/%s%s.%s"), Subfolder, Asset, Asset);
-		Fractures.Add(Shape, ConstructorHelpers::FObjectFinder<UGeometryCollection>(*Path).Object);
+		const TCHAR* Shape;
+		const TCHAR* Path;
 	};
-	AddFracture(TEXT("bowl"), TEXT("GC_ClownBowl"));
-	AddFracture(TEXT("SM_ClownBeachBallVivid"), TEXT("GC_ClownBall"));
-	AddFracture(TEXT("SM_ClownCard"), TEXT("GC_ClownCard"));
-	AddFracture(TEXT("IntroCard"), TEXT("GC_ClownIntroCard"));
+
+	static const FFractureAssetPath FractureAssetPaths[] =
+	{
+		{TEXT("bowl"), TEXT("/Game/Blueprints/Enemy/Boss/Clown/Fracture/GC_ClownBowl.GC_ClownBowl")},
+		{TEXT("SM_ClownBeachBallVivid"), TEXT("/Game/Blueprints/Enemy/Boss/Clown/Fracture/GC_ClownBall.GC_ClownBall")},
+		{TEXT("SM_ClownCard"), TEXT("/Game/Blueprints/Enemy/Boss/Clown/Fracture/GC_ClownCard.GC_ClownCard")},
+		{TEXT("IntroCard"), TEXT("/Game/Blueprints/Enemy/Boss/Clown/Fracture/GC_ClownIntroCard.GC_ClownIntroCard")},
+		{TEXT("IntroCube"), TEXT("/Game/Blueprints/Enemy/Boss/Clown/Fracture/GC_ClownIntroCube.GC_ClownIntroCube")},
+		{TEXT("SM_Crate"), TEXT("/Game/Blueprints/Enemy/Boss/Clown/Fracture/GC_ClownCrate.GC_ClownCrate")},
+		{TEXT("SKM_CanLowGrade"), TEXT("/Game/Blueprints/Enemy/Boss/Clown/Fracture/GC_ClownCan.GC_ClownCan")},
+	};
+
+	for (const FFractureAssetPath& Asset : FractureAssetPaths)
+	{
+		const ConstructorHelpers::FObjectFinder<UGeometryCollection> Collection(Asset.Path);
+		Fractures.Add(FName(Asset.Shape), Collection.Object);
+	}
+
 	for (int32 Index = 0; Index < 27; ++Index)
 	{
 		const FString Suffix = FString::Printf(TEXT("%d%d%d"), Index / 9, Index / 3 % 3, Index % 3);
-		AddFracture(FName(*(TEXT("SM_ClownCube_") + Suffix)), *(TEXT("GC_ClownCube_") + Suffix), TEXT("CubePieces/"));
+		const FString Path = FString::Printf(
+			TEXT("/Game/Blueprints/Enemy/Boss/Clown/Fracture/CubePieces/GC_ClownCube_%s.GC_ClownCube_%s"), *Suffix, *Suffix);
+		const ConstructorHelpers::FObjectFinder<UGeometryCollection> Collection(*Path);
+		Fractures.Add(FName(*(TEXT("SM_ClownCube_") + Suffix)), Collection.Object);
 	}
-	AddFracture(TEXT("IntroCube"), TEXT("GC_ClownIntroCube"));
-	AddFracture(TEXT("SM_Crate"), TEXT("GC_ClownCrate"));
-	AddFracture(TEXT("SKM_CanLowGrade"), TEXT("GC_ClownCan"));
 
 	static ConstructorHelpers::FObjectFinder<UChaosCacheCollection> CacheCollection(TEXT(
 		"/Game/Blueprints/Enemy/Boss/Clown/Fracture/CC_ClownFractures.CC_ClownFractures"));

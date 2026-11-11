@@ -20,6 +20,8 @@
 #include <Components/SkeletalMeshComponent.h>
 #include <Components/BoxComponent.h>
 #include <Components/CapsuleComponent.h>
+#include <Components/WidgetComponent.h>
+#include <Component/LockOnPointComponent.h>
 #include <Kismet/KismetMathLibrary.h>
 #include <Kismet/GameplayStatics.h>
 #include <Engine/SkeletalMesh.h>
@@ -73,6 +75,19 @@ AEnemyBase::AEnemyBase()
 	FatalAttackBox->SetupAttachment(RootComponent);
 	FatalAttackBox->SetBoxExtent(FVector(100.f, 32.f, 32.f));
 
+	LockOnPointComponent = CreateDefaultSubobject<ULockOnPointComponent>(TEXT("LockOnPointComponent"));
+	LockOnPointComponent->SetupAttachment(GetMesh());
+	LockOnPointComponent->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+
+	LockOnPointWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("LockOnPointWidget"));
+	LockOnPointWidget->SetupAttachment(LockOnPointComponent);
+	LockOnPointWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	LockOnPointWidget->SetDrawSize(FVector2D(24.f, 24.f));
+	LockOnPointWidget->SetDrawAtDesiredSize(false);
+	LockOnPointWidget->SetTwoSided(true);
+	LockOnPointWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LockOnPointWidget->SetVisibility(false);
+
 	// 이동 방향 회전 설정
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -82,6 +97,14 @@ AEnemyBase::AEnemyBase()
 	GetCharacterMovement()->AvoidanceConsiderationRadius = 100.0f;
 	GetCharacterMovement()->AvoidanceWeight = 0.3f;
 
+	// 락온 위젯 클래스 가져오기
+	static ConstructorHelpers::FClassFinder<UUserWidget> LockOnIndicatorClass(
+		TEXT("/Game/Blueprints/UI/WBP_LockOnIndicator.WBP_LockOnIndicator_C")
+	);
+	if (LockOnIndicatorClass.Succeeded())
+	{
+		LockOnIndicatorWidgetClass = LockOnIndicatorClass.Class;
+	}
 
 	// 초기 이동 속도 설정
 	//GetCharacterMovement()->MaxWalkSpeed = PatrolSpeed;
@@ -103,6 +126,11 @@ void AEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (LockOnPointWidget && LockOnIndicatorWidgetClass)
+	{
+		LockOnPointWidget->SetWidgetClass(LockOnIndicatorWidgetClass);
+	}
+
 	// 초기 상태에 따른 이동속도 설정
 	UpdateMovementSpeed();
 
@@ -123,6 +151,14 @@ void AEnemyBase::BeginPlay()
 	if (EnemyStatComponet)
 	{
 		EnemyStatComponet->OnEnemyHpZero.AddUObject(this, &AEnemyBase::SetDead);
+	}
+}
+
+void AEnemyBase::SetLockOnPointVisible(bool bVisible)
+{
+	if (LockOnPointWidget)
+	{
+		LockOnPointWidget->SetVisibility(bVisible);
 	}
 }
 

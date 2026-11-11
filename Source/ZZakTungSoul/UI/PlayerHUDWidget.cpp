@@ -117,3 +117,11 @@ void UPlayerHUDWidget::UpdateSouls(int32 CurrentSouls)
 {
 	UIHelpers::SetNumberText(TextBlock_Souls, CurrentSouls);
 }
+
+void UPlayerHUDWidget::TurnOnInteractUI()
+{
+}
+
+void UPlayerHUDWidget::TurnOffInteractUI()
+{
+}

@@ -49,11 +49,11 @@ private:
 
 	// AI 활성화 거리
 	UPROPERTY()
-	float ActiveDistance = 2000.0f;
+	float ActiveDistance = 3500.0f;
 
 	// AI 비활성화 거리
 	UPROPERTY()
-	float DeactiveDistance = 3000.0f;
+	float DeactiveDistance = 4500.0f;
 
 	// 검사 간격
 	UPROPERTY()

@@ -14,6 +14,9 @@
 class UEnemyAIData;
 class UEnemyAnimationData;
 class UCharacterStatComponent;
+class ULockOnPointComponent;
+class UWidgetComponent;
+class UUserWidget;
 class APatrolPath;
 class UNiagaraSystem;
 class USoundCue;
@@ -100,6 +103,9 @@ public:
 	// 적 애셋 데이터 반환
 	const UEnemyAIData* GetEnemyAIData() const { return EnemyAIData; }
 	const UEnemyAnimationData* GetEnemyAnimationData() const { return EnemyAnimationData; }
+
+	ULockOnPointComponent* GetLockOnPointComponent() const { return LockOnPointComponent; }
+	void SetLockOnPointVisible(bool bVisible);
 
 	// 적 현재 데미지 데이터 설정
 	void SetCurrentDamageInfo(const FDamageInfo& NewDamageInfo) { CurrentDamageInfo = NewDamageInfo; }
@@ -198,6 +204,17 @@ protected:
 	// 앞잡 또는 뒤잡을 위한 박스 컴포넌트
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy|FatalAttackBox")
 	TObjectPtr<class UBoxComponent> FatalAttackBox;
+
+	// 락온 기준 위치
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|LockOn")
+	TObjectPtr<ULockOnPointComponent> LockOnPointComponent;
+
+	// 화면에 표시할 락온 UI
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|LockOn")
+	TObjectPtr<UWidgetComponent> LockOnPointWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy|LockOn")
+	TSubclassOf<UUserWidget> LockOnIndicatorWidgetClass;
 
 	// Enemy Stat Component
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Stat")

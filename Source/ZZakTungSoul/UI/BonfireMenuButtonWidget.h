@@ -10,6 +10,7 @@ class UButton;
 class UTextBlock;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBonfireButtonClickedDelegate, const FName&, BonfireID);
+DECLARE_DELEGATE(FOnButtonClickedDelegate);
 
 /**
  * 
@@ -26,6 +27,8 @@ public:
 	// 클릭시 부모에게 알리는 델리게이트.
 	UPROPERTY(BlueprintAssignable, Category = "Bonfire")
 	FOnBonfireButtonClickedDelegate OnBonfireButtonClicked;
+
+	FOnButtonClickedDelegate OnUIButtonClicked;
 
 protected:
 	virtual void NativeOnInitialized() override;

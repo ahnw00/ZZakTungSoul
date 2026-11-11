@@ -37,5 +37,6 @@ void UBonfireMenuButtonWidget::OnButtonClicked()
 	{
 		// 부모에게 클릭됨을 방송.
 		OnBonfireButtonClicked.Broadcast(AssignedBonfireID);
+		OnUIButtonClicked.ExecuteIfBound();
 	}
 }

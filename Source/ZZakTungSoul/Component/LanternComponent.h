@@ -31,19 +31,6 @@ public:
 
 	void ToggleLantern();
 
-	//void SetAttachment(class AWarrior* User);
-
-	FORCEINLINE UStaticMeshComponent* GetLanternMesh() const
-	{
-		return LanternMesh;
-	}
-
 private:
 	bool bIsLanternOn = false;
-
-	UPROPERTY(VisibleAnywhere, Category = "Lantern", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UPointLightComponent> LanternLight;
-
-	UPROPERTY(VisibleAnywhere, Category = "Lantern", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UStaticMeshComponent> LanternMesh;
 };

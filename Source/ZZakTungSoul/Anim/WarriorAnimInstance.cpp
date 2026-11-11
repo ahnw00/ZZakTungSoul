@@ -110,6 +110,14 @@ UWarriorAnimInstance::UWarriorAnimInstance()
 		LitMontage = LitMontageRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DeathMontageRef(
+		TEXT("/Game/Blueprints/Anim/UnArmed/Warrior_Death_Montage.Warrior_Death_Montage")
+	);
+	if (DeathMontageRef.Succeeded())
+	{
+		DeathMontage = DeathMontageRef.Object;
+	}
+
 	const int32 NoneAttackMontageMaxCount = 4;
 
 	for (int32 i = 1; i <= NoneAttackMontageMaxCount; i++)
@@ -497,7 +505,6 @@ bool UWarriorAnimInstance::PlayActionMontage()
 	}
 
 	case EActionState::Hit:
-		//Montage_Play();
 	{
 		const UWeaponDataAsset* WeaponData = GetWeaponData(Warrior);
 		if (!WeaponData)
@@ -514,7 +521,6 @@ bool UWarriorAnimInstance::PlayActionMontage()
 	}
 
 	case EActionState::Stun:
-		//Montage_Play();
 	{
 		const UWeaponDataAsset* WeaponData = GetWeaponData(Warrior);
 		if (!WeaponData)
@@ -553,6 +559,11 @@ bool UWarriorAnimInstance::PlayActionMontage()
 	case EActionState::Lit:
 	{
 		return Montage_Play(LitMontage) > 0.f;
+	}
+
+	case EActionState::Dead:
+	{
+		return Montage_Play(DeathMontage) > 0.f;
 	}
 
 	default:

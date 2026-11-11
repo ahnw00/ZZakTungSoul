@@ -10,6 +10,7 @@
 #include "Enemy/Boss/Encounter/BossRoom.h"
 #include "EngineUtils.h"
 #include <Interactable/BonFire.h>
+#include <GamePlay/MusicSubsystem.h>
 #include <EngineUtils.h>
 
 AZTSGameMode::AZTSGameMode()
@@ -22,10 +23,17 @@ AZTSGameMode::AZTSGameMode()
 	static ConstructorHelpers::FClassFinder<APawn> WarriorClassRef(
 		TEXT("/Game/Blueprints/Warrior/BP_Warrior.BP_Warrior_C")
 	);
-
 	if (WarriorClassRef.Succeeded())
 	{
 		DefaultPawnClass = WarriorClassRef.Class;
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> GamePlayBGMRef(
+		TEXT("/Game/Assets/Sound/BGM/BGM1.BGM1")
+	);
+	if (GamePlayBGMRef.Succeeded())
+	{
+		GamePlayBGM = GamePlayBGMRef.Object;
 	}
 }
 
@@ -44,6 +52,12 @@ void AZTSGameMode::InitGame(const FString& MapName, const FString& Options, FStr
 void AZTSGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (UMusicSubsystem* Music =
+		GetGameInstance()->GetSubsystem<UMusicSubsystem>())
+	{
+		Music->PlayBGM(GamePlayBGM);
+	}
 
 	// 타이틀에서 [LoadGame]으로 들어왔다면 자동으로 세이브 로드.
 	if (bShouldLoadOnStart)

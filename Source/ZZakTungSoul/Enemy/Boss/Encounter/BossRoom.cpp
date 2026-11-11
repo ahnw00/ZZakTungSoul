@@ -32,6 +32,7 @@
 #include "Engine/LocalPlayer.h"
 #include "UI/Notify/NotificationSubsystem.h"
 #include "GamePlay/ZTSGameMode.h"
+#include <GamePlay/MusicSubsystem.h>
 
 ABossRoom::ABossRoom()
 {
@@ -944,6 +945,12 @@ void ABossRoom::SkipIntro()
 
 void ABossRoom::BeginBattle()
 {
+	if (UMusicSubsystem* Music =
+		GetGameInstance()->GetSubsystem<UMusicSubsystem>())
+	{
+		Music->StopBGM();
+	}
+
 	if (bChangingState || RoomState != EBossRoomState::Intro)
 	{
 		return;

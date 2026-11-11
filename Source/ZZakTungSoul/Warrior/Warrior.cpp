@@ -29,7 +29,6 @@
 #include <Component/EquipmentComponent.h>
 #include <Component/InventoryComponent.h>
 #include <ItemData/LanternDataAsset.h>
-#include <Component/LanternComponent.h>
 
 #include <Interface/ItemFunctionInterface.h>
 
@@ -457,10 +456,9 @@ void AWarrior::UpdateLook(float DeltaTime)
 
 void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-    if (IsDead())
+    if (ActionState == EActionState::Dead)
     {
-        if (Montage == DeathMontage.Get())
-            FinishDeathMontage();
+        FinishDeathMontage();
         return;
     }
 
@@ -566,7 +564,7 @@ void AWarrior::SetDead()
     if (AnimInstance)
     {
         AnimInstance->Montage_Stop(0.1f);
-        if (DeathMontage && AnimInstance->Montage_Play(DeathMontage) > 0.f)
+        if (AnimInstance->PlayActionMontage())
             return;
     }
 

@@ -201,6 +201,9 @@ public:
 
 	bool CheckItemInSlot(const FGuid& InID, EEquipmentSlot InSlot);
 
+	void TurnOnInteractUI();
+	void TurnOffInteractUI();
+
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

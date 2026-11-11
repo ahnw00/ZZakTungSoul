@@ -92,8 +92,6 @@ void AItemObject::OnBeginOverlap(
 		return;
 
 	Warrior->AddDetectedObject(this);
-
-	// Todo: UI 띄워주기
 }
 
 void AItemObject::OnEndOverlap(

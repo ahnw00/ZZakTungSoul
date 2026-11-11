@@ -240,7 +240,8 @@ private:
 	bool bFatalCameraActive = false;
 	UPROPERTY(EditDefaultsOnly, Category = "FatalCinematic")
 	TSubclassOf<AActor> FatalCameraClass;
-	
+	UPROPERTY(EditDefaultsOnly, Category = "FatalCinematic")
+	TSubclassOf<AActor> FatalBackCameraClass;
 public:
 	// [캐릭터 스탯].
 	virtual UCharacterStatComponent* GetCharacterStatComponent() const override { return CharacterStatComponent; }

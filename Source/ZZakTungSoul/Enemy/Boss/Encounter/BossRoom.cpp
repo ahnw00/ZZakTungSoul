@@ -33,6 +33,7 @@
 #include "UI/Notify/NotificationSubsystem.h"
 #include "GamePlay/ZTSGameMode.h"
 #include <GamePlay/MusicSubsystem.h>
+#include <Enemy/Spawner/EnemySpawnSubsystem.h>
 
 ABossRoom::ABossRoom()
 {
@@ -357,8 +358,19 @@ void ABossRoom::OnFirstEntryBeginOverlap(UPrimitiveComponent* OverlappedComp, AA
 
 	const bool bOtherSide = OverlappedComp == OtherSideFirstEntryTrigger;
 
+
+	// 적 초기화
+	if (Player && OtherComp == Player->GetCapsuleComponent() && (!bOtherSide || bEnableOtherSideGate))
+	{
+		if (UEnemySpawnSubsystem* SpawnSubsystem = GetWorld()->GetSubsystem<UEnemySpawnSubsystem>())
+		{
+			SpawnSubsystem->ResetAllEnemies();
+		}
+	}
+
 	if (Player && OtherComp == Player->GetCapsuleComponent() && IsFirstEntry() && (!bOtherSide || bEnableOtherSideGate))
 	{
+
 		TryEnter(Player, false, bOtherSide);
 	}
 }
@@ -370,6 +382,12 @@ void ABossRoom::OnInteractionBeginOverlap(UPrimitiveComponent* OverlappedComp, A
 	{
 		if (OtherComp == Player->GetCapsuleComponent() && (OverlappedComp != OtherSideInteractionTrigger || bEnableOtherSideGate))
 		{
+			// 적 초기화
+			//if (UEnemySpawnSubsystem* SpawnSubsystem = GetWorld()->GetSubsystem<UEnemySpawnSubsystem>())
+			//{
+			//	SpawnSubsystem->ResetAllEnemies();
+			//}
+
 			// 안개 켜질 때만 넣기.
 
 			if(bEnableOtherSideGate)

@@ -1269,10 +1269,10 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 	float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
 
 	// 피격 사운드 재생
-	//if (HitSound)
-	//{
-	//	UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
-	//}
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	}
 
 	const float HPBeforeDamage = CharacterStatComponent->GetCurrentHP();
 	CharacterStatComponent->ApplyDamage(DamageInfo);

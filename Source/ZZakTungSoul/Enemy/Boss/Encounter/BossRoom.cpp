@@ -370,7 +370,19 @@ void ABossRoom::OnInteractionBeginOverlap(UPrimitiveComponent* OverlappedComp, A
 	{
 		if (OtherComp == Player->GetCapsuleComponent() && (OverlappedComp != OtherSideInteractionTrigger || bEnableOtherSideGate))
 		{
-			Player->AddDetectedObject(this);
+			// 안개 켜질 때만 넣기.
+
+			if(bEnableOtherSideGate)
+			{
+				if (FogMesh && FogMesh->IsVisible() &&
+					OhterSideFogMesh && OhterSideFogMesh->IsVisible())
+					Player->AddDetectedObject(this);
+			}
+			else
+			{
+				if (FogMesh && FogMesh->IsVisible())
+					Player->AddDetectedObject(this);
+			}
 		}
 	}
 }

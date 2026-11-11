@@ -8,6 +8,7 @@
 #include <Data/StatGrowth.h>
 #include <Data/DamageInfo.h>
 #include <SaveData/WarriorSaveData.h>
+#include <ItemData/ArmorDataAsset.h>
 
 
 // Called when the game starts
@@ -261,10 +262,41 @@ void UCharacterStatComponent::UpdateCharacterStat(const FWarriorAttributeData& A
 	BroadcastAllStats();
 }
 
+void UCharacterStatComponent::ApplyWeaponStat(const UItemDataAsset* ItemData)
+{
+	if (!ItemData)
+	{
+		return;
+	}
 
+	AttackPower += ItemData->AttackPower;
 
+	if (const UArmorDataAsset* ArmorData = Cast<UArmorDataAsset>(ItemData))
+	{
+		Defense += ArmorData->DefensePower;
+		EquipLoad += ArmorData->Weight;
+		Resistance += ArmorData->Resistance;
+		Poise += ArmorData->Poise;
+	}
+}
 
+void UCharacterStatComponent::ReleaseWeaponStat(const UItemDataAsset* ItemData)
+{
+	if (!ItemData)
+	{
+		return;
+	}
 
+	AttackPower -= ItemData->AttackPower;
+
+	if (const UArmorDataAsset* ArmorData = Cast<UArmorDataAsset>(ItemData))
+	{
+		Defense -= ArmorData->DefensePower;
+		EquipLoad -= ArmorData->Weight;
+		Resistance -= ArmorData->Resistance;
+		Poise -= ArmorData->Poise;
+	}
+}
 
 // [스탯 제어 함수]
 	// 범위 제한.

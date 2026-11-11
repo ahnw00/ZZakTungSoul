@@ -143,9 +143,6 @@ protected:
 	virtual void SetDead() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Death")
-	TObjectPtr<UAnimMontage> DeathMontage;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0.01"))
 	float DeathNotificationDelay = 0.5f;
 

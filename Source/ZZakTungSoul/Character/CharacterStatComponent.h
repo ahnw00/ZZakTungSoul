@@ -6,6 +6,8 @@
 #include "Components/ActorComponent.h"
 #include "CharacterStatComponent.generated.h"
 
+class UItemDataAsset;
+
 // 레벨업 및 스택 시뮬레이션용 미리보기 구조체.
 USTRUCT(BlueprintType)
 struct FStatPreview
@@ -152,6 +154,9 @@ public:
 	{
 		AttackPower = GetStatInitialValue(AttackPowerKey);
 	}
+
+	void ApplyWeaponStat(const UItemDataAsset* ItemData);
+	void ReleaseWeaponStat(const UItemDataAsset* ItemData);
 
 	// [스탯 제어 및 소모 함수].
 	UFUNCTION(BlueprintCallable, Category = "Stat")

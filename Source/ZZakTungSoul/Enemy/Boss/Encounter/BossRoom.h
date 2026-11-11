@@ -231,6 +231,7 @@ private:
 	FVector FogEntryEnd = FVector::ZeroVector;
 	FQuat FogEntryStartRotation = FQuat::Identity;
 	FQuat FogEntryFacing = FQuat::Identity;
+	FRotator FogEntryStartControlRotation = FRotator::ZeroRotator;
 	float FogEntryElapsed = 0.0f;
 	float FogEntryDuration = 0.0f;
 	float FogEntryPreviousTickInterval = 0.0f;

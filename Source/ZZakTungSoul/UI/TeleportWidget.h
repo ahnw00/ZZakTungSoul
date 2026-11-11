@@ -34,6 +34,8 @@ class ZZAKTUNGSOUL_API UTeleportWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	UTeleportWidget(const FObjectInitializer& ObjectInitializer);
+
 	// 전송 목록 갱신 및 UI 버튼 생성.
 	UFUNCTION(BlueprintCallable, Category = "Bonfire|Teleport")
 	void RefreshTeleportList();
@@ -55,6 +57,9 @@ protected:
 	UFUNCTION()
 	void OnCancelClicked();
 
+	UFUNCTION()
+	void PlayButtonSound();
+
 protected:
 	// 에디터에서 지정할 화톳불 버튼 위젯 블루프린트 클래스.
 	UPROPERTY(EditDefaultsOnly, Category = "Bonfire|Teleport")
@@ -67,5 +72,8 @@ protected:
 	// 닫기/뒤로가기 버튼.
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_Cancel;
+
+	UPROPERTY()
+	TObjectPtr<USoundBase> ButtonSound;
 	
 };

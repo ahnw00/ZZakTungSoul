@@ -294,10 +294,10 @@ void AEnemyBase::SpawnBloodHitEffect(const FHitResult& Hit)
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, BloodHitEffect.Get(), SpawnPosition, SpawnDirection.Rotation(), FVector(BloodHitScale), true, true);
 
 	// 피격 사운드 재생
-	//if (HitSound)
-	//{
-	//	UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
-	//}
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	}
 }
 
 void AEnemyBase::UpdateMovementSpeed()

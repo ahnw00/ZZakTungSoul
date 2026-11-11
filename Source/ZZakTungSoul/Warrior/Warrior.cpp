@@ -1374,9 +1374,24 @@ void AWarrior::HandleAttackTraceHit(const FHitResult& Hit)
 
 void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 {
-	Equipment->EquipItem(InID, Slot);
+	if (!Equipment || !Inventory || !CharacterStatComponent)
+	{
+		return;
+	}
+
+	if (Equipment->GetEquippedItem(Slot) == InID)
+	{
+		return;
+	}
 
 	const UItemDataAsset* InItem = Inventory->FindItemDataByInstanceID(InID);
+	if (!InItem)
+	{
+		return;
+	}
+
+	Equipment->EquipItem(InID, Slot);
+	CharacterStatComponent->ApplyWeaponStat(InItem);
 
 	// 아직 로드되지 않았다면
 	if (InItem->SkeletalMesh.IsPending())
@@ -1401,8 +1416,6 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		Weapon->SetRelativeScale3D(InItem->RelativeScale);
 		AttackTraceComponent->SetTraceMesh(Weapon);
 
-		// 오른손 무기 기준으로 공격력 책정됨
-		CharacterStatComponent->ApplyWeaponAttackPower(InItem->AttackPower);
 		UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 	}
 		break;
@@ -1415,7 +1428,6 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		// Todo: 왼쪽 AttackTraceComponent에 메시 설정해주기
 		AttackTraceComponentLeft->SetTraceMesh(LeftHandWeapon);
 
-		CharacterStatComponent->ApplyWeaponAttackPower(InItem->AttackPower);
 		UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 	}
 		break;
@@ -1469,7 +1481,7 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 		return;
 
 	Equipment->UnequipItem(Slot);
-	CharacterStatComponent->ResetAttackPower();
+	CharacterStatComponent->ReleaseWeaponStat(ItemData);
 	UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 
 	switch (Slot)

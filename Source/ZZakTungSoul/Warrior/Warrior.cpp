@@ -29,7 +29,6 @@
 #include <Component/EquipmentComponent.h>
 #include <Component/InventoryComponent.h>
 #include <ItemData/LanternDataAsset.h>
-#include <Component/LanternComponent.h>
 
 #include <Interface/ItemFunctionInterface.h>
 
@@ -457,10 +456,9 @@ void AWarrior::UpdateLook(float DeltaTime)
 
 void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-    if (IsDead())
+    if (ActionState == EActionState::Dead)
     {
-        if (Montage == DeathMontage.Get())
-            FinishDeathMontage();
+        FinishDeathMontage();
         return;
     }
 
@@ -566,7 +564,7 @@ void AWarrior::SetDead()
     if (AnimInstance)
     {
         AnimInstance->Montage_Stop(0.1f);
-        if (DeathMontage && AnimInstance->Montage_Play(DeathMontage) > 0.f)
+        if (AnimInstance->PlayActionMontage())
             return;
     }
 
@@ -1291,8 +1289,8 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 	else
 	{
 		// 맞았는데, 강인도가 높아서 액션 취소 안됨.
-		SetActionState(EActionState::Hit);
-		AnimInstance->PlayActionMontage();
+		//SetActionState(EActionState::Hit);
+		//AnimInstance->PlayActionMontage();
 		CharacterStatComponent->ApplyDamage(DamageInfo);
 	}
 }
@@ -1376,9 +1374,24 @@ void AWarrior::HandleAttackTraceHit(const FHitResult& Hit)
 
 void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 {
-	Equipment->EquipItem(InID, Slot);
+	if (!Equipment || !Inventory || !CharacterStatComponent)
+	{
+		return;
+	}
+
+	if (Equipment->GetEquippedItem(Slot) == InID)
+	{
+		return;
+	}
 
 	const UItemDataAsset* InItem = Inventory->FindItemDataByInstanceID(InID);
+	if (!InItem)
+	{
+		return;
+	}
+
+	Equipment->EquipItem(InID, Slot);
+	CharacterStatComponent->ApplyWeaponStat(InItem);
 
 	// 아직 로드되지 않았다면
 	if (InItem->SkeletalMesh.IsPending())
@@ -1403,8 +1416,6 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		Weapon->SetRelativeScale3D(InItem->RelativeScale);
 		AttackTraceComponent->SetTraceMesh(Weapon);
 
-		// 오른손 무기 기준으로 공격력 책정됨
-		CharacterStatComponent->ApplyWeaponAttackPower(InItem->AttackPower);
 		UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 	}
 		break;
@@ -1417,7 +1428,6 @@ void AWarrior::EquipWeapon(const FGuid& InID, EEquipmentSlot Slot)
 		// Todo: 왼쪽 AttackTraceComponent에 메시 설정해주기
 		AttackTraceComponentLeft->SetTraceMesh(LeftHandWeapon);
 
-		CharacterStatComponent->ApplyWeaponAttackPower(InItem->AttackPower);
 		UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 	}
 		break;
@@ -1471,7 +1481,7 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 		return;
 
 	Equipment->UnequipItem(Slot);
-	CharacterStatComponent->ResetAttackPower();
+	CharacterStatComponent->ReleaseWeaponStat(ItemData);
 	UE_LOG(LogTemp, Log, TEXT("Current Attack Power: %f"), CharacterStatComponent->GetAttackPower());
 
 	switch (Slot)

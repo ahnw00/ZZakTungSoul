@@ -46,4 +46,7 @@ private:
 
 	// 시작시 세이브 로드해야 하는 지 여부 플래그.
 	bool bShouldLoadOnStart = false;
+
+	UPROPERTY()
+	TObjectPtr<USoundBase> GamePlayBGM;
 };

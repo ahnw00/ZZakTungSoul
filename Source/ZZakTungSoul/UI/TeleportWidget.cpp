@@ -9,6 +9,7 @@
 #include <Warrior/WarriorController.h>
 #include <Warrior/WarriorPlayerState.h>
 #include <Interactable/BonFire.h>
+#include <Kismet/GameplayStatics.h>
 #include <EngineUtils.h>
 
 void UTeleportWidget::NativeOnInitialized()
@@ -30,6 +31,18 @@ void UTeleportWidget::NativeConstruct()
 	RefreshTeleportList();
 }
 
+
+UTeleportWidget::UTeleportWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	static ConstructorHelpers::FObjectFinder<USoundBase> ButtonSoundRef(
+		TEXT("/Game/Assets/Sound/cardboard.cardboard")
+	);
+	if (ButtonSoundRef.Succeeded())
+	{
+		ButtonSound = ButtonSoundRef.Object;
+	}
+}
 
 void UTeleportWidget::RefreshTeleportList()
 {
@@ -53,6 +66,7 @@ void UTeleportWidget::RefreshTeleportList()
 			
 			// 버튼 클릭시 RequestTeleport 호출 연결.
 			ButtonWidget->OnBonfireButtonClicked.AddDynamic(this, &UTeleportWidget::RequestTeleport);
+			ButtonWidget->OnUIButtonClicked.BindUObject(this, &UTeleportWidget::PlayButtonSound);
 
 			ScrollBox_BonfireList->AddChild(ButtonWidget);
 		}
@@ -116,4 +130,9 @@ void UTeleportWidget::OnCancelClicked()
 {
 	// 메인 메뉴에게 취소 방송.
 	OnTeleportCanceled.Broadcast();
+}
+
+void UTeleportWidget::PlayButtonSound()
+{
+	UGameplayStatics::PlaySound2D(this, ButtonSound);
 }

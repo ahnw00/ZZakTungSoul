@@ -73,4 +73,7 @@ protected:
 	// [BindWidget Belt]
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UBeltWidget> WBP_BeltWidget;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UUserWidget> WBP_InteractWidget;
 };

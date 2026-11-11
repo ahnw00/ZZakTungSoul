@@ -120,8 +120,10 @@ void UPlayerHUDWidget::UpdateSouls(int32 CurrentSouls)
 
 void UPlayerHUDWidget::TurnOnInteractUI()
 {
+	WBP_InteractWidget->SetVisibility(ESlateVisibility::Visible);
 }
 
 void UPlayerHUDWidget::TurnOffInteractUI()
 {
+	WBP_InteractWidget->SetVisibility(ESlateVisibility::Hidden);
 }

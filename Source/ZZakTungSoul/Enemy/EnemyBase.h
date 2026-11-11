@@ -236,6 +236,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Combat")
 	uint32 bReceiveFatalAttack : 1 = false;
 
+	UPROPERTY()
+	TObjectPtr<USoundBase> ParrySound;
+
 	// Inherited via IFatalAttackableInterface
 	bool CanBeFatalAttacked(AActor* Attacker) const override;
 	void ReceiveFatalAttack(const FDamageInfo DamageInfo, bool bIsFront) override;

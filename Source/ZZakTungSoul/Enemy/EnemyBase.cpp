@@ -65,10 +65,20 @@ AEnemyBase::AEnemyBase()
 		}
 	}
 
-	static ConstructorHelpers::FObjectFinder<USoundCue> HitSoundRef(TEXT("/Game/Blueprints/Sound/Hit/SC_EnemyHit.SC_EnemyHit"));
+	static ConstructorHelpers::FObjectFinder<USoundCue> HitSoundRef(
+		TEXT("/Game/Blueprints/Sound/Hit/SC_EnemyHit.SC_EnemyHit")
+	);
 	if (HitSoundRef.Succeeded())
 	{
 		HitSound = HitSoundRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> ParrySoundRef(
+		TEXT("/Game/Assets/Sound/Parry.Parry")
+	);
+	if (ParrySoundRef.Succeeded())
+	{
+		ParrySound = ParrySoundRef.Object;
 	}
 
 	FatalAttackBox = CreateDefaultSubobject<UBoxComponent>(TEXT("FatalAttackBox"));
@@ -769,6 +779,8 @@ void AEnemyBase::OnGetParried()
 	AnimInstance->StopAllMontages(1.f);
 
 	AIController->SetAIWait(true);
+
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), ParrySound, GetActorLocation());
 
 	SetEnemyState(EEnemyState::Groggy);
 	SetEnemyActionState(EEnemyActionState::Groggy);

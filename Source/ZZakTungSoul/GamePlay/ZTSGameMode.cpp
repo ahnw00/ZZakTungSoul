@@ -47,6 +47,15 @@ void AZTSGameMode::InitGame(const FString& MapName, const FString& Options, FStr
 		bShouldLoadOnStart = true;
 		UE_LOG(LogTemp, Log, TEXT("[GameMode] LoadGame 옵션 감지. BeginPlay에서 세이브 로드합니다."));
 	}
+
+	// 컨트롤러로 조종하는 Pawn 세팅
+	//DefaultPawnClass = LoadClass<APawn>()
+	//PawnClass = TSoftClassPtr<APawn>(FSoftObjectPath(TEXT("/Game/Blueprints/Warrior/BP_Warrior.BP_Warrior_C")));
+	//if (PawnClass.IsPending())
+	//{
+	//	PawnClass.LoadSynchronous();
+	//	DefaultPawnClass = PawnClass.Get();
+	//}
 }
 
 void AZTSGameMode::BeginPlay()

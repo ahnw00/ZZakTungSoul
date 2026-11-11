@@ -49,4 +49,7 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<USoundBase> GamePlayBGM;
+
+	//UPROPERTY()
+	//TSoftClassPtr<APawn> PawnClass;
 };

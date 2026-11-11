@@ -191,6 +191,22 @@ AWarrior::AWarrior()
 
 	StartingLanternData = TSoftObjectPtr<ULanternDataAsset>(
 		FSoftObjectPath(TEXT("/Game/ItemDataAssets/DA_Lantern.DA_Lantern")));
+
+	static ConstructorHelpers::FClassFinder<AActor> FatalCameraClassRef(
+		TEXT("/Game/Blueprints/Warrior/Fatal_Camera.Fatal_Camera")
+	);
+	if (FatalCameraClassRef.Succeeded())
+	{
+		FatalCameraClass = FatalCameraClassRef.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<AActor> FatalBackCameraClassRef(
+		TEXT("/Game/Blueprints/Warrior/Fatal_Back_Camera.Fatal_Back_Camera")
+	);
+	if (FatalBackCameraClassRef.Succeeded())
+	{
+		FatalBackCameraClass = FatalBackCameraClassRef.Class;
+	}
 }
 
 void AWarrior::BeginPlay()

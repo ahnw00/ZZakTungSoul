@@ -19,6 +19,7 @@
 class UCharacterStatComponent;
 class UAnimMontage;
 class UNiagaraSystem;
+class ULanternDataAsset;
 /**
  * 
  */
@@ -69,6 +70,8 @@ private:
 		int32 OtherBodyIndex);
 
 private:
+	void EnsureStartingLantern();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* SpringArm;
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
@@ -93,6 +96,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Inventory")
 	class UInventoryComponent* Inventory;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory|Starting Items")
+	TSoftObjectPtr<ULanternDataAsset> StartingLanternData;
 
 	UPROPERTY(VisibleAnywhere, Category = "Lantern")
 	class USkeletalMeshComponent* Lantern;
@@ -197,6 +203,9 @@ public:
 	void Interact();
 	void PlayActionMontage();
 
+	void TurnOnInteractUI();
+	void TurnOffInteractUI();
+
 	// Getter/Setter
 	
 	void SetLockOnTarget(ACharacter* Target);
@@ -291,8 +300,8 @@ public:
 	// Inherited via IItemInterface
 	void ObtainItem(class UItemDataAsset* detectedItem) override;
 
-	FORCEINLINE void AddDetectedObject(AActor* Detected) { DetectedActors.AddUnique(Detected); }
-	FORCEINLINE void RemoveDetectedObject(AActor* Detected) { DetectedActors.Remove(Detected); }
+	void AddDetectedObject(AActor* Detected);
+	void RemoveDetectedObject(AActor* Detected);
 
 	// 아이템 사용시 호출될 함수
 public:

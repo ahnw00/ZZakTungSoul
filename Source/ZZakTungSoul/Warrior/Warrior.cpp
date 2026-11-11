@@ -1,6 +1,8 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Warrior/Warrior.h"
+#include "Enemy/EnemyBase.h"
+#include "Component/LockOnPointComponent.h"
 #include "Warrior/WarriorController.h"
 #include "Animation/AnimMontage.h"
 #include "TimerManager.h"
@@ -26,6 +28,7 @@
 #include <ItemData/ConsumableDataAsset.h>
 #include <Component/EquipmentComponent.h>
 #include <Component/InventoryComponent.h>
+#include <ItemData/LanternDataAsset.h>
 #include <Component/LanternComponent.h>
 
 #include <Interface/ItemFunctionInterface.h>
@@ -186,11 +189,16 @@ AWarrior::AWarrior()
 	{
 		HitSound = HitSoundRef.Object;
 	}
+
+	StartingLanternData = TSoftObjectPtr<ULanternDataAsset>(
+		FSoftObjectPath(TEXT("/Game/ItemDataAssets/DA_Lantern.DA_Lantern")));
 }
 
 void AWarrior::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//EnsureStartingLantern();
 
 	UpdateCharacterStats();
 
@@ -268,6 +276,8 @@ void AWarrior::PostInitializeComponents()
 	{
 		Inventory->OnItemObtained.AddUObject(this, &AWarrior::SaveWarriorInventoryData);
 	}
+
+	EnsureStartingLantern();
 }
 
 void AWarrior::Tick(float DeltaTime)
@@ -317,23 +327,31 @@ void AWarrior::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void AWarrior::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	CurrentFatalAttackable = Cast<IFatalAttackableInterface>(OtherActor);
+	if (IFatalAttackableInterface* Attackable = Cast<IFatalAttackableInterface>(OtherActor))
+	{
+		CurrentFatalAttackable = Attackable;
+	}
+	//CurrentFatalAttackable = Cast<IFatalAttackableInterface>(OtherActor);
 }
 
 void AWarrior::OnEndOverlap(
 	UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	CurrentFatalAttackable = nullptr;
+	if (IFatalAttackableInterface* Attackable = Cast<IFatalAttackableInterface>(OtherActor))
+	{
+		CurrentFatalAttackable = nullptr;
+	}
 }
 
 // 락온 시에 카메라가 대상에 고정이 되도록(Tick에서 호출될 함수)
 void AWarrior::UpdateLockOnCamera(float DeltaTime)
 {
-	// 락온 컴포넌트 아직 없어서 일단은 그냥 캐릭터 생성하면 붙어있는 Arrow 컴포넌트로 한거
-	// Todo: 나중에 LockOn 컴포넌트 만들어서 UI로도 보여주게 해야할거 같아요
-	if (LockOnTarget && !LockOnTarget->GetArrowComponent())
+	if (!LockOnTarget)
 		return;
-	// else UE_LOG(LogTemp, Log, TEXT("ArrowExists"));
+
+	const AEnemyBase* EnemyTarget = Cast<AEnemyBase>(LockOnTarget);
+	if (!EnemyTarget || !EnemyTarget->GetLockOnPointComponent())
+		return;
 
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (!PC)
@@ -341,7 +359,8 @@ void AWarrior::UpdateLockOnCamera(float DeltaTime)
 
 	// 스크린 상에서 타겟의 위치
 	FVector2D ScreenPos;
-	PC->ProjectWorldLocationToScreen(LockOnTarget->GetArrowComponent()->GetComponentLocation(), ScreenPos);
+	PC->ProjectWorldLocationToScreen(
+		EnemyTarget->GetLockOnPointComponent()->GetComponentLocation(), ScreenPos);
 
 	// 화면 크기
 	int32 SizeX, SizeY;
@@ -417,10 +436,13 @@ void AWarrior::UpdateLook(float DeltaTime)
 {
 	if (!LockOnTarget)
 		return;
-	if (!LockOnTarget->GetArrowComponent())
+
+	const AEnemyBase* EnemyTarget = Cast<AEnemyBase>(LockOnTarget);
+	if (!EnemyTarget || !EnemyTarget->GetLockOnPointComponent())
 		return;
 
-	FVector TargetLocation = LockOnTarget->GetArrowComponent()->GetComponentLocation();
+	FVector TargetLocation =
+		EnemyTarget->GetLockOnPointComponent()->GetComponentLocation();
 	FVector LookVec = TargetLocation - GetActorLocation();
 
 	FRotator TargetRotation = LookVec.Rotation();
@@ -942,9 +964,14 @@ void AWarrior::ChangeLockOn(bool flag)
 		if (!PC)
 			return;
 
-		// 스크린 상에서 타겟의 위치
+		const AEnemyBase* EnemyTarget = Cast<AEnemyBase>(Detected);
+		if (!EnemyTarget || !EnemyTarget->GetLockOnPointComponent())
+			continue;
+
+		// 스크린 상에서 타겟의 락온 포인트 위치
 		FVector2D ScreenPos;
-		PC->ProjectWorldLocationToScreen(Detected->GetArrowComponent()->GetComponentLocation(), ScreenPos);
+		PC->ProjectWorldLocationToScreen(
+			EnemyTarget->GetLockOnPointComponent()->GetComponentLocation(), ScreenPos);
 
 		// 화면 크기
 		int32 SizeX, SizeY;
@@ -1020,15 +1047,49 @@ void AWarrior::PlayActionMontage()
 	AnimInstance->PlayActionMontage();
 }
 
+void AWarrior::TurnOnInteractUI()
+{
+	AWarriorController* WC = Cast<AWarriorController>(GetController());
+	if (!WC)
+		return;
+
+	WC->TurnOnInteractUI();
+}
+
+void AWarrior::TurnOffInteractUI()
+{
+	AWarriorController* WC = Cast<AWarriorController>(GetController());
+	if (!WC)
+		return;
+
+	WC->TurnOffInteractUI();
+}
+
 void AWarrior::SetLockOnTarget(ACharacter* Target)
 {
+	if (AEnemyBase* PreviousTarget = Cast<AEnemyBase>(LockOnTarget))
+	{
+		PreviousTarget->SetLockOnPointVisible(false);
+	}
+
 	bLockOn = true;
 	LockOnTarget = Target;
+
+	if (AEnemyBase* NewTarget = Cast<AEnemyBase>(LockOnTarget))
+	{
+		NewTarget->SetLockOnPointVisible(true);
+	}
+
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 }
 
 void AWarrior::ResetLockOnTarget()
 {
+	if (AEnemyBase* PreviousTarget = Cast<AEnemyBase>(LockOnTarget))
+	{
+		PreviousTarget->SetLockOnPointVisible(false);
+	}
+
 	bLockOn = false;
 	LockOnTarget = nullptr;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -1509,6 +1570,26 @@ void AWarrior::ObtainItem(UItemDataAsset* detectedItem)
 	Inventory->AddItem(ItemObject->GetItemData(), ItemObject->GetInstanceID());
 }
 
+void AWarrior::AddDetectedObject(AActor* Detected)
+{
+	if (DetectedActors.Num() == 0)
+	{
+		TurnOnInteractUI();
+	}
+
+	DetectedActors.AddUnique(Detected);
+}
+
+void AWarrior::RemoveDetectedObject(AActor* Detected)
+{
+	DetectedActors.Remove(Detected);
+
+	if (DetectedActors.Num() == 0)
+	{
+		TurnOffInteractUI();
+	}
+}
+
 void AWarrior::HpRecovery(float Amount)
 {
 	if (ActionState != EActionState::None)
@@ -1690,6 +1771,7 @@ void AWarrior::LoadWarriorData(const FWarriorSaveData& SaveData)
 {
 	// 가져와야 할 값: Inventory, Equipment
 	Inventory->SetItems(SaveData.Items);
+	EnsureStartingLantern();
 
 	Equipment->SetEquippedItems(SaveData.EquippedItems);
 	// 장착되어있는거 UI 업데이트해주기
@@ -1697,6 +1779,26 @@ void AWarrior::LoadWarriorData(const FWarriorSaveData& SaveData)
 	{
 		EquipWeapon(Pair.Value, Pair.Key);
 	}
+}
+
+void AWarrior::EnsureStartingLantern()
+{
+	if (StartingLanternData.IsPending())
+	{
+		StartingLanternData.LoadSynchronous();
+	}
+
+	if (!Inventory || !StartingLanternData)
+	{
+		return;
+	}
+
+	if (Inventory->FindItemByAssetID(StartingLanternData->GetPrimaryAssetId()))
+	{
+		return;
+	}
+
+	Inventory->AddItem(StartingLanternData.Get(), FGuid::NewGuid());
 }
 
 

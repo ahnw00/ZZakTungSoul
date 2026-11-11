@@ -1,4 +1,4 @@
 ---,Hp,Poise,Stance,Defense,Resistance,Soul,WalkSpeed,ChaseSpeed,StrafeSpeed
-MeleeEnemy01,100,2,50,10,10,300,200,250,150
-MeleeEnemy02,150,3,100,10,10,500,200,250,150
+MeleeEnemy01,100,2,50,10,10,800,200,300,150
+MeleeEnemy02,150,3,100,10,10,1200,200,300,150
 BossClown,1000,3,100,10,10,10000,250,350,150

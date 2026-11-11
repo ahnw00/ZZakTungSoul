@@ -10,8 +10,18 @@ void UAnimNotify_FatalImpact::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
-	UWorld* World = MeshComp ? MeshComp->GetWorld() : nullptr;
-	if (!World || World->GetNetMode() == NM_DedicatedServer || !ImpactMaterial || !MeshComp->DoesSocketExist(BoneName))
+	if (!MeshComp || !MeshComp->DoesSocketExist(BoneName))
+	{
+		return;
+	}
+
+	const FVector Location = MeshComp->GetSocketTransform(BoneName).TransformPosition(LocationOffset);
+	PlayAtLocation(MeshComp->GetWorld(), ImpactMaterial, Location, Size, Lifetime);
+}
+
+void UAnimNotify_FatalImpact::PlayAtLocation(UWorld* World, UMaterialInterface* ImpactMaterial, const FVector& Location, float Size, float Lifetime)
+{
+	if (!World || World->GetNetMode() == NM_DedicatedServer || !ImpactMaterial)
 	{
 		return;
 	}
@@ -25,7 +35,7 @@ void UAnimNotify_FatalImpact::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 	UMaterialBillboardComponent* Billboard = NewObject<UMaterialBillboardComponent>(Effect);
 	Effect->SetRootComponent(Billboard);
 	Billboard->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	Billboard->SetWorldLocation(MeshComp->GetSocketTransform(BoneName).TransformPosition(LocationOffset));
+	Billboard->SetWorldLocation(Location);
 
 	UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(ImpactMaterial, Billboard);
 	Material->SetScalarParameterValue(TEXT("StartTime"), World->GetTimeSeconds());

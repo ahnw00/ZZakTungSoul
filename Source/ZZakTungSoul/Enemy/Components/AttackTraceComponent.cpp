@@ -1,11 +1,14 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Enemy/Components/AttackTraceComponent.h"
 #include <GeometryCollection/GeometryCollectionComponent.h>
 
 #include <Components/MeshComponent.h>
 #include <Engine/World.h>
+#include <Materials/MaterialInterface.h>
+#include <UObject/ConstructorHelpers.h>
 #include <DrawDebugHelpers.h>
+#include "Anim/AnimNotify/AnimNotify_FatalImpact.h"
 
 namespace
 {
@@ -33,6 +36,10 @@ UAttackTraceComponent::UAttackTraceComponent()
 
 	// 컴포넌트 태그 지정
 	ComponentTags.Add(TraceComponentTagName);
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> ParryImpactMaterialAsset(
+		TEXT("/Game/Blueprints/Anim/UnArmed/M_FatalImpactMark.M_FatalImpactMark"));
+	ParryImpactMaterial = ParryImpactMaterialAsset.Object;
 }
 
 // Called when the game starts
@@ -238,6 +245,11 @@ void UAttackTraceComponent::CheckTrace(
 		if (HitComponent->ComponentHasTag(TEXT("ParryCollision")))
 		{
 			UE_LOG(LogTemp, Log, TEXT("Parry Completed!"));
+			const FVector ImpactLocation = Hit.bStartPenetrating
+				? HitComponent->GetComponentLocation()
+				: FVector(Hit.ImpactPoint);
+
+			UAnimNotify_FatalImpact::PlayAtLocation(GetWorld(), ParryImpactMaterial, ImpactLocation, 50.f, 0.5f/*0.18f*/);
 			OnGetParried.Broadcast();
 			EndTrace();
 			return;

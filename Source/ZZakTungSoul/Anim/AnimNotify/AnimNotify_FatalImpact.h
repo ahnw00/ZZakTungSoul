@@ -4,6 +4,7 @@
 #include "AnimNotify_FatalImpact.generated.h"
 
 class UMaterialInterface;
+class UWorld;
 
 UCLASS()
 class ZZAKTUNGSOUL_API UAnimNotify_FatalImpact : public UAnimNotify
@@ -13,6 +14,8 @@ class ZZAKTUNGSOUL_API UAnimNotify_FatalImpact : public UAnimNotify
 public:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 	virtual FString GetNotifyName_Implementation() const override;
+
+	static void PlayAtLocation(UWorld* World, UMaterialInterface* Material, const FVector& Location, float Size, float Lifetime);
 
 private:
 	UPROPERTY(EditAnywhere, Category = "Fatal Impact")

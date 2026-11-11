@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 
 // 전방 선언
 class UMeshComponent;
+class UMaterialInterface;
 
 // Delegate 선언
 // 공격 판정 성공시 호출되는 Delegate
@@ -105,4 +106,7 @@ protected:
 	// AnimNotifyState에서 찾을 수 있도록 태그이름지정 변수
 	UPROPERTY(EditDefaultsOnly, Category = "Trace|Setting")
 	FName TraceComponentTagName = TEXT("AttackTrace");
+
+	UPROPERTY(EditAnywhere, Category = "Parry Impact")
+	TObjectPtr<UMaterialInterface> ParryImpactMaterial;
 };

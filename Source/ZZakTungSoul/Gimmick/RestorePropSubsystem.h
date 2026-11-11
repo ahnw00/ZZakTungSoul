@@ -6,6 +6,8 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "RestorePropSubsystem.generated.h"
 
+
+
 class ARestorableProp;
 
 // 시작 시점의 프롭 정보.
@@ -39,6 +41,7 @@ public:
 
 	// 기록된 프롭을 전부 처음 상태로 되돌림.
 	void RestoreProps();
+
 
 protected:
 	// 이 서브시스템을 만들 월드 타입.

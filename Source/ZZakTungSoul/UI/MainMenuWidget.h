@@ -47,7 +47,7 @@ protected:
 
 	// 이동할 메인 인게임 맵(기본값: BaeTestMap).
 	UPROPERTY(EditDefaultsOnly, Category = "MainMenu|Map")
-	FName InGameMapName = TEXT("BaeTestMap");
+	FName InGameMapName = TEXT("GameMap");
 
 	// 세이브 슬롯.
 	const FString SlotName = TEXT("SaveSlot");

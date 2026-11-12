@@ -5,6 +5,7 @@
 #include <UI/ItemListWidget.h>
 #include <Component/EquipmentComponent.h>
 #include <Component/InventoryComponent.h>
+#include <Kismet/GameplayStatics.h>
 
 
 void UMenuWidget::NativeOnInitialized()
@@ -70,6 +71,7 @@ void UMenuWidget::OpenMenu(EMenuType MenuType)
         break;
 
     case EMenuType::Settings:
+        UGameplayStatics::OpenLevel(this, TEXT("BaeTestMainMenuMap"));
         break;
 
     case EMenuType::RightHand:

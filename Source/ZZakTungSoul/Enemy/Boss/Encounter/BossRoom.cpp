@@ -482,6 +482,16 @@ void ABossRoom::HideBossHUD()
 	BossHUDWidget = nullptr;
 }
 
+void ABossRoom::OpenCreditsMap()
+{
+	if (CreditsMapName.IsNone())
+	{
+		return;
+	}
+
+	UGameplayStatics::OpenLevel(this, CreditsMapName);
+}
+
 void ABossRoom::Interact(AActor* detectedActor)
 {
 	AWarrior* Player = Cast<AWarrior>(detectedActor);
@@ -1146,6 +1156,20 @@ void ABossRoom::FinishClear()
 			}
 		}
 	}
+
+	// 크레딧 맵으로 이동.
+	if (bFinalBossRoom)
+	{
+		if (CreditsDelay > 0.f)
+		{
+			GetWorldTimerManager().SetTimer(CreditsTimer, this, &ABossRoom::OpenCreditsMap, CreditsDelay, false);
+		}
+		else
+		{
+			OpenCreditsMap();
+		}
+	}
+
 
 	EncounterPlayer.Reset();
 	bChangingState = false;

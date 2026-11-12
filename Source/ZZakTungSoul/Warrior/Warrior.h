@@ -20,6 +20,7 @@ class UCharacterStatComponent;
 class UAnimMontage;
 class UNiagaraSystem;
 class ULanternDataAsset;
+class UPotionDataAsset;
 /**
  * 
  */
@@ -71,6 +72,7 @@ private:
 
 private:
 	void EnsureStartingLantern();
+	void EnsureStartingPotion();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* SpringArm;
@@ -99,6 +101,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory|Starting Items")
 	TSoftObjectPtr<ULanternDataAsset> StartingLanternData;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory|Starting Items")
+	TSoftObjectPtr<UPotionDataAsset> StartingPotionData;
 
 	UPROPERTY(VisibleAnywhere, Category = "Lantern")
 	class USkeletalMeshComponent* Lantern;

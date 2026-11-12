@@ -59,6 +59,8 @@
 #include <GameFramework/PlayerController.h>
 
 #include "GameFramework/GameModeBase.h"
+#include "GamePlay/MusicSubsystem.h"
+#include "GamePlay/ZTSGameMode.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 
@@ -479,7 +481,6 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
     if (ActionState == EActionState::Dead)
     {
-        FinishDeathMontage();
         return;
     }
 
@@ -546,10 +547,15 @@ void AWarrior::UpdateCharacterStats()
 void AWarrior::SetDead()
 {
     if (IsDead())
+    {
         return;
+    }
 
     SetActionState(EActionState::Dead);
-    bDeathMontageFinished = false;
+    if (UMusicSubsystem* Music = GetGameInstance()->GetSubsystem<UMusicSubsystem>())
+    {
+        Music->StopBGM();
+    }
 	ResetLockOnTarget();
     GetWorldTimerManager().ClearTimer(DeathNotificationTimer);
     GetWorldTimerManager().ClearTimer(RespawnTimer);
@@ -575,23 +581,33 @@ void AWarrior::SetDead()
 
     // 시퀀스의 UI와 입력 복구를 먼저 끝낸 뒤 사망 화면으로 전환.
     for (TActorIterator<ABossRoom> It(GetWorld()); It; ++It)
+    {
         It->FailAttempt();
+    }
 
     GetCharacterMovement()->StopMovementImmediately();
     Super::SetDead();
 
     if (AWarriorController* PC = Cast<AWarriorController>(GetController()))
+    {
         PC->BeginDeathPresentation();
+    }
 
+    float DeathMontageDuration = 0.0f;
     if (AnimInstance)
     {
         AnimInstance->Montage_Stop(0.1f);
-        if (AnimInstance->PlayActionMontage())
-            return;
+        DeathMontageDuration = AnimInstance->PlayDeathMontage();
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("[Death] 사망 몽타주가 없거나 재생에 실패했습니다."));
-    FinishDeathMontage();
+    if (DeathMontageDuration <= 0.0f)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[Death] 사망 몽타주가 없거나 재생에 실패했습니다."));
+    }
+
+    // 사망 몽타주가 마지막 자세를 유지해도 알림과 부활은 진행한다.
+    const float NotificationTime = DeathMontageDuration + FMath::Max(DeathNotificationDelay, 0.01f);
+    GetWorldTimerManager().SetTimer(DeathNotificationTimer, this, &AWarrior::ShowDeathNotification, NotificationTime, false);
 }
 
 void AWarrior::SprintStart()
@@ -1278,6 +1294,11 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 		SpawnBloodHitEffect(Hit);
 	}
 
+	if (IsDead())
+	{
+		return;
+	}
+
 	if (Poise < DamageInfo.PoiseDamage)
 	{
 		// 스텐스 낮추기.
@@ -1858,15 +1879,6 @@ void AWarrior::EnsureStartingPotion()
 }
 
 
-void AWarrior::FinishDeathMontage()
-{
-    if (!IsDead() || bDeathMontageFinished)
-        return;
-
-    bDeathMontageFinished = true;
-    GetWorldTimerManager().SetTimer(DeathNotificationTimer, this, &AWarrior::ShowDeathNotification, FMath::Max(DeathNotificationDelay, 0.01f), false);
-}
-
 void AWarrior::ShowDeathNotification()
 {
     if (!IsDead())
@@ -1977,7 +1989,6 @@ void AWarrior::RespawnAtLastBonfire()
     // SetActionState(None)은 Dead 상태에서 거부되므로 여기에서 직접 해제.
     ActionState = EActionState::None;
     MoveState = EMoveState::Idle;
-    bDeathMontageFinished = false;
     GetCharacterMovement()->StopMovementImmediately();
     GetCharacterMovement()->MaxWalkSpeed = CharacterStatComponent->GetMaxWalkSpeed();
     GetCharacterMovement()->SetMovementMode(MOVE_Walking);
@@ -1989,6 +2000,10 @@ void AWarrior::RespawnAtLastBonfire()
     }
 
     PC->EndDeathPresentation();
+    if (AZTSGameMode* GameMode = GetWorld()->GetAuthGameMode<AZTSGameMode>())
+    {
+        GameMode->PlayGameplayBGM(0.5f);
+    }
 }
 
 void AWarrior::EndPlay(const EEndPlayReason::Type EndPlayReason)

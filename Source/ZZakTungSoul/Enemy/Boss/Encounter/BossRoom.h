@@ -117,6 +117,8 @@ private:
 	void ShowBossHUD();
 	void HideBossHUD();
 
+	void OpenCreditsMap();
+
 	void HideSequenceUI();
 	void RestoreSequenceUI();
 
@@ -269,5 +271,17 @@ private:
 	bool bSequenceUIHidden = false;
 	FTimerHandle BossHUDHideTimer;
 
+	FTimerHandle CreditsTimer;
+
 	bool bRoomInitialized = false;
+
+	// 최종 보스 방 클리어 후 크레딧 맵 이동.
+	UPROPERTY(EditInstanceOnly, Category = "BossRoom|Credits")
+	bool bFinalBossRoom = false;
+	// 보스 처치 후 크레딧 맵 이동 대기 시간.
+	UPROPERTY(EditInstanceOnly, Category = "BossRoom|Credits", meta = (ClampMin = "0.0"))
+	float CreditsDelay = 5.f;
+	// 이동할 크레딧 맵 이름.
+	UPROPERTY(EditInstanceOnly, Category = "BossRoom|Credits")
+	FName CreditsMapName = TEXT("CreditMap");
 };

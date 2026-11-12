@@ -154,13 +154,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0.01"))
 	float RespawnDelay = 3.f;
 
-	void FinishDeathMontage();
 	void ShowDeathNotification();
 	void RespawnAtLastBonfire();
 
 	FTimerHandle DeathNotificationTimer;
 	FTimerHandle RespawnTimer;
-	bool bDeathMontageFinished = false;
 
 public:
 

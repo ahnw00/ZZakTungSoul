@@ -31,6 +31,13 @@ enum class EBossClownAttack : uint8
 	Yabawi,
 };
 
+UENUM(BlueprintType)
+enum class EClownPhase2MeleeEffect : uint8
+{
+	Unblockable UMETA(DisplayName = "Phase 2 Unblockable"),
+	IgnoreInvincibility UMETA(DisplayName = "Phase 2 Ignore Invincibility"),
+};
+
 USTRUCT(BlueprintType, meta = (DisplayName = "Clown Attack Pattern"))
 struct FClownPhaseOnePattern
 {
@@ -53,6 +60,10 @@ struct FClownPhaseOnePattern
 
 	UPROPERTY(EditAnywhere, Category = "Attack")
 	TArray<FEnemyAttackData> AttackVariants;
+
+	UPROPERTY(EditAnywhere, Category = "Attack", meta = (DisplayName = "Phase 2 Melee Effects",
+		EditCondition = "AttackType == EBossClownAttack::HammerSweep || AttackType == EBossClownAttack::HammerSlam || AttackType == EBossClownAttack::FastChaseSlam || AttackType == EBossClownAttack::DashSweep", EditConditionHides))
+	TMap<TObjectPtr<UAnimMontage>, EClownPhase2MeleeEffect> Phase2MeleeEffects;
 
 	UPROPERTY(EditAnywhere, Category = "Timing", meta = (ClampMin = "0"))
 	float RecoveryTime = 1.0f;
@@ -391,6 +402,12 @@ struct FClownMeleeEffects
 
 	UPROPERTY(EditAnywhere)
 	TMap<EBossClownAttack, FClownSoundEffect> SwingSounds;
+
+	UPROPERTY(EditAnywhere, Category = "Phase 2")
+	TObjectPtr<UMaterialInterface> Phase2UnblockableGlow;
+
+	UPROPERTY(EditAnywhere, Category = "Phase 2")
+	TObjectPtr<UMaterialInterface> Phase2IgnoreInvincibilityGlow;
 };
 
 UCLASS(PrioritizeCategories = ("Attacks", "Special Patterns", "Movement", "Reactions", "Fracture"))

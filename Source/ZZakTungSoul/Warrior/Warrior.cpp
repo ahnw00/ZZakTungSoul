@@ -545,6 +545,7 @@ void AWarrior::SetDead()
 
     SetActionState(EActionState::Dead);
     bDeathMontageFinished = false;
+	ResetLockOnTarget();
     GetWorldTimerManager().ClearTimer(DeathNotificationTimer);
     GetWorldTimerManager().ClearTimer(RespawnTimer);
 
@@ -930,6 +931,13 @@ void AWarrior::LockOn()
 			{
 				BestDot = Dot;
 				SetLockOnTarget(Detected);
+
+				AEnemyBase* DetectedEnemy = Cast<AEnemyBase>(Detected);
+				if (DetectedEnemy)
+				{
+					DetectedEnemy->OnResetLockOn.Unbind();
+					DetectedEnemy->OnResetLockOn.BindUObject(this, &AWarrior::ResetLockOnTarget);
+				}
 			}
 		}
 	}

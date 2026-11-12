@@ -29,6 +29,7 @@
 #include <Component/EquipmentComponent.h>
 #include <Component/InventoryComponent.h>
 #include <ItemData/LanternDataAsset.h>
+#include <ItemData/PotionDataAsset.h>
 
 #include <Interface/ItemFunctionInterface.h>
 
@@ -194,6 +195,9 @@ AWarrior::AWarrior()
 	StartingLanternData = TSoftObjectPtr<ULanternDataAsset>(
 		FSoftObjectPath(TEXT("/Game/ItemDataAssets/DA_Lantern.DA_Lantern")));
 
+	StartingPotionData = TSoftObjectPtr<UPotionDataAsset>(
+		FSoftObjectPath(TEXT("/Game/ItemDataAssets/DA_Potion.DA_Potion")));
+
 	static ConstructorHelpers::FClassFinder<AActor> FatalCameraClassRef(
 		TEXT("/Game/Blueprints/Warrior/Fatal_Camera.Fatal_Camera")
 	);
@@ -295,6 +299,7 @@ void AWarrior::PostInitializeComponents()
 	}
 
 	EnsureStartingLantern();
+	EnsureStartingPotion();
 }
 
 void AWarrior::Tick(float DeltaTime)
@@ -1817,6 +1822,7 @@ void AWarrior::LoadWarriorData(const FWarriorSaveData& SaveData)
 	// 가져와야 할 값: Inventory, Equipment
 	Inventory->SetItems(SaveData.Items);
 	EnsureStartingLantern();
+	EnsureStartingPotion();
 
 	Equipment->SetEquippedItems(SaveData.EquippedItems);
 	// 장착되어있는거 UI 업데이트해주기
@@ -1844,6 +1850,32 @@ void AWarrior::EnsureStartingLantern()
 	}
 
 	Inventory->AddItem(StartingLanternData.Get(), FGuid::NewGuid());
+}
+
+void AWarrior::EnsureStartingPotion()
+{
+	if (StartingPotionData.IsPending())
+	{
+		StartingPotionData.LoadSynchronous();
+	}
+
+	if (!Inventory || !StartingPotionData)
+	{
+		return;
+	}
+
+	if (Inventory->FindItemByAssetID(StartingPotionData->GetPrimaryAssetId()))
+	{
+		return;
+	}
+
+	Inventory->AddItem(StartingPotionData.Get(), FGuid::NewGuid());
+
+	if (FInventoryItem* StartingPotion =
+		Inventory->FindItemByAssetID(StartingPotionData->GetPrimaryAssetId()))
+	{
+		StartingPotion->Quantity = 3;
+	}
 }
 
 

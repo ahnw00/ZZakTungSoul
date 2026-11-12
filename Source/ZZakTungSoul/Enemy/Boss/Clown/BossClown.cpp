@@ -462,18 +462,12 @@ void ABossClown::StopPhase2Presentation(ABoss* Boss, int32 TransitionID, bool bC
 
 	Phase2WeaponVisibility.Reset();
 
-	if (!bCancelled && GetPhase2TransitionStage() == EBossPhase2TransitionStage::None && IsValid(Phase2CombatPoint))
-	{
-		PlaceAtPhase2CombatPoint();
-	}
-
 	if (!bCancelled && bPhase2WallBreakShown)
 	{
 		ShowPhase2WallFog(Phase2AdvanceOrigin.Get(GetActorLocation()));
 	}
 
 	Phase2AdvanceOrigin.Reset();
-	Phase2AdvanceStartedAt.Reset();
 	RestorePhase2Wall();
 	Phase2WallComponent.Reset();
 	bPhase2WallBreakShown = false;
@@ -503,37 +497,6 @@ void ABossClown::StopPhase2Presentation(ABoss* Boss, int32 TransitionID, bool bC
 			Smoke->Deactivate();
 		}
 	}
-}
-
-void ABossClown::PlaceAtPhase2CombatPoint()
-{
-	const FVector Preferred = Phase2CombatPoint->GetActorLocation();
-	if (!EncounterFloor.IsValid() || !EncounterFloorBounds.IsValid)
-	{
-		SetActorLocation(Preferred, false, nullptr, ETeleportType::TeleportPhysics);
-		return;
-	}
-
-	UCharacterMovementComponent* Movement = GetCharacterMovement();
-	const FVector Center = EncounterFloorBounds.GetCenter();
-	const FVector Inward = (Center - Preferred).GetSafeNormal2D();
-	const double LandingZ = EncounterFloorZ + GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 12.0;
-	for (const double Distance : {240.0, 480.0, 720.0})
-	{
-		FVector Location = Preferred + Inward * Distance;
-		Location.Z = LandingZ;
-		FFindFloorResult Floor;
-		Movement->FindFloor(Location, Floor, false);
-		if (Floor.IsWalkableFloor() && IsEncounterFloorHit(Floor.HitResult))
-		{
-			Movement->StopMovementImmediately();
-			SetActorLocation(Location, false, nullptr, ETeleportType::TeleportPhysics);
-			return;
-		}
-	}
-
-	Movement->StopMovementImmediately();
-	SetActorLocation(FVector(Center.X, Center.Y, LandingZ), false, nullptr, ETeleportType::TeleportPhysics);
 }
 
 const UBossClownAnimationData* ABossClown::GetClownAnimationData() const
@@ -1122,14 +1085,10 @@ void ABossClown::TickPhase2Emergence()
 		}
 	}
 
-	if (bPlaying && bWallCleared && Phase2AdvanceOrigin.IsSet() && IsValid(Phase2CombatPoint) && Position >= Phase2AdvanceStartTime)
+	if (bPlaying && (bWallCleared || bPhase2WallBreakShown) && Phase2AdvanceOrigin.IsSet() &&
+		IsValid(Phase2CombatPoint) && Position >= Phase2AdvanceStartTime)
 	{
-		if (!Phase2AdvanceStartedAt.IsSet())
-		{
-			Phase2AdvanceStartedAt = Position;
-		}
-
-		const float Start = Phase2AdvanceStartedAt.GetValue();
+		const float Start = Phase2AdvanceStartTime;
 		const float Duration = FMath::Clamp(Montage->GetPlayLength() - Start - 0.12f, 0.01f, 0.78f);
 		const float Alpha = FMath::Clamp((Position - Start) / Duration, 0.0f, 1.0f);
 		const float Drive = 1.0f - FMath::Cube(1.0f - Alpha);

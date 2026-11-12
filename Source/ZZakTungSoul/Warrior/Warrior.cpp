@@ -58,6 +58,8 @@
 #include <GameFramework/PlayerController.h>
 
 #include "GameFramework/GameModeBase.h"
+#include "GamePlay/MusicSubsystem.h"
+#include "GamePlay/ZTSGameMode.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 
@@ -545,6 +547,10 @@ void AWarrior::SetDead()
     }
 
     SetActionState(EActionState::Dead);
+    if (UMusicSubsystem* Music = GetGameInstance()->GetSubsystem<UMusicSubsystem>())
+    {
+        Music->StopBGM();
+    }
 	ResetLockOnTarget();
     GetWorldTimerManager().ClearTimer(DeathNotificationTimer);
     GetWorldTimerManager().ClearTimer(RespawnTimer);
@@ -1960,6 +1966,10 @@ void AWarrior::RespawnAtLastBonfire()
     }
 
     PC->EndDeathPresentation();
+    if (AZTSGameMode* GameMode = GetWorld()->GetAuthGameMode<AZTSGameMode>())
+    {
+        GameMode->PlayGameplayBGM(0.5f);
+    }
 }
 
 void AWarrior::EndPlay(const EEndPlayReason::Type EndPlayReason)

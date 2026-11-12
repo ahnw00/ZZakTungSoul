@@ -40,6 +40,7 @@ public:
 
 	void DeleteGame();
 
+	void PlayGameplayBGM(float FadeInDuration = 0.f);
 
 private:
 	const FString SlotName = TEXT("SaveSlot");

@@ -33,6 +33,7 @@
 #include "UI/Notify/NotificationSubsystem.h"
 #include "GamePlay/ZTSGameMode.h"
 #include <GamePlay/MusicSubsystem.h>
+#include <Enemy/Spawner/EnemySpawnSubsystem.h>
 
 ABossRoom::ABossRoom()
 {
@@ -357,8 +358,19 @@ void ABossRoom::OnFirstEntryBeginOverlap(UPrimitiveComponent* OverlappedComp, AA
 
 	const bool bOtherSide = OverlappedComp == OtherSideFirstEntryTrigger;
 
+
+	// 적 초기화
+	if (Player && OtherComp == Player->GetCapsuleComponent() && (!bOtherSide || bEnableOtherSideGate))
+	{
+		if (UEnemySpawnSubsystem* SpawnSubsystem = GetWorld()->GetSubsystem<UEnemySpawnSubsystem>())
+		{
+			SpawnSubsystem->ResetAllEnemies();
+		}
+	}
+
 	if (Player && OtherComp == Player->GetCapsuleComponent() && IsFirstEntry() && (!bOtherSide || bEnableOtherSideGate))
 	{
+
 		TryEnter(Player, false, bOtherSide);
 	}
 }
@@ -370,6 +382,12 @@ void ABossRoom::OnInteractionBeginOverlap(UPrimitiveComponent* OverlappedComp, A
 	{
 		if (OtherComp == Player->GetCapsuleComponent() && (OverlappedComp != OtherSideInteractionTrigger || bEnableOtherSideGate))
 		{
+			// 적 초기화
+			//if (UEnemySpawnSubsystem* SpawnSubsystem = GetWorld()->GetSubsystem<UEnemySpawnSubsystem>())
+			//{
+			//	SpawnSubsystem->ResetAllEnemies();
+			//}
+
 			// 안개 켜질 때만 넣기.
 
 			if(bEnableOtherSideGate)
@@ -640,6 +658,10 @@ bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog, bool bOtherSide)
 		}
 
 		IntroPlayer->OnFinished.AddDynamic(this, &ABossRoom::OnIntroFinished);
+		if (UMusicSubsystem* Music = GetGameInstance()->GetSubsystem<UMusicSubsystem>())
+		{
+			Music->StopBGM(0.f);
+		}
 		IntroPlayer->Play();
 	}
 	else
@@ -968,12 +990,6 @@ void ABossRoom::SkipIntro()
 
 void ABossRoom::BeginBattle()
 {
-	if (UMusicSubsystem* Music =
-		GetGameInstance()->GetSubsystem<UMusicSubsystem>())
-	{
-		Music->StopBGM();
-	}
-
 	if (bChangingState || RoomState != EBossRoomState::Intro)
 	{
 		return;
@@ -984,6 +1000,11 @@ void ABossRoom::BeginBattle()
 		FailAttempt();
 
 		return;
+	}
+
+	if (UMusicSubsystem* Music = GetGameInstance()->GetSubsystem<UMusicSubsystem>())
+	{
+		Music->StopBGM();
 	}
 
 	RoomState = EBossRoomState::Fighting;
@@ -1003,9 +1024,10 @@ void ABossRoom::BeginBattle()
 
 void ABossRoom::UpdateEncounterMusic()
 {
-	switch (BossActor->GetBossPhase())
+	const EBossPhase BossPhase = BossActor->GetBossPhase();
+	const EBossPhase MusicPhase = BossPhase == EBossPhase::OpeningAttack ? BossActor->GetOpeningCombatPhase() : BossPhase;
+	switch (MusicPhase)
 	{
-	case EBossPhase::OpeningAttack:
 	case EBossPhase::Phase1:
 		SetEncounterMusic(Phase1CombatMusic, Phase1CombatMusicVolume);
 		break;

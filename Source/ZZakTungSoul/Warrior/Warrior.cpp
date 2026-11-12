@@ -798,51 +798,34 @@ bool AWarrior::DebugForceClownFatalAttack(ABossClown& Boss, bool bFront)
 		return false;
 	}
 
-	return ExecuteFatalAttack(Boss, Boss, bFront, true);
-}
-
-bool AWarrior::ExecuteFatalAttack(AActor& Enemy, IFatalAttackableInterface& Target, bool bFront, bool bForced)
-{
-	const FVector RelativeLocation = bFront ? FVector(80.f, 10.f, 0.f) : FVector(-120.f, 0.f, 0.f);
-	FVector TargetLocation = Enemy.GetActorTransform().TransformPosition(RelativeLocation);
-	FRotator TargetRotation = (Enemy.GetActorLocation() - GetActorLocation()).Rotation();
-	if (!bFront)
-	{
-		TargetRotation.Yaw -= 10.f;
-	}
-
-	const ABossClown* Clown = Cast<ABossClown>(&Enemy);
-	if (Clown)
-	{
-		Clown->GetCriticalAttackPlacement(*this, bFront, TargetLocation, TargetRotation);
-		if (bForced)
-		{
-			const double BossFloor = Clown->GetActorLocation().Z - Clown->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-			TargetLocation.Z = BossFloor + GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-			if (!GetWorld()->FindTeleportSpot(this, TargetLocation, TargetRotation))
-			{
-				return false;
-			}
-		}
-	}
-
-	FDamageInfo DamageInfo;
-	DamageInfo.AttackDamage = CharacterStatComponent->GetAttackPower() * 2.0f;
-	Target.ReceiveFatalAttack(DamageInfo, bFront);
-
-	const EEnemyActionState Reaction = bFront ? EEnemyActionState::GetFrontFatalAttack : EEnemyActionState::GetBackFatalAttack;
-	if (Clown && Clown->GetEnemyActionState() != Reaction)
+	FVector TargetLocation;
+	FRotator TargetRotation;
+	Boss.GetCriticalAttackPlacement(*this, bFront, TargetLocation, TargetRotation);
+	const double BossFloor = Boss.GetActorLocation().Z - Boss.GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	TargetLocation.Z = BossFloor + GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	if (!GetWorld()->FindTeleportSpot(this, TargetLocation, TargetRotation))
 	{
 		return false;
 	}
 
-	SetActionState(bFront ? EActionState::FrontFatalAttack : EActionState::BackFatalAttack);
+	const FVector PreviousLocation = GetActorLocation();
+	const FRotator PreviousRotation = GetActorRotation();
+	const EEnemyState PreviousBossState = Boss.GetEnemyState();
 	SetActorLocationAndRotation(TargetLocation, TargetRotation);
-	if (!AnimInstance->PlayActionMontage())
+	if (bFront)
 	{
-		EndAction();
+		Boss.SetEnemyState(EEnemyState::Groggy);
 	}
-	return true;
+
+	TGuardValue<IFatalAttackableInterface*> TargetGuard(CurrentFatalAttackable, &Boss);
+	if (FatalAttack())
+	{
+		return true;
+	}
+
+	Boss.SetEnemyState(PreviousBossState);
+	SetActorLocationAndRotation(PreviousLocation, PreviousRotation);
+	return false;
 }
 
 void AWarrior::SetComboWindow(bool bOpen)
@@ -1269,10 +1252,10 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 	float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
 
 	// 피격 사운드 재생
-	//if (HitSound)
-	//{
-	//	UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
-	//}
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	}
 
 	const float HPBeforeDamage = CharacterStatComponent->GetCurrentHP();
 	CharacterStatComponent->ApplyDamage(DamageInfo);

@@ -11,7 +11,6 @@
 
 namespace
 {
-	constexpr int32 MaxRoundsPerPhase = 2;
 	constexpr float AnswerOpenTime = 0.6f;
 	constexpr float PanelHeight = 220.0f;
 }
@@ -25,12 +24,11 @@ UClownYabawiComponent::UClownYabawiComponent()
 bool UClownYabawiComponent::CanStart() const
 {
 	const ABossClown* Boss = Cast<ABossClown>(GetOwner());
-	const FClownPhaseOnePattern* Pattern = Boss ? Boss->GetAttackPattern(EBossClownAttack::Yabawi) : nullptr;
+	const UBossClownAnimationData* Data = Boss ? Boss->GetClownAnimationData() : nullptr;
 
 	return Boss && Boss->IsClownCombatPhase() && Stage == EClownYabawiStage::None &&
-		RoundsStartedThisPhase < MaxRoundsPerPhase && GetWorld() && Pattern &&
-		Pattern->bEnabled && Boss->GetClownAttackData(EBossClownAttack::Yabawi) && Pattern->BowlMesh &&
-		Pattern->BallMesh && GetWorld()->GetTimeSeconds() >= ReadyTime;
+		GetWorld() && Data && Boss->GetClownAttackData(EBossClownAttack::Yabawi) && Data->Yabawi.BowlMesh &&
+		Data->Yabawi.BallMesh && GetWorld()->GetTimeSeconds() >= ReadyTime;
 }
 
 bool UClownYabawiComponent::StartRound(AActor* Player, const TArray<FVector>& Positions)
@@ -42,7 +40,7 @@ bool UClownYabawiComponent::StartRound(AActor* Player, const TArray<FVector>& Po
 		return false;
 	}
 
-	Settings = *Boss->GetAttackPattern(EBossClownAttack::Yabawi);
+	Settings = Boss->GetClownAnimationData()->Yabawi;
 	Target = Player;
 	RoundID = ++RoundSerial;
 	CorrectBowl = FMath::RandRange(0, Positions.Num() - 1);
@@ -95,7 +93,6 @@ bool UClownYabawiComponent::StartRound(AActor* Player, const TArray<FVector>& Po
 		Widget->TakeWidget();
 	}
 
-	++RoundsStartedThisPhase;
 	SetStage(EClownYabawiStage::Reveal);
 	SetComponentTickEnabled(true);
 
@@ -400,13 +397,7 @@ void UClownYabawiComponent::TickComponent(
 		if (Alpha >= 1.0f)
 		{
 			Bowls[CorrectBowl]->ShowBall(false);
-			if (const UBossClownAnimationData* Data = Boss->GetClownAnimationData())
-			{
-				if (const FClownPatternEffects* Cover = Data->PatternEffects.Find(EBossClownAttack::Yabawi))
-				{
-					Cover->PlaySound(this, (Bowls[0]->GetActorLocation() + Bowls.Last()->GetActorLocation()) * 0.5f);
-				}
-			}
+			Settings.CoverSound.Play(this, (Bowls[0]->GetActorLocation() + Bowls.Last()->GetActorLocation()) * 0.5f);
 			SetStage(EClownYabawiStage::Shuffle);
 			StartSwap();
 		}
@@ -512,7 +503,6 @@ void UClownYabawiComponent::CancelRound(bool bResetPhase)
 	if (bResetPhase)
 	{
 		ReadyTime = 0.0;
-		RoundsStartedThisPhase = 0;
 	}
 	else if (bWasActive && GetWorld())
 	{

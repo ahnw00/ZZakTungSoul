@@ -28,7 +28,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Clown|Condition", meta = (ClampMin = "0"))
 	float MaxDistance = 180.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Clown|Condition", meta = (ClampMin = "0", ClampMax = "1"))
+	UPROPERTY(EditAnywhere, Category = "Clown|Condition", meta = (ClampMin = "0", ClampMax = "1", ToolTip = "이 분기의 거리와 방향 조건을 만족했을 때의 통과 확률. 셀렉터는 위쪽 분기부터 평가합니다."))
 	float Chance = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Clown|Condition", meta = (ClampMin = "-1", ClampMax = "1"))

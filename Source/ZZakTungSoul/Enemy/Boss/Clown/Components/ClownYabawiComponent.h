@@ -66,7 +66,7 @@ private:
 	void CommitSelection();
 
 	UPROPERTY(Transient)
-	FClownPhaseOnePattern Settings;
+	FClownYabawiSettings Settings;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UWidgetComponent> SelectionPanel;
@@ -80,7 +80,6 @@ private:
 	TWeakObjectPtr<AActor> Target;
 	int32 RoundSerial = 0;
 	int32 RoundID = INDEX_NONE;
-	int32 RoundsStartedThisPhase = 0;
 	int32 CorrectBowl = INDEX_NONE;
 
 	int32 SwapA = INDEX_NONE;

@@ -25,23 +25,6 @@ UClownProjectileComponent::UClownProjectileComponent()
 	WarningMesh = MeshRef.Object;
 	WarningMaterial = MaterialRef.Object;
 
-	// Fab에서 Assets로 이동한 원본 머티리얼과 텍스처를 직접 참조.
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> BallMaterialRef(
-		TEXT("/Game/Assets/Beach_Ball_-_Low_Poly/beach_ball_low_poly/Materials/BeachBall.BeachBall"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> CubeMaterialRef(
-		TEXT("/Game/Assets/CC0_-_Magic_Cube/cc0_magic_cube/Materials/MagicCube.MagicCube"));
-	BallMaterial = BallMaterialRef.Object;
-	CubeMaterial = CubeMaterialRef.Object;
-
-	for (int32 Index = 0; Index < 3; ++Index)
-	{
-		const FString BallPath = FString::Printf( TEXT( "/Game/Assets/Beach_Ball_-_Low_Poly/beach_ball_low_poly/Textures/beach_ball_low_poly_texture_%d.beach_ball_low_poly_texture_%d"), Index, Index);
-		const FString CubePath = FString::Printf( TEXT( "/Game/Assets/CC0_-_Magic_Cube/cc0_magic_cube/Textures/cc0_magic_cube_texture_%d.cc0_magic_cube_texture_%d"), Index, Index);
-		ConstructorHelpers::FObjectFinder<UTexture2D> BallTextureRef(*BallPath);
-		ConstructorHelpers::FObjectFinder<UTexture2D> CubeTextureRef(*CubePath);
-		BallTextures.Add(BallTextureRef.Object);
-		CubeTextures.Add(CubeTextureRef.Object);
-	}
 }
 
 void UClownProjectileComponent::BeginPlay()
@@ -57,11 +40,6 @@ void UClownProjectileComponent::BeginPlay()
 
 	VisualMesh = Mesh;
 
-	if (Mesh->GetStaticMesh() && Mesh->GetStaticMesh()->GetFName() == TEXT("SM_ClownBeachBallVivid"))
-	{
-		RestoreProjectileMaterial(Mesh, false);
-	}
-
 	TArray<UAttackTraceComponent*> Traces;
 	Owner->GetComponents<UAttackTraceComponent>(Traces);
 
@@ -76,36 +54,6 @@ void UClownProjectileComponent::BeginPlay()
 	if (Traces.IsEmpty())
 	{
 		UE_LOG(LogTemp, Error, TEXT("Clown projectile requires AttackTraceComponent and mesh trace sockets."));
-	}
-}
-
-void UClownProjectileComponent::RestoreProjectileMaterial(UStaticMeshComponent* Mesh, bool bCube)
-{
-	UMaterialInterface* Material = bCube ? CubeMaterial.Get() : BallMaterial.Get();
-	const TArray<TObjectPtr<UTexture2D>>& Textures = bCube ? CubeTextures : BallTextures;
-
-	if (!Mesh || !Material || Textures.Num() != 3 || !Textures[0] || !Textures[1] || !Textures[2])
-	{
-		UE_LOG(LogTemp, Error, TEXT("Clown projectile: relocated %s material or textures are missing."),
-			bCube ? TEXT("cube") : TEXT("ball"));
-
-		return;
-	}
-
-	UMaterialInstanceDynamic* RestoredMaterial = Mesh->CreateAndSetMaterialInstanceDynamicFromMaterial(0, Material);
-
-	if (!RestoredMaterial)
-	{
-		return;
-	}
-
-	RestoredMaterial->SetTextureParameterValue(TEXT("BaseColorTexture"), Textures[0]);
-	RestoredMaterial->SetTextureParameterValue(TEXT("MetallicRoughnessTexture"), Textures[1]);
-	RestoredMaterial->SetTextureParameterValue(TEXT("NormalTexture"), Textures[2]);
-
-	if (bCube)
-	{
-		RestoredMaterial->SetTextureParameterValue(TEXT("OcclusionTexture"), Textures[1]);
 	}
 }
 
@@ -197,7 +145,7 @@ void UClownProjectileComponent::ArmCard(const FVector& GroundLocation, float Sta
 
 	CardOrigin = GroundLocation + FVector(0.0f, 0.0f, 6.0f);
 	CardYaw = Owner->GetActorRotation().Yaw;
-	CardStandTime = FMath::Max(StandTime, 1.5f);
+	CardStandTime = StandTime;
 	CardFallTime = FMath::Max(FallTime, 0.3f);
 	CardElapsed = 0.0f;
 	bCardHazard = true;
@@ -232,7 +180,8 @@ void UClownProjectileComponent::ArmCard(const FVector& GroundLocation, float Sta
 	CardCollision->SetRelativeLocation(FVector(0.0f, 0.0f, CardTravel * 0.5f));
 	CardCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
-	Owner->SetLifeSpan(CardRiseTime + CardStandTime + CardFallTime + LifeTime + 0.3f);
+	constexpr float CleanupGraceTime = 1.0f;
+	Owner->SetLifeSpan(CardRiseTime + CardStandTime + CardFallTime + CleanupGraceTime);
 	SetComponentTickEnabled(true);
 }
 
@@ -349,9 +298,9 @@ void UClownProjectileComponent::TickBallSpin(float DeltaTime)
 
 	const ABossClown* Boss = Cast<ABossClown>(GetOwner()->GetOwner());
 	const UBossClownAnimationData* Data = Boss ? Boss->GetClownAnimationData() : nullptr;
-	if (Data && Data->BallSpinEffect)
+	if (Data && Data->Balls.SpinEffect)
 	{
-		BallSpinEffect = UNiagaraFunctionLibrary::SpawnSystemAttached(Data->BallSpinEffect, Mesh, NAME_None,
+		BallSpinEffect = UNiagaraFunctionLibrary::SpawnSystemAttached(Data->Balls.SpinEffect, Mesh, NAME_None,
 			FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, false, false);
 		if (BallSpinEffect)
 		{
@@ -595,8 +544,6 @@ void UClownProjectileComponent::ArmCubeMarch(UStaticMesh* Piece, const FVector& 
 	}
 
 	Mesh->SetStaticMesh(Piece);
-	Mesh->EmptyOverrideMaterials();
-	RestoreProjectileMaterial(Mesh, true);
 	const float Size = Piece->GetBounds().BoxExtent.GetMax() * 2.0f;
 	Mesh->SetRelativeScale3D(FVector(94.0f / FMath::Max(Size, 0.01f)));
 	Mesh->SetRelativeLocation(FVector::ZeroVector);

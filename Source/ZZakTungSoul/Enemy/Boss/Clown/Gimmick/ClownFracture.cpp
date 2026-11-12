@@ -84,7 +84,7 @@ bool ClownFracture::PlayCached(const ABossClown& Boss, UMeshComponent& Mesh, flo
 
 	if (bCard && StaticAsset)
 	{
-		// The card collections are authored at their own display sizes.
+		// 카드 파편 컬렉션의 크기를 실제 카드 메시 크기에 맞춤.
 		FBox ShardBounds(ForceInit);
 		for (const FBox& Bounds : Rest->GetGeometryCollection()->BoundingBox)
 		{
@@ -111,6 +111,11 @@ bool ClownFracture::PlayCached(const ABossClown& Boss, UMeshComponent& Mesh, flo
 	}
 
 	UGeometryCollectionComponent* Collection = Manager->GetShards();
+	if (bCard && !bIntroCard)
+	{
+		Collection->bCastDynamicShadow = false;
+		Collection->MarkRenderStateDirty();
+	}
 	Collection->SetRestCollection(Rest, false);
 	if (UMaterialInterface* Material = Mesh.GetMaterial(0))
 	{

@@ -70,7 +70,7 @@ void UBTTask_ClownEvade::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		{
 			const FVector Home = BB->GetValueAsVector(TEXT("HomeLocation"));
 
-			if (FVector::Dist2D(Clown->GetActorLocation(), Home) > Clown->GetClownAnimationData()->TacticalLeashRadius)
+			if (FVector::Dist2D(Clown->GetActorLocation(), Home) > Clown->GetClownAnimationData()->TacticalMovement.LeashRadius)
 			{
 				Direction = (Home - Clown->GetActorLocation()).GetSafeNormal2D();
 			}
@@ -178,7 +178,7 @@ bool UBTTask_ClownEvade::FindSafeGoal(UBehaviorTreeComponent& OwnerComp, ABossCl
 
 	if (UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent())
 	{
-		if (FVector::Dist2D(OutGoal, BB->GetValueAsVector(TEXT("HomeLocation"))) > Data->TacticalLeashRadius)
+		if (FVector::Dist2D(OutGoal, BB->GetValueAsVector(TEXT("HomeLocation"))) > Data->TacticalMovement.LeashRadius)
 		{
 			return false;
 		}
@@ -221,7 +221,7 @@ bool UBTTask_ClownEvade::BuildJumpVelocity(ABossClown* Clown, AActor* Target, FV
 {
 	const float Gravity = FMath::Max(-Clown->GetCharacterMovement()->GetGravityZ(), 1.0f);
 	const FVector Displacement = MoveGoal - Clown->GetActorLocation();
-	const float Height = FMath::Max(Clown->GetClownAnimationData()->BackjumpHeight, FMath::Max(Displacement.Z, 0.0f) + 10.0f);
+	const float Height = FMath::Max(Clown->GetClownAnimationData()->TacticalMovement.BackjumpHeight, FMath::Max(Displacement.Z, 0.0f) + 10.0f);
 	const float UpSpeed = FMath::Sqrt(2.0f * Gravity * Height);
 	const float FlightTime = (UpSpeed + FMath::Sqrt(FMath::Max(UpSpeed * UpSpeed - 2.0f * Gravity * Displacement.Z, 0.0f))) / Gravity;
 	OutVelocity = Displacement.GetSafeNormal2D() * (Displacement.Size2D() / FlightTime);
@@ -271,16 +271,16 @@ bool UBTTask_ClownEvade::BeginTactical(UBehaviorTreeComponent& OwnerComp, ABossC
 	switch (Action)
 	{
 	case EClownEvadeAction::Backstep:
-		Offset = -Forward * Data->BackstepDistance;
-		Montage = Data->BackstepMontage.Get();
+		Offset = -Forward * Data->TacticalMovement.BackstepDistance;
+		Montage = Data->TacticalMovement.BackstepMontage.Get();
 		break;
 	case EClownEvadeAction::Backjump:
-		Offset = -Forward * Data->BackjumpDistance;
-		Montage = Data->BackjumpMontage.Get();
+		Offset = -Forward * Data->TacticalMovement.BackjumpDistance;
+		Montage = Data->TacticalMovement.BackjumpMontage.Get();
 		break;
 	case EClownEvadeAction::SideEvade:
-		Offset = FVector::CrossProduct(FVector::UpVector, Forward) * Side * Data->SideEvadeDistance;
-		Montage = Side < 0.0f ? Data->EvadeLeftMontage.Get() : Data->EvadeRightMontage.Get();
+		Offset = FVector::CrossProduct(FVector::UpVector, Forward) * Side * Data->TacticalMovement.SideEvadeDistance;
+		Montage = Side < 0.0f ? Data->TacticalMovement.EvadeLeftMontage.Get() : Data->TacticalMovement.EvadeRightMontage.Get();
 		break;
 	}
 
@@ -358,11 +358,6 @@ void UBTTask_ClownEvade::FinishTactical(bool bAbort)
 
 	if (ABossClown* Clown = AttackingClown.Get())
 	{
-		if (!bAbort && (Action == EClownEvadeAction::Backjump || Action == EClownEvadeAction::Backstep))
-		{
-			Clown->PreferClownRangedAttack();
-		}
-
 		Clown->ConsumeMovementInputVector();
 
 		if (UAttackTraceComponent* Trace = Clown->FindComponentByClass<UAttackTraceComponent>())

@@ -66,19 +66,6 @@ private:
 	void TickBallSpin(float DeltaTime);
 	void TickCard(float DeltaTime);
 	void TickCubeMarch(float DeltaTime);
-	void RestoreProjectileMaterial(UStaticMeshComponent* Mesh, bool bCube);
-
-	UPROPERTY()
-	TObjectPtr<UMaterialInterface> BallMaterial;
-
-	UPROPERTY()
-	TObjectPtr<UMaterialInterface> CubeMaterial;
-
-	UPROPERTY()
-	TArray<TObjectPtr<UTexture2D>> BallTextures;
-
-	UPROPERTY()
-	TArray<TObjectPtr<UTexture2D>> CubeTextures;
 
 	UPROPERTY(Transient)
 	FDamageInfo Damage;

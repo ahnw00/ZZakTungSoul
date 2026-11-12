@@ -127,7 +127,7 @@ float ABoss::GetTargetSurfaceDistance(const AActor* Target) const
 			GetCapsuleComponent()->GetScaledCapsuleRadius() - TargetRadius);
 }
 
-const FEnemyAttackData* ABoss::GetOpeningAttackData() const
+const FEnemyAttackData* ABoss::GetOpeningAttackData(EBossPhase) const
 {
 	return nullptr;
 }
@@ -164,7 +164,7 @@ bool ABoss::ValidateEncounter() const
 		return false;
 	}
 
-	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData();
+	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData(EBossPhase::Phase1);
 
 	if (!OpeningAttack || !OpeningAttack->Montage || !OpeningAttack->DamageInfo.IsValidIndex(0))
 	{
@@ -256,10 +256,10 @@ void ABoss::FinishPresentation(int32 PresentationID)
 	switch (CompletedPresentation)
 	{
 	case EBossPresentation::Intro:
-		BeginOpeningAttack();
+		BeginOpeningAttack(EBossPhase::Phase1);
 		break;
 	case EBossPresentation::Phase2Transition:
-		EnterCombatPhase(EBossPhase::Phase2);
+		BeginOpeningAttack(EBossPhase::Phase2);
 		break;
 	default:
 		break;
@@ -310,10 +310,10 @@ void ABoss::OnPresentationStopped_Implementation(EBossPresentation Presentation,
 {
 }
 
-// 인트로 완료 후 타깃 방향으로 정렬하고 첫 공격 실행.
-void ABoss::BeginOpeningAttack()
+void ABoss::BeginOpeningAttack(EBossPhase CombatPhase)
 {
-	if (bLifecycleChanging || BossPhase != EBossPhase::Intro)
+	const EBossPhase ExpectedPhase = CombatPhase == EBossPhase::Phase2 ? EBossPhase::PhaseTransition : EBossPhase::Intro;
+	if (bLifecycleChanging || BossPhase != ExpectedPhase)
 	{
 		return;
 	}
@@ -325,9 +325,21 @@ void ABoss::BeginOpeningAttack()
 		return;
 	}
 
-	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData();
-	UAnimMontage* OpeningMontage = OpeningAttack->Montage.Get();
+	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData(CombatPhase);
+	if (!OpeningAttack || !OpeningAttack->Montage)
+	{
+		EnterCombatPhase(CombatPhase);
+		return;
+	}
+	if (!OpeningAttack->DamageInfo.IsValidIndex(0))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Boss: phase opening attack is missing DamageInfo[0]."));
+		EnterCombatPhase(CombatPhase);
+		return;
+	}
 
+	UAnimMontage* OpeningMontage = OpeningAttack->Montage.Get();
+	OpeningCombatPhase = CombatPhase;
 	BossPhase = EBossPhase::OpeningAttack;
 	SetEnemyState(EEnemyState::Attack);
 
@@ -343,8 +355,8 @@ void ABoss::BeginOpeningAttack()
 
 	if (Anim->Montage_Play(OpeningMontage) <= 0.0f)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Boss: opening montage failed; continuing to phase 1."));
-		EnterCombatPhase(EBossPhase::Phase1);
+		UE_LOG(LogTemp, Warning, TEXT("Boss: opening montage failed; starting the phase behavior tree."));
+		EnterCombatPhase(CombatPhase);
 
 		return;
 	}
@@ -355,7 +367,7 @@ void ABoss::BeginOpeningAttack()
 	Anim->Montage_SetEndDelegate(EndDelegate, OpeningMontage);
 }
 
-// 현재 전투의 첫 공격 종료일 때만 1페이즈 시작.
+// 오프닝 공격이 끝나면 해당 페이즈의 BT를 시작.
 void ABoss::OnOpeningEnded(UAnimMontage* Montage, bool bInterrupted, int32 InEncounterID)
 {
 	if (bLifecycleChanging || InEncounterID != EncounterID ||
@@ -366,7 +378,7 @@ void ABoss::OnOpeningEnded(UAnimMontage* Montage, bool bInterrupted, int32 InEnc
 
 	AttackTraceComponent->EndTrace();
 
-	EnterCombatPhase(EBossPhase::Phase1);
+	EnterCombatPhase(OpeningCombatPhase);
 }
 
 // 선택한 페이즈의 Blackboard와 BT 실행.
@@ -468,7 +480,7 @@ void ABoss::StopEncounterActions()
 	if (UAnimInstance* Anim = GetMesh()->GetAnimInstance())
 	{
 		// 첫 공격 종료 콜백을 해제한 뒤 몽타주 중단.
-		const FEnemyAttackData* OpeningAttack = GetOpeningAttackData();
+		const FEnemyAttackData* OpeningAttack = GetOpeningAttackData(OpeningCombatPhase);
 		if (OpeningAttack && OpeningAttack->Montage)
 		{
 			FOnMontageEnded EmptyDelegate;
@@ -606,7 +618,7 @@ void ABoss::HandleAttackTraceHit(const FHitResult& Hit)
 		return;
 	}
 
-	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData();
+	const FEnemyAttackData* OpeningAttack = GetOpeningAttackData(OpeningCombatPhase);
 
 	if (!OpeningAttack || !OpeningAttack->DamageInfo.IsValidIndex(0))
 	{
@@ -729,7 +741,7 @@ bool ABoss::CompletePhase2Emergence(int32 TransitionID)
 
 	FinishPresentation(TransitionID);
 
-	return BossPhase == EBossPhase::Phase2;
+	return BossPhase == EBossPhase::Phase2 || (BossPhase == EBossPhase::OpeningAttack && OpeningCombatPhase == EBossPhase::Phase2);
 }
 
 void ABoss::StopPhase2Transition(int32 TransitionID, bool bCancelled)

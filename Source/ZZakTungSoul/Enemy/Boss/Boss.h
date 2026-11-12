@@ -126,7 +126,8 @@ public:
 		return BossAIData;
 	}
 
-	virtual const FEnemyAttackData* GetOpeningAttackData() const;
+	virtual const FEnemyAttackData* GetOpeningAttackData(EBossPhase CombatPhase) const;
+	EBossPhase GetOpeningCombatPhase() const { return OpeningCombatPhase; }
 	// 수평 중심 거리에서 양쪽 캡슐 반지름을 뺀 값. 겹치면 0.
 	float GetTargetSurfaceDistance(const AActor* Target) const;
 	virtual AActor* GetEncounterArena() const
@@ -199,7 +200,7 @@ private:
 	void StartPresentation(EBossPresentation Presentation);
 	void StopPresentation(bool bCancelled = true);
 
-	void BeginOpeningAttack();
+	void BeginOpeningAttack(EBossPhase CombatPhase);
 	void OnOpeningEnded(UAnimMontage* Montage, bool bInterrupted, int32 InEncounterID);
 
 	void StopCombat();
@@ -216,6 +217,7 @@ protected:
 	FText BossDisplayName;
 private:
 	TWeakObjectPtr<AActor> EncounterTarget;
+	EBossPhase OpeningCombatPhase = EBossPhase::Phase1;
 	EBossPhase2TransitionStage Phase2TransitionStage = EBossPhase2TransitionStage::None;
 	FTimerHandle Phase2StageTimer;
 	bool bPhase2StateSaved = false;

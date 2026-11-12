@@ -8,6 +8,7 @@
 
 class UAnimInstance;
 class UAnimMontage;
+class USoundBase;
 class UBrainComponent;
 class UAnimSequence;
 class AChaosCacheManager;
@@ -39,7 +40,6 @@ class ZZAKTUNGSOUL_API ABossClown : public ABoss
 
 public:
 	ABossClown();
-	bool CanStartClownYabawi() const;
 	void EnterYabawiGroggy();
 	void CompleteClownYabawi(bool bCorrect);
 	void FinishClownAttack(EBossClownAttackResult Result, bool bStopMontage, bool bRestoreState = true);
@@ -52,7 +52,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	const UBossClownAnimationData* GetClownAnimationData() const;
-	virtual const FEnemyAttackData* GetOpeningAttackData() const override;
+	virtual const FEnemyAttackData* GetOpeningAttackData(EBossPhase CombatPhase) const override;
 	// 광대 전용 공격 실행과 중단.
 	bool StartClownAttack(EBossClownAttack AttackType, AActor* Target, int32& OutExecutionID, float RecoveryScale = 1.0f);
 	void CancelClownAttack(int32 ExecutionID);
@@ -69,7 +69,6 @@ public:
 	const FClownPhaseOnePattern* GetAttackPattern(EBossClownAttack AttackType) const;
 	const FEnemyAttackData* GetClownAttackData(EBossClownAttack Type) const;
 	bool EvaluateClownCondition(AActor* Target, bool bAttack, EBossClownAttack Type, float MinDistance, float MaxDistance, float Chance, float FacingDot) const;
-	void PreferClownRangedAttack();
 	bool FitClownCubePath(FVector& Start, FVector& End) const;
 	virtual AActor* GetEncounterArena() const override
 	{
@@ -103,14 +102,27 @@ protected:
 	float AttackTimeout = 15.0f;
 
 private:
+	void SetPhase2Visuals(bool bEnabled);
+	FTransform ConstrainAttackRootMotion(const FTransform& RootMotion, UCharacterMovementComponent* Movement, float DeltaTime);
+	void PlaceAtPhase2CombatPoint();
+
+	UPROPERTY(EditDefaultsOnly, Category = "Clown|Phase2|Visual")
+	TObjectPtr<UMaterialInterface> Phase2EyeMaterial;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Clown|Phase2|Visual")
+	TObjectPtr<UMaterialInterface> Phase2HeatMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> OriginalHeadMaterial;
+
+	bool bPhase2VisualsEnabled = false;
+
 	void RegisterIntroBreakables();
 	void UpdateIntroBreakables();
+	void BreakIntroProp(UMeshComponent& Prop);
 
 	TArray<TWeakObjectPtr<UMeshComponent>> IntroBreakables;
 	TMap<TWeakObjectPtr<UMeshComponent>, ECollisionEnabled::Type> BrokenIntroProps;
-	FVector LastIntroBossPosition = FVector::ZeroVector;
-	FVector LastIntroPlayerPosition = FVector::ZeroVector;
-	bool bIntroBreakablesActive = false;
 
 	void OnCriticalReactionEnded(UAnimMontage* Montage, bool bInterrupted);
 	TWeakObjectPtr<UBrainComponent> CriticalReactionBrain;
@@ -131,11 +143,17 @@ private:
 	UPROPERTY(EditInstanceOnly, Category = "Clown|Phase2 Transition")
 	TObjectPtr<AChaosCacheManager> Phase2WallCache;
 
-	// Time in the emergence animation to start the wall cache, including its lead-in.
+	UPROPERTY()
+	TObjectPtr<USoundBase> Phase2WallHitSound;
+
+	UPROPERTY()
+	TObjectPtr<USoundBase> Phase2WallBreakSound;
+
+	// 등장 애니메이션에서 벽 파손 캐시의 준비 구간이 시작되는 시점.
 	UPROPERTY(EditInstanceOnly, Category = "Clown|Phase2 Transition", meta = (ClampMin = "0.0"))
 	float Phase2WallPlaybackTime = 0.0f;
 
-	// Animation time of the final punch. Zero uses the first movement from the wall cache.
+	// 마지막 주먹 타격 시점. 0이면 벽 파손 캐시에서 처음 움직이는 시점을 사용.
 	UPROPERTY(EditInstanceOnly, Category = "Clown|Phase2 Transition", meta = (ClampMin = "0.0"))
 	float Phase2WallImpactTime = 0.0f;
 
@@ -163,11 +181,11 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Clown|Phase2 Transition")
 	TObjectPtr<UStaticMeshComponent> Phase2WallFog;
 
-	// Animation times of the two smaller hits before the wall opens.
+	// 벽이 열리기 전 두 번의 약한 타격 시점.
 	UPROPERTY(EditInstanceOnly, Category = "Clown|Phase2 Transition")
 	FVector2D Phase2WallChipTimes = FVector2D::ZeroVector;
 
-	// Animation time at which the clown moves through the broken wall.
+	// 광대가 부서진 벽을 통과하는 애니메이션 시점.
 	UPROPERTY(EditInstanceOnly, Category = "Clown|Phase2 Transition", meta = (ClampMin = "0.0"))
 	float Phase2AdvanceStartTime = 0.0f;
 
@@ -260,18 +278,11 @@ private:
 	// BT 분기와 실제 공격 시작이 같은 패턴 조건을 사용한다.
 	void CollectClownAttackChoices(EBossClownAttack Type, TArray<const FEnemyAttackData*>& Choices) const;
 	bool CanStartClownAttack(EBossClownAttack Type, AActor* Target) const;
-	float GetClownPatternSelectionScale(EBossClownAttack Type) const;
-	bool ShouldPrioritizeClownCube() const;
-	bool PrefersClownRangedAttack() const;
-	void RecordClownAttackStarted(EBossClownAttack Type);
-	void RecordClownAttackFinished(EBossClownAttack Type);
-	void ResetClownAttackSelection();
 
 	// 특수 패턴 배치와 생성물 정리.
 	static bool UsesSpecialPresentation(EBossClownAttack Type);
 	static bool UsesLoopingMontage(EBossClownAttack Type);
 	bool PrepareClownPattern();
-	void PlayPatternEffects(EBossClownAttack Attack, const FVector& Location, const FRotator& Rotation) const;
 	void HandleMeleeGroundContact(const FHitResult& Hit);
 	bool IsMeleeSwingActive() const;
 	bool bPlayedMeleeGroundContact = false;
@@ -298,6 +309,9 @@ private:
 
 private:
 	UPROPERTY(Transient)
+	FEnemyAttackData Phase2OpeningAttack;
+
+	UPROPERTY(Transient)
 	FEnemyAttackData CurrentClownAttack;
 
 	TWeakObjectPtr<UAnimMontage> ChaseMontage;
@@ -306,6 +320,7 @@ private:
 
 	TWeakObjectPtr<UAnimInstance> AttackAnimInstance;
 	TWeakObjectPtr<UAnimMontage> LastPlayedAttackMontage;
+	TMap<EBossClownAttack, TSet<TWeakObjectPtr<UAnimMontage>>> PlayedMeleeMontages;
 	TWeakObjectPtr<UAnimMontage> ActiveGroggyMontage;
 	float YabawiGroggyDuration = 0.0f;
 	FTimerHandle AttackTimeoutHandle;
@@ -348,11 +363,6 @@ private:
 	bool bDashEnded = false;
 	double NextChasePathTime = 0.0;
 
-	TArray<EBossClownAttack> RecentPatterns;
-	TMap<EBossClownAttack, double> LastFinishedByPattern;
-	double LastPatternTime = -1000.0;
-	double LastCubeTime = -1000.0;
-	double RangedPreferenceUntil = 0.0;
 
 	static constexpr int32 BallCount = 16;
 	TWeakObjectPtr<UPrimitiveComponent> EncounterFloor;

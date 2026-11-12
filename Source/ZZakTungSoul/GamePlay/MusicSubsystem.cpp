@@ -9,6 +9,11 @@
 
 void UMusicSubsystem::PlayBGM(USoundBase* BGM)
 {
+    PlayBGMWithFade(BGM, 0.f);
+}
+
+void UMusicSubsystem::PlayBGMWithFade(USoundBase* BGM, float FadeInDuration)
+{
     if (!BGM)
     {
         return;
@@ -16,35 +21,27 @@ void UMusicSubsystem::PlayBGM(USoundBase* BGM)
 
     if (CurrentBGM && CurrentBGM->Sound == BGM)
     {
-        if (!CurrentBGM->IsPlaying())
+        if (CurrentBGM->IsPlaying())
+        {
+            return;
+        }
+    }
+    else
+    {
+        StopBGM();
+        CurrentBGM = UGameplayStatics::CreateSound2D(GetGameInstance(), BGM, 1.f, 1.f, 0.f, nullptr, true, false);
+    }
+
+    if (CurrentBGM)
+    {
+        if (FadeInDuration > 0.f)
+        {
+            CurrentBGM->FadeIn(FadeInDuration, 1.f, 0.f, EAudioFaderCurve::Linear);
+        }
+        else
         {
             CurrentBGM->Play();
         }
-
-        return;
-    }
-
-    if (CurrentBGM)
-    {
-        CurrentBGM->FadeOut(
-            0.5f,
-            0.f,
-            EAudioFaderCurve::Linear);
-    }
-
-    CurrentBGM = UGameplayStatics::SpawnSound2D(
-        GetGameInstance(),
-        BGM,
-        1.f,
-        1.f,
-        0.f,
-        nullptr,
-        true,
-        false);
-
-    if (CurrentBGM)
-    {
-        CurrentBGM->Play();
     }
 }
 

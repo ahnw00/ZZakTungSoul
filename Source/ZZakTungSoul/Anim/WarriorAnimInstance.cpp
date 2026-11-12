@@ -563,7 +563,7 @@ bool UWarriorAnimInstance::PlayActionMontage()
 
 	case EActionState::Dead:
 	{
-		return Montage_Play(DeathMontage) > 0.f;
+		return PlayDeathMontage() > 0.f;
 	}
 
 	default:
@@ -571,6 +571,11 @@ bool UWarriorAnimInstance::PlayActionMontage()
 	}
 
 	return false;
+}
+
+float UWarriorAnimInstance::PlayDeathMontage()
+{
+	return Montage_Play(DeathMontage, 1.0f, EMontagePlayReturnType::Duration);
 }
 
 void UWarriorAnimInstance::PlayRollMontage()

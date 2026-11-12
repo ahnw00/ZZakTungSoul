@@ -103,8 +103,8 @@ protected:
 
 private:
 	void SetPhase2Visuals(bool bEnabled);
+	void SetPhase2WeaponGlow(bool bEnabled);
 	FTransform ConstrainAttackRootMotion(const FTransform& RootMotion, UCharacterMovementComponent* Movement, float DeltaTime);
-	void PlaceAtPhase2CombatPoint();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Clown|Phase2|Visual")
 	TObjectPtr<UMaterialInterface> Phase2EyeMaterial;
@@ -205,7 +205,6 @@ private:
 	TWeakObjectPtr<UNiagaraComponent> Phase2Smoke;
 	TOptional<bool> Phase2WeaponVisibility;
 	TOptional<FVector> Phase2AdvanceOrigin;
-	TOptional<float> Phase2AdvanceStartedAt;
 	TWeakObjectPtr<UGeometryCollectionComponent> Phase2WallComponent;
 	TArray<FTransform3f> Phase2IntactWallTransforms;
 	TOptional<ECollisionEnabled::Type> Phase2WallCollision;

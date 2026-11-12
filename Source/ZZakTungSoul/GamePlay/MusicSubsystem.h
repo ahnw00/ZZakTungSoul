@@ -18,6 +18,8 @@ public:
     UFUNCTION(BlueprintCallable)
     void PlayBGM(USoundBase* BGM);
 
+    void PlayBGMWithFade(USoundBase* BGM, float FadeInDuration);
+
     UFUNCTION(BlueprintCallable)
     void StopBGM(float FadeOutDuration = 0.5f);
 

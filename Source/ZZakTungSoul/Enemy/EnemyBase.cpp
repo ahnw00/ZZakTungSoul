@@ -593,6 +593,7 @@ void AEnemyBase::SetDead()
 
 	// Spawner에 사망 상태 발행
 	OnEnemyDied.Broadcast(this);
+	OnResetLockOn.ExecuteIfBound();
 
 	// 소울 주기
 	RewardSoul();

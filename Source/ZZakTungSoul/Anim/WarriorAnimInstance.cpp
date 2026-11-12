@@ -431,18 +431,7 @@ bool UWarriorAnimInstance::PlayActionMontage()
 		break;
 	case EActionState::Roll:
 	{
-		const UWeaponDataAsset* WeaponData = GetWeaponData(Warrior);
-		if (!WeaponData)
-			return Montage_Play(RollMontage) > 0.f;
-
-		const TSoftObjectPtr<UAnimMontage>& RollMontageEquip 
-			= Warrior->IsTwoHanded() ? WeaponData->TwoHandRollMontage : WeaponData->OneHandRollMontage;
-
-		UAnimMontage* Montage = RollMontageEquip.LoadSynchronous();
-		if (!Montage)
-			return false;
-
-		return Montage_Play(Montage) > 0.f;
+		return PlayRollMontage(Warrior);
 	}
 
 	case EActionState::BackStep:
@@ -578,8 +567,37 @@ float UWarriorAnimInstance::PlayDeathMontage()
 	return Montage_Play(DeathMontage, 1.0f, EMontagePlayReturnType::Duration);
 }
 
-void UWarriorAnimInstance::PlayRollMontage()
+bool UWarriorAnimInstance::PlayRollMontage(AWarrior* Warrior)
 {
+	UAnimMontage* Montage = RollMontage;
+	if (const UWeaponDataAsset* WeaponData = GetWeaponData(Warrior))
+	{
+		const TSoftObjectPtr<UAnimMontage>& EquippedRoll = Warrior->IsTwoHanded() ? WeaponData->TwoHandRollMontage : WeaponData->OneHandRollMontage;
+		Montage = EquippedRoll.LoadSynchronous();
+	}
+
+	ActiveRollMontage = Montage;
+	if (!Montage || Montage_Play(Montage) <= 0.f)
+	{
+		ActiveRollMontage.Reset();
+		return false;
+	}
+
+	return true;
+}
+
+bool UWarriorAnimInstance::IsInRollInvincibilityWindow() const
+{
+	constexpr float InvincibilityStart = 0.05f;
+	constexpr float InvincibilityEnd = 0.30f;
+	const UAnimMontage* Montage = ActiveRollMontage.Get();
+	if (!Montage || !Montage_IsPlaying(Montage))
+	{
+		return false;
+	}
+
+	const float Position = Montage_GetPosition(Montage);
+	return Position >= InvincibilityStart && Position < InvincibilityEnd;
 }
 
 void UWarriorAnimInstance::PlayBackStepMontage()

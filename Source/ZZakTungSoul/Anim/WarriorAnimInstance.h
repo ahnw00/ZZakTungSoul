@@ -44,6 +44,7 @@ private:
 private:
 	UPROPERTY()
 	UAnimMontage* RollMontage;
+	TWeakObjectPtr<UAnimMontage> ActiveRollMontage;
 	//TMap<EWeaponState, TObjectPtr<UAnimMontage>> RollMontage;
 
 	UPROPERTY()
@@ -104,6 +105,7 @@ protected:
 
 private:
 	const class UWeaponDataAsset* GetWeaponData(class AWarrior* Warrior);
+	bool PlayRollMontage(class AWarrior* Warrior);
 
 public:
 	UFUNCTION()
@@ -118,7 +120,8 @@ public:
 	bool PlayActionMontage();
 	float PlayDeathMontage();
 
-	void PlayRollMontage();
+	const UAnimMontage* GetActiveRollMontage() const { return ActiveRollMontage.Get(); }
+	bool IsInRollInvincibilityWindow() const;
 	void PlayBackStepMontage();
 	void PlayAttackMontage();
 

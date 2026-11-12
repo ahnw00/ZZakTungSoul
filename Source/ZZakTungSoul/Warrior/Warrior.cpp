@@ -305,6 +305,7 @@ void AWarrior::PostInitializeComponents()
 void AWarrior::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	UpdateRollInvincibility();
 
 	const float Speed = GetVelocity().Size2D();
 
@@ -479,6 +480,11 @@ void AWarrior::UpdateLook(float DeltaTime)
 
 void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	if (ActionState == EActionState::Roll && AnimInstance && Montage != AnimInstance->GetActiveRollMontage())
+	{
+		return;
+	}
+
     if (ActionState == EActionState::Dead)
     {
         return;
@@ -907,12 +913,28 @@ void AWarrior::Dodge(FVector ControlDir)
 	}
 
 	SetActionState(EActionState::Roll);
-	AnimInstance->PlayActionMontage();
+	if (!AnimInstance || !AnimInstance->PlayActionMontage())
+	{
+		SetActionState(EActionState::None);
+		return;
+	}
+
+	UpdateRollInvincibility();
 
 	// 구를때는 이동 방향으로 굴러야해
 	// 회전 안잡아주면 카메라가 바라보는 방향으로만 구르게 돼(특히 락온 상태에서)
 	FRotator RollRot = ControlDir.Rotation();
 	SetActorRotation(RollRot);
+}
+
+void AWarrior::UpdateRollInvincibility()
+{
+	if (ActionState != EActionState::Roll)
+	{
+		return;
+	}
+
+	bIsInvincibility = AnimInstance && AnimInstance->IsInRollInvincibilityWindow();
 }
 
 void AWarrior::LockOn()
@@ -1143,15 +1165,14 @@ void AWarrior::SetActionState(EActionState NewState)
 	}
 
 	// 어떤 행동 중이든 사망으로 전환 가능
-	if (NewState == EActionState::Dead)
+	if (NewState != EActionState::Dead && NewState != EActionState::None && ActionState != EActionState::None)
 	{
-		ActionState = NewState;
 		return;
 	}
 
-	if (NewState != EActionState::None && ActionState != EActionState::None)
+	if (ActionState == EActionState::Roll)
 	{
-		return;
+		bIsInvincibility = false;
 	}
 
 	ActionState = NewState;
@@ -1258,6 +1279,8 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 
 	bool bInIsUnBlockable = DamageInfo.bUnblockable;
 	bool bInIsIgnoreInvincibility = DamageInfo.bIgnoreInvincibility;
+
+	UpdateRollInvincibility();
 
 	// 무적 상태이고 무적무시공격이 아닐때 데미지 X
 	if (bIsInvincibility && !bInIsIgnoreInvincibility)

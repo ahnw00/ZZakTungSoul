@@ -139,6 +139,7 @@ private:
 
 	UFUNCTION()
 	void OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void UpdateRollInvincibility();
 
 protected:
 	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Data", meta = (AllowPrivateAccess = "true"))

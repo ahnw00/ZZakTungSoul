@@ -1533,6 +1533,7 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 		if (ItemData->ItemName.ToString() == TEXT("랜턴"))
 		{
 			Lantern->SetSkeletalMesh(nullptr);
+			LanternLight->SetVisibility(false);
 		}
 	}
 		break;
@@ -1541,6 +1542,7 @@ void AWarrior::UnequipItem(EEquipmentSlot Slot)
 		if (ItemData->ItemName.ToString() == TEXT("랜턴"))
 		{
 			Lantern->SetSkeletalMesh(nullptr);
+			LanternLight->SetVisibility(false);
 		}
 	}
 		break;

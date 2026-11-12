@@ -116,6 +116,7 @@ public:
 
 	void PlayMontage(const EActionState CurrentActionState);
 	bool PlayActionMontage();
+	float PlayDeathMontage();
 
 	void PlayRollMontage();
 	void PlayBackStepMontage();

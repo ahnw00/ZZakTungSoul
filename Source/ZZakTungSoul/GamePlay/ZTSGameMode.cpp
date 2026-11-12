@@ -62,16 +62,20 @@ void AZTSGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (UMusicSubsystem* Music =
-		GetGameInstance()->GetSubsystem<UMusicSubsystem>())
-	{
-		Music->PlayBGM(GamePlayBGM);
-	}
+	PlayGameplayBGM();
 
 	// 타이틀에서 [LoadGame]으로 들어왔다면 자동으로 세이브 로드.
 	if (bShouldLoadOnStart)
 	{
 		LoadGame();
+	}
+}
+
+void AZTSGameMode::PlayGameplayBGM(float FadeInDuration)
+{
+	if (UMusicSubsystem* Music = GetGameInstance()->GetSubsystem<UMusicSubsystem>())
+	{
+		Music->PlayBGMWithFade(GamePlayBGM, FadeInDuration);
 	}
 }
 

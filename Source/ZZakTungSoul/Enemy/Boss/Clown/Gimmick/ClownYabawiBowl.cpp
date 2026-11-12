@@ -33,7 +33,7 @@ AClownYabawiBowl::AClownYabawiBowl()
 	AttackHitBox->OnComponentBeginOverlap.AddDynamic(this, &AClownYabawiBowl::OnBodyOverlap);
 }
 
-void AClownYabawiBowl::Initialize(UClownYabawiComponent* Round, int32 InRoundID, const FClownPhaseOnePattern& Settings)
+void AClownYabawiBowl::Initialize(UClownYabawiComponent* Round, int32 InRoundID, const FClownYabawiSettings& Settings)
 {
 	YabawiRound = Round;
 	RoundID = InRoundID;

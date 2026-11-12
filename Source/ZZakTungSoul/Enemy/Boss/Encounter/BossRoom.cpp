@@ -658,6 +658,10 @@ bool ABossRoom::TryEnter(AWarrior* Player, bool bFromFog, bool bOtherSide)
 		}
 
 		IntroPlayer->OnFinished.AddDynamic(this, &ABossRoom::OnIntroFinished);
+		if (UMusicSubsystem* Music = GetGameInstance()->GetSubsystem<UMusicSubsystem>())
+		{
+			Music->StopBGM(0.f);
+		}
 		IntroPlayer->Play();
 	}
 	else
@@ -986,12 +990,6 @@ void ABossRoom::SkipIntro()
 
 void ABossRoom::BeginBattle()
 {
-	if (UMusicSubsystem* Music =
-		GetGameInstance()->GetSubsystem<UMusicSubsystem>())
-	{
-		Music->StopBGM();
-	}
-
 	if (bChangingState || RoomState != EBossRoomState::Intro)
 	{
 		return;
@@ -1002,6 +1000,11 @@ void ABossRoom::BeginBattle()
 		FailAttempt();
 
 		return;
+	}
+
+	if (UMusicSubsystem* Music = GetGameInstance()->GetSubsystem<UMusicSubsystem>())
+	{
+		Music->StopBGM();
 	}
 
 	RoomState = EBossRoomState::Fighting;
@@ -1021,9 +1024,10 @@ void ABossRoom::BeginBattle()
 
 void ABossRoom::UpdateEncounterMusic()
 {
-	switch (BossActor->GetBossPhase())
+	const EBossPhase BossPhase = BossActor->GetBossPhase();
+	const EBossPhase MusicPhase = BossPhase == EBossPhase::OpeningAttack ? BossActor->GetOpeningCombatPhase() : BossPhase;
+	switch (MusicPhase)
 	{
-	case EBossPhase::OpeningAttack:
 	case EBossPhase::Phase1:
 		SetEncounterMusic(Phase1CombatMusic, Phase1CombatMusicVolume);
 		break;

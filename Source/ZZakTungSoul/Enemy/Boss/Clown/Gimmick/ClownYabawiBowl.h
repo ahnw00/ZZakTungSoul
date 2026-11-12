@@ -7,7 +7,7 @@
 class UClownYabawiComponent;
 class UStaticMeshComponent;
 class UBoxComponent;
-struct FClownPhaseOnePattern;
+struct FClownYabawiSettings;
 
 UCLASS(Blueprintable)
 class ZZAKTUNGSOUL_API AClownYabawiBowl : public AActor
@@ -16,7 +16,7 @@ class ZZAKTUNGSOUL_API AClownYabawiBowl : public AActor
 
 public:
 	AClownYabawiBowl();
-	void Initialize(UClownYabawiComponent* Round, int32 InRoundID, const FClownPhaseOnePattern& Settings);
+	void Initialize(UClownYabawiComponent* Round, int32 InRoundID, const FClownYabawiSettings& Settings);
 	void SetAttackSelectionEnabled(bool bEnabled);
 
 	UFUNCTION(BlueprintCallable, Category = "Clown|Yabawi")

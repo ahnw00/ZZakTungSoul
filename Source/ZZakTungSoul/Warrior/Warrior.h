@@ -229,7 +229,6 @@ public:
 	//FORCEINLINE UArrowComponent GetLockOnPoint() { return LockOnPoint; }
 
 private:
-	bool ExecuteFatalAttack(AActor& Enemy, class IFatalAttackableInterface& Target, bool bFront, bool bForced = false);
 	class IFatalAttackableInterface* CurrentFatalAttackable = nullptr;
 
 	// [처형 카메라].

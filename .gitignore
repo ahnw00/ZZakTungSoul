@@ -70,6 +70,7 @@ Plugins/*/Intermediate/*
 # Assets
 Content/Assets/*
 
+
 .mcp.json
 
 # md files

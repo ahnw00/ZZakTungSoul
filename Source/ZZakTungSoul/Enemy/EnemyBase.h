@@ -20,8 +20,11 @@ class UUserWidget;
 class APatrolPath;
 class UNiagaraSystem;
 class USoundCue;
+class AWarrior;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnEnemyDied, AEnemyBase*);
+DECLARE_DELEGATE(FOnResetLockOn);
+
 
 /**
  * 
@@ -161,6 +164,8 @@ private:
 
 public:
 	FOnEnemyDied OnEnemyDied;
+
+	FOnResetLockOn OnResetLockOn;
 
 protected:
 	// 공격할 때 사용할 데미지 정보 저장 변수

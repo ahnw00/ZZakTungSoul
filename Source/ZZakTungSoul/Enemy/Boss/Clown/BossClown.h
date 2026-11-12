@@ -103,6 +103,7 @@ protected:
 
 private:
 	void SetPhase2Visuals(bool bEnabled);
+	void SetPhase2WeaponGlow(bool bEnabled);
 	FTransform ConstrainAttackRootMotion(const FTransform& RootMotion, UCharacterMovementComponent* Movement, float DeltaTime);
 	void PlaceAtPhase2CombatPoint();
 

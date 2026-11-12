@@ -753,6 +753,17 @@ bool ABossClown::StartClownAttack(EBossClownAttack AttackType, AActor* Target, i
 	{
 		ScalePhase2Damage(CurrentClownAttack);
 	}
+	if (!UsesSpecialPresentation(AttackType))
+	{
+		const FClownPhaseOnePattern* Pattern = GetAttackPattern(AttackType);
+		const EClownPhase2MeleeEffect* Effect = BossPhase == EBossPhase::Phase2 && Pattern ?
+			Pattern->Phase2MeleeEffects.Find(AttackData->Montage) : nullptr;
+		for (FDamageInfo& Damage : CurrentClownAttack.DamageInfo)
+		{
+			Damage.bUnblockable = Effect && *Effect == EClownPhase2MeleeEffect::Unblockable;
+			Damage.bIgnoreInvincibility = Effect && *Effect == EClownPhase2MeleeEffect::IgnoreInvincibility;
+		}
+	}
 	LastPlayedAttackMontage = AttackData->Montage;
 	CurrentRecoveryScale = FMath::Clamp(RecoveryScale, 0.1f, 2.0f);
 	CurrentAttackType = AttackType;
@@ -873,6 +884,7 @@ bool ABossClown::PlayCurrentClownMontage()
 		return false;
 	}
 
+	SetPhase2WeaponGlow(true);
 	if (UsesSpecialPresentation(CurrentAttackType) && WeaponMeshComponent)
 	{
 		bWeaponWasVisible = WeaponMeshComponent->IsVisible();
@@ -1014,6 +1026,40 @@ void ABossClown::SetPhase2Visuals(bool bEnabled)
 	{
 		GetMesh()->SetMaterial(HeadSlot, OriginalHeadMaterial);
 		OriginalHeadMaterial = nullptr;
+	}
+}
+
+void ABossClown::SetPhase2WeaponGlow(bool bEnabled)
+{
+	const UBossClownAnimationData* Data = GetClownAnimationData();
+	if (!WeaponMeshComponent || !Data)
+	{
+		return;
+	}
+
+	if (!bEnabled)
+	{
+		const UMaterialInterface* Overlay = WeaponMeshComponent->GetOverlayMaterial();
+		if (Overlay && (Overlay == Data->Melee.Phase2UnblockableGlow || Overlay == Data->Melee.Phase2IgnoreInvincibilityGlow))
+		{
+			WeaponMeshComponent->SetOverlayMaterial(nullptr);
+		}
+		return;
+	}
+
+	if (BossPhase != EBossPhase::Phase2 || UsesSpecialPresentation(CurrentAttackType) || CurrentClownAttack.DamageInfo.IsEmpty())
+	{
+		return;
+	}
+
+	const FDamageInfo& Damage = CurrentClownAttack.DamageInfo[0];
+	if (Damage.bUnblockable && Data->Melee.Phase2UnblockableGlow)
+	{
+		WeaponMeshComponent->SetOverlayMaterial(Data->Melee.Phase2UnblockableGlow);
+	}
+	else if (Damage.bIgnoreInvincibility && Data->Melee.Phase2IgnoreInvincibilityGlow)
+	{
+		WeaponMeshComponent->SetOverlayMaterial(Data->Melee.Phase2IgnoreInvincibilityGlow);
 	}
 }
 
@@ -1738,6 +1784,7 @@ void ABossClown::TickClownAttack(float DeltaTime)
 
 void ABossClown::BeginClownRecovery()
 {
+	SetPhase2WeaponGlow(false);
 	if (AttackTraceComponent)
 	{
 		AttackTraceComponent->EndTrace();
@@ -1945,6 +1992,7 @@ void ABossClown::FinishClownAttack(EBossClownAttackResult Result, bool bStopMont
 	LastAttackResult = Result;
 	ActiveAttackID = INDEX_NONE;
 	CurrentDamageIndex = INDEX_NONE;
+	SetPhase2WeaponGlow(false);
 	const bool bWasYabawiGroggy = ClownAttackStage == EClownAttackStage::Groggy;
 
 	if (YabawiComponent && YabawiComponent->GetStage() != EClownYabawiStage::None)

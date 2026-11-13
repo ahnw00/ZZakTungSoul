@@ -70,6 +70,8 @@ AWarrior::AWarrior()
 	// it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	// Main Branch 변경 사항
+
 	// Mesh setting
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> TempMesh(
 		TEXT("/Game/Assets/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Cardboard.SK_CharM_Cardboard"));

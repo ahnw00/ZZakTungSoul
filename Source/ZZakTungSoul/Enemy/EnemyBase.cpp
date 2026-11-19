@@ -4,6 +4,7 @@
 #include "Enemy/EnemyBase.h"
 #include <Enemy/EnemyAIController.h>
 #include <Enemy/Data/EnemyAIData.h>
+#include <Enemy/NormalEnemy/NormalEnemyBase.h>
 #include <Enemy/AIController/NormalEnemyAIController.h>
 #include <Enemy/Animation/EnemyBaseAnimInstance.h>
 #include <Enemy/Components/AttackTraceComponent.h>
@@ -773,6 +774,12 @@ void AEnemyBase::SetStrafeMode(bool bEnable)
 
 void AEnemyBase::OnGetParried()
 {
+	// 일반 적만 패링 - 임시 긴급 패치
+	if (!IsA<ANormalEnemyBase>())
+	{
+		return;
+	}
+
 	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
 	if (!AIController)
 		return;

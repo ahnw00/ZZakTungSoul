@@ -480,6 +480,12 @@ void AWarrior::UpdateLook(float DeltaTime)
 
 void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	// 이전 공격의 종료 이벤트가 다음 콤보/피격 몽타주의 상태를 해제하지 않도록 한다.
+	if (AnimInstance && AnimInstance->GetCurrentActiveMontage())
+	{
+		return;
+	}
+
 	if (ActionState == EActionState::Roll && AnimInstance && Montage != AnimInstance->GetActiveRollMontage())
 	{
 		return;
@@ -512,8 +518,8 @@ void AWarrior::OnActionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 		LanternLight->ToggleVisibility();
 	}
 
-    if (ActionState != EActionState::Attack)
-        SetActionState(EActionState::None);
+    // 종료 Notify를 지나기 전에 중단된 공격도 반드시 정리한다.
+    SetActionState(EActionState::None);
 }
 
 void AWarrior::UpdateCharacterStats()
@@ -710,9 +716,11 @@ void AWarrior::Attack()
 		return;
 	}
 	case EActionState::Hit:
+	case EActionState::Stun:
+	case EActionState::Dead:
 		return;
 	default:
-		break;
+		return;
 	}
 
 	// if (OverlayState != EWeaponState::None)
@@ -1164,10 +1172,22 @@ void AWarrior::SetActionState(EActionState NewState)
 		return;
 	}
 
-	// 어떤 행동 중이든 사망으로 전환 가능
-	if (NewState != EActionState::Dead && NewState != EActionState::None && ActionState != EActionState::None)
+	// 피격/그로기는 진행 중인 행동을 중단할 수 있다.
+	const bool bInterrupting = NewState == EActionState::Hit || NewState == EActionState::Stun || NewState == EActionState::Dead;
+	if (!bInterrupting && NewState != EActionState::None && ActionState != EActionState::None)
 	{
 		return;
+	}
+
+	if (ActionState == EActionState::Attack && NewState != EActionState::Attack)
+	{
+		AttackCombo = 0;
+		bIsAttacking = false;
+		bComboQueued = false;
+		bCanComboInput = false;
+		if (AttackTraceComponent) AttackTraceComponent->EndTrace();
+		if (AttackTraceComponentLeft) AttackTraceComponentLeft->EndTrace();
+		if (AttackTraceComponentRightFoot) AttackTraceComponentRightFoot->EndTrace();
 	}
 
 	if (ActionState == EActionState::Roll)
@@ -1295,11 +1315,6 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 		return;
 	}
 
-	if (!AnimInstance && !CharacterStatComponent)
-	{
-		return;
-	}
-
 	float Poise = CharacterStatComponent->GetPoise();
 	float CurrentStamina = CharacterStatComponent->GetCurrentStamina();
 
@@ -1330,29 +1345,24 @@ void AWarrior::ReceiveDamage(const FDamageInfo& DamageInfo, const FHitResult& Hi
 		if (StanceIsZero)
 		{
 			SetActionState(EActionState::Stun);
-			AnimInstance->PlayActionMontage();
-			CharacterStatComponent->ApplyDamage(DamageInfo);
 		}
 		else if (CurrentStamina == 0 && GetActionState() == EActionState::Block)
 		{
 			CharacterStatComponent->SetCurrentStance(0);
 			SetActionState(EActionState::Stun);
-			AnimInstance->PlayActionMontage();
-			CharacterStatComponent->ApplyDamage(DamageInfo);
 		}
 		else
 		{
 			SetActionState(EActionState::Hit);
-			AnimInstance->PlayActionMontage();
-			CharacterStatComponent->ApplyDamage(DamageInfo);
 		}
-	}
-	else
-	{
-		// 맞았는데, 강인도가 높아서 액션 취소 안됨.
-		//SetActionState(EActionState::Hit);
-		//AnimInstance->PlayActionMontage();
-		CharacterStatComponent->ApplyDamage(DamageInfo);
+
+		bIsGuard = false;
+		if (!AnimInstance || !AnimInstance->PlayActionMontage())
+		{
+			// 누락된 피격 에셋 때문에 Hit/Stun 상태에 갇히지 않도록 한다.
+			if (AnimInstance) AnimInstance->Montage_Stop(0.f);
+			SetActionState(EActionState::None);
+		}
 	}
 }
 
